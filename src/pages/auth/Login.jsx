@@ -1,0 +1,617 @@
+import { useState, useEffect, useRef } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { useAuth } from '../../context/AuthContext';
+import Navbar from '../../components/layout/Navbar';
+import Footer from '../../components/layout/Footer';
+
+export default function Login() {
+  const [isLogin, setIsLogin] = useState(true);
+  const [userType, setUserType] = useState('developer');
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    track: '',
+    experience: '',
+    companyName: ''
+  });
+  const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  
+  const canvasRef = useRef(null);
+  const { login, register } = useAuth();
+  const navigate = useNavigate();
+
+  // Hacker Matrix Effect - نسخة فخمة
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    
+    const elegantCode = [
+      'DevHire', '✨', '</>', '{}', '()', '=>', 'const', 'let',
+      'مبرمج', 'ابتكار', 'تقنية', 'ريادة', 'نجاح', 'تطوير',
+      'React', 'Node', 'AI', 'Cloud', 'Future', 'Code',
+      '🌟', '🚀', '💡', '⚡', '🎯', '🏆'
+    ];
+    
+    let columns = [];
+    const fontSize = 24;
+    const columnsCount = Math.floor(canvas.width / fontSize);
+    
+    for (let i = 0; i < columnsCount; i++) {
+      columns[i] = Math.floor(Math.random() * canvas.height / fontSize);
+    }
+    
+    let opacities = columns.map(() => Math.random() * 0.3 + 0.1);
+    
+    function draw() {
+      ctx.fillStyle = 'rgba(10, 10, 20, 0.05)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      for (let i = 0; i < columns.length; i++) {
+        const randomIndex = Math.floor(Math.random() * elegantCode.length);
+        const text = elegantCode[randomIndex];
+        const x = i * fontSize;
+        const y = columns[i] * fontSize;
+        
+        const gradient = ctx.createLinearGradient(x, y - fontSize, x, y);
+        gradient.addColorStop(0, '#6366f1');
+        gradient.addColorStop(0.5, '#8b5cf6');
+        gradient.addColorStop(1, '#ec4899');
+        
+        ctx.fillStyle = gradient;
+        ctx.font = `${fontSize}px 'Cairo', 'Courier New', monospace`;
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = '#6366f1';
+        ctx.globalAlpha = opacities[i];
+        
+        ctx.fillText(text, x, y);
+        
+        ctx.globalAlpha = 1;
+        ctx.shadowBlur = 0;
+        
+        if (y > canvas.height && Math.random() > 0.98) {
+          columns[i] = 0;
+          opacities[i] = Math.random() * 0.3 + 0.1;
+        } else {
+          columns[i] += 0.5;
+        }
+      }
+      
+      requestAnimationFrame(draw);
+    }
+    
+    draw();
+    
+    const handleResize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      const newColumnsCount = Math.floor(canvas.width / fontSize);
+      columns = [];
+      opacities = [];
+      for (let i = 0; i < newColumnsCount; i++) {
+        columns[i] = Math.floor(Math.random() * canvas.height / fontSize);
+        opacities[i] = Math.random() * 0.3 + 0.1;
+      }
+    };
+    
+    window.addEventListener('resize', handleResize);
+    
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
+  // دالة تسجيل الدخول عبر Google
+  const handleGoogleLogin = async () => {
+    setGoogleLoading(true);
+    
+    // Simulate Google login
+    setTimeout(async () => {
+      const mockGoogleUser = {
+        id: 'google_' + Date.now(),
+        name: 'أحمد محمد',
+        email: 'ahmed@gmail.com',
+        userType: 'developer',
+        avatar: 'https://randomuser.me/api/portraits/men/32.jpg',
+        isGoogleUser: true
+      };
+      
+      localStorage.setItem('token', 'google-token-' + Date.now());
+      localStorage.setItem('user', JSON.stringify(mockGoogleUser));
+      
+      setGoogleLoading(false);
+      navigate('/dashboard/developer');
+    }, 1500);
+  };
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+    if (errors[e.target.name]) {
+      setErrors({
+        ...errors,
+        [e.target.name]: ''
+      });
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+    
+    if (!isLogin) {
+      if (!formData.name) newErrors.name = 'الاسم مطلوب';
+      if (!formData.email) newErrors.email = 'البريد الإلكتروني مطلوب';
+      if (!formData.password) newErrors.password = 'كلمة المرور مطلوبة';
+      if (formData.password !== formData.confirmPassword) {
+        newErrors.confirmPassword = 'كلمة المرور غير متطابقة';
+      }
+      if (formData.password.length < 6) {
+        newErrors.password = 'كلمة المرور يجب أن تكون 6 أحرف على الأقل';
+      }
+      
+      if (userType === 'developer') {
+        if (!formData.track) newErrors.track = 'يرجى اختيار التخصص';
+        if (!formData.experience) newErrors.experience = 'يرجى اختيار سنوات الخبرة';
+      } else {
+        if (!formData.companyName) newErrors.companyName = 'اسم الشركة مطلوب';
+      }
+    } else {
+      if (!formData.email) newErrors.email = 'البريد الإلكتروني مطلوب';
+      if (!formData.password) newErrors.password = 'كلمة المرور مطلوبة';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!validateForm()) return;
+    
+    setLoading(true);
+    
+    try {
+      if (isLogin) {
+        await login(formData.email, formData.password);
+        const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+        if (storedUser.userType === 'developer') {
+          navigate('/dashboard/developer');
+        } else {
+          navigate('/dashboard/client');
+        }
+      } else {
+        const registerData = {
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+          userType: userType,
+          ...(userType === 'developer' && {
+            track: formData.track,
+            experience: formData.experience
+          }),
+          ...(userType === 'client' && {
+            companyName: formData.companyName
+          })
+        };
+        
+        await register(registerData);
+        if (userType === 'developer') {
+          navigate('/complete-profile');
+        } else {
+          navigate('/complete-client-profile');
+        }
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      setErrors({
+        submit: error.response?.data?.message || 'حدث خطأ، يرجى المحاولة مرة أخرى'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const tracks = [
+    { value: 'frontend', label: 'Frontend Developer', icon: '🎨' },
+    { value: 'backend', label: 'Backend Developer', icon: '⚙️' },
+    { value: 'fullstack', label: 'Fullstack Developer', icon: '🚀' },
+    { value: 'mobile', label: 'Mobile Developer', icon: '📱' },
+    { value: 'devops', label: 'DevOps Engineer', icon: '🔧' },
+    { value: 'ai', label: 'AI/ML Engineer', icon: '🧠' }
+  ];
+
+  const experienceLevels = [
+    { value: '0-1', label: 'مبتدئ (0-1 سنة)' },
+    { value: '1-3', label: 'متوسط (1-3 سنوات)' },
+    { value: '3-5', label: 'محترف (3-5 سنوات)' },
+    { value: '5+', label: 'خبير (5+ سنوات)' }
+  ];
+
+  const fadeInUp = {
+    initial: { opacity: 0, y: 30 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.5 }
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col relative" dir="rtl">
+      {/* Canvas Background */}
+      <canvas
+        ref={canvasRef}
+        className="fixed top-0 left-0 w-full h-full z-0"
+        style={{ background: 'linear-gradient(135deg, #0f0c1e 0%, #1a1025 50%, #0f0c1e 100%)' }}
+      />
+      
+      {/* Soft Glow Overlay */}
+      <div className="fixed inset-0 z-[1] bg-gradient-to-b from-indigo-950/30 via-transparent to-purple-950/30 pointer-events-none"></div>
+      
+      <div className="relative z-10">
+        <Navbar />
+        
+        <main className="flex-grow relative overflow-hidden">
+          <div className="max-w-md mx-auto px-4 py-16 md:py-24">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="bg-white/5 backdrop-blur-2xl rounded-3xl shadow-2xl p-8 border border-white/10"
+            >
+              {/* Header */}
+              <div className="text-center mb-8">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", stiffness: 200 }}
+                  className="text-6xl mb-4"
+                >
+                  ✨
+                </motion.div>
+                <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+                  {isLogin ? 'مرحباً بعودتك' : 'انضم إلى DevHire'}
+                </h1>
+                <p className="text-white/50">
+                  {isLogin 
+                    ? 'سجل دخولك للوصول إلى حسابك' 
+                    : userType === 'developer' 
+                      ? 'سجل كمبرمج وابدأ رحلة الربح' 
+                      : 'سجل كعميل وابحث عن أفضل المبرمجين'}
+                </p>
+              </div>
+
+              {/* Google Login Button */}
+              <motion.button
+                variants={fadeInUp}
+                initial="initial"
+                animate="animate"
+                onClick={handleGoogleLogin}
+                disabled={googleLoading}
+                className="w-full mb-4 py-3 rounded-xl font-semibold text-gray-700 bg-white hover:bg-gray-50 transition-all duration-300 flex items-center justify-center gap-3 shadow-md hover:shadow-lg"
+              >
+                {googleLoading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                    جاري الاتصال...
+                  </div>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" viewBox="0 0 24 24">
+                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                    </svg>
+                    <span>تسجيل الدخول باستخدام Google</span>
+                  </>
+                )}
+              </motion.button>
+
+              {/* Divider */}
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-white/20"></div>
+                </div>
+                <div className="relative flex justify-center text-xs">
+                  <span className="px-2 bg-transparent text-white/40">أو</span>
+                </div>
+              </div>
+
+              {/* Toggle Buttons */}
+              <div className="flex gap-2 bg-white/5 rounded-xl p-1 mb-8 border border-white/10">
+                <button
+                  onClick={() => setIsLogin(true)}
+                  className={`flex-1 py-2 rounded-lg font-semibold transition-all duration-300 ${
+                    isLogin 
+                      ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg' 
+                      : 'text-white/50 hover:text-white hover:bg-white/10'
+                  }`}
+                >
+                  تسجيل الدخول
+                </button>
+                <button
+                  onClick={() => setIsLogin(false)}
+                  className={`flex-1 py-2 rounded-lg font-semibold transition-all duration-300 ${
+                    !isLogin 
+                      ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg' 
+                      : 'text-white/50 hover:text-white hover:bg-white/10'
+                  }`}
+                >
+                  إنشاء حساب
+                </button>
+              </div>
+
+              {/* User Type Selection */}
+              {!isLogin && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mb-6"
+                >
+                  <label className="block text-sm font-semibold text-white/70 mb-3">
+                    أنا
+                  </label>
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setUserType('developer')}
+                      className={`flex-1 py-3 rounded-xl border transition-all duration-300 ${
+                        userType === 'developer'
+                          ? 'border-indigo-500 bg-indigo-500/20 text-indigo-300'
+                          : 'border-white/20 text-white/40 hover:border-white/40'
+                      }`}
+                    >
+                      <span className="text-xl ml-2">💻</span>
+                      مبرمج
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setUserType('client')}
+                      className={`flex-1 py-3 rounded-xl border transition-all duration-300 ${
+                        userType === 'client'
+                          ? 'border-indigo-500 bg-indigo-500/20 text-indigo-300'
+                          : 'border-white/20 text-white/40 hover:border-white/40'
+                      }`}
+                    >
+                      <span className="text-xl ml-2">🏢</span>
+                      عميل
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Error Message */}
+              {errors.submit && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-xl text-red-300 text-sm text-center"
+                >
+                  {errors.submit}
+                </motion.div>
+              )}
+
+              {/* Form */}
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {!isLogin && (
+                  <motion.div variants={fadeInUp} initial="initial" animate="animate">
+                    <label className="block text-sm font-semibold text-white/70 mb-2">
+                      الاسم الكامل
+                    </label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleChange}
+                      className={`w-full px-4 py-3 rounded-xl bg-white/5 border ${
+                        errors.name ? 'border-red-500' : 'border-white/10'
+                      } focus:border-indigo-500 focus:outline-none transition-colors text-white placeholder-white/30`}
+                      placeholder="أحمد محمد"
+                    />
+                    {errors.name && (
+                      <p className="text-red-400 text-xs mt-1">{errors.name}</p>
+                    )}
+                  </motion.div>
+                )}
+
+                {!isLogin && userType === 'client' && (
+                  <motion.div variants={fadeInUp} initial="initial" animate="animate">
+                    <label className="block text-sm font-semibold text-white/70 mb-2">
+                      اسم الشركة
+                    </label>
+                    <input
+                      type="text"
+                      name="companyName"
+                      value={formData.companyName}
+                      onChange={handleChange}
+                      className={`w-full px-4 py-3 rounded-xl bg-white/5 border ${
+                        errors.companyName ? 'border-red-500' : 'border-white/10'
+                      } focus:border-indigo-500 focus:outline-none transition-colors text-white placeholder-white/30`}
+                      placeholder="شركة التقنية العربية"
+                    />
+                    {errors.companyName && (
+                      <p className="text-red-400 text-xs mt-1">{errors.companyName}</p>
+                    )}
+                  </motion.div>
+                )}
+
+                <motion.div variants={fadeInUp} initial="initial" animate="animate">
+                  <label className="block text-sm font-semibold text-white/70 mb-2">
+                    البريد الإلكتروني
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    className={`w-full px-4 py-3 rounded-xl bg-white/5 border ${
+                      errors.email ? 'border-red-500' : 'border-white/10'
+                    } focus:border-indigo-500 focus:outline-none transition-colors text-white placeholder-white/30`}
+                    placeholder="ahmed@example.com"
+                  />
+                  {errors.email && (
+                    <p className="text-red-400 text-xs mt-1">{errors.email}</p>
+                  )}
+                </motion.div>
+
+                <motion.div variants={fadeInUp} initial="initial" animate="animate">
+                  <label className="block text-sm font-semibold text-white/70 mb-2">
+                    كلمة المرور
+                  </label>
+                  <input
+                    type="password"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    className={`w-full px-4 py-3 rounded-xl bg-white/5 border ${
+                      errors.password ? 'border-red-500' : 'border-white/10'
+                    } focus:border-indigo-500 focus:outline-none transition-colors text-white placeholder-white/30`}
+                    placeholder="••••••••"
+                  />
+                  {errors.password && (
+                    <p className="text-red-400 text-xs mt-1">{errors.password}</p>
+                  )}
+                </motion.div>
+
+                {!isLogin && (
+                  <motion.div variants={fadeInUp} initial="initial" animate="animate">
+                    <label className="block text-sm font-semibold text-white/70 mb-2">
+                      تأكيد كلمة المرور
+                    </label>
+                    <input
+                      type="password"
+                      name="confirmPassword"
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
+                      className={`w-full px-4 py-3 rounded-xl bg-white/5 border ${
+                        errors.confirmPassword ? 'border-red-500' : 'border-white/10'
+                      } focus:border-indigo-500 focus:outline-none transition-colors text-white placeholder-white/30`}
+                      placeholder="••••••••"
+                    />
+                    {errors.confirmPassword && (
+                      <p className="text-red-400 text-xs mt-1">{errors.confirmPassword}</p>
+                    )}
+                  </motion.div>
+                )}
+
+                {!isLogin && userType === 'developer' && (
+                  <>
+                    <motion.div variants={fadeInUp} initial="initial" animate="animate">
+                      <label className="block text-sm font-semibold text-white/70 mb-2">
+                        التخصص
+                      </label>
+                      <select
+                        name="track"
+                        value={formData.track}
+                        onChange={handleChange}
+                        className={`w-full px-4 py-3 rounded-xl bg-white/5 border ${
+                          errors.track ? 'border-red-500' : 'border-white/10'
+                        } focus:border-indigo-500 focus:outline-none transition-colors text-white`}
+                      >
+                        <option value="" className="bg-gray-900">اختر تخصصك</option>
+                        {tracks.map(track => (
+                          <option key={track.value} value={track.value} className="bg-gray-900">
+                            {track.icon} {track.label}
+                          </option>
+                        ))}
+                      </select>
+                      {errors.track && (
+                        <p className="text-red-400 text-xs mt-1">{errors.track}</p>
+                      )}
+                    </motion.div>
+
+                    <motion.div variants={fadeInUp} initial="initial" animate="animate">
+                      <label className="block text-sm font-semibold text-white/70 mb-2">
+                        سنوات الخبرة
+                      </label>
+                      <select
+                        name="experience"
+                        value={formData.experience}
+                        onChange={handleChange}
+                        className={`w-full px-4 py-3 rounded-xl bg-white/5 border ${
+                          errors.experience ? 'border-red-500' : 'border-white/10'
+                        } focus:border-indigo-500 focus:outline-none transition-colors text-white`}
+                      >
+                        <option value="" className="bg-gray-900">اختر سنوات الخبرة</option>
+                        {experienceLevels.map(level => (
+                          <option key={level.value} value={level.value} className="bg-gray-900">
+                            {level.label}
+                          </option>
+                        ))}
+                      </select>
+                      {errors.experience && (
+                        <p className="text-red-400 text-xs mt-1">{errors.experience}</p>
+                      )}
+                    </motion.div>
+                  </>
+                )}
+
+                {isLogin && (
+                  <div className="text-left">
+                    <Link to="/forgot-password" className="text-sm text-indigo-400 hover:text-indigo-300">
+                      نسيت كلمة المرور؟
+                    </Link>
+                  </div>
+                )}
+
+                <motion.button
+                  type="submit"
+                  disabled={loading}
+                  whileHover={{ scale: loading ? 1 : 1.02 }}
+                  whileTap={{ scale: loading ? 1 : 0.98 }}
+                  className={`w-full py-3 rounded-xl font-bold text-white bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:shadow-lg hover:shadow-indigo-500/25 transition-all duration-300 ${
+                    loading ? 'opacity-70 cursor-not-allowed' : ''
+                  }`}
+                >
+                  {loading ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      جاري المعالجة...
+                    </div>
+                  ) : (
+                    isLogin ? 'تسجيل الدخول' : 'إنشاء حساب'
+                  )}
+                </motion.button>
+              </form>
+
+              {/* Footer */}
+              <div className="mt-6 text-center text-sm text-white/40">
+                {isLogin ? (
+                  <p>
+                    ليس لديك حساب؟{' '}
+                    <button
+                      onClick={() => setIsLogin(false)}
+                      className="text-indigo-400 font-semibold hover:text-indigo-300"
+                    >
+                      إنشاء حساب الآن
+                    </button>
+                  </p>
+                ) : (
+                  <p>
+                    لديك حساب بالفعل؟{' '}
+                    <button
+                      onClick={() => setIsLogin(true)}
+                      className="text-indigo-400 font-semibold hover:text-indigo-300"
+                    >
+                      تسجيل الدخول
+                    </button>
+                  </p>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        </main>
+
+        <Footer />
+      </div>
+    </div>
+  );
+}

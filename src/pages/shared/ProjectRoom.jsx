@@ -1,0 +1,1 @@
+export default function ProjectRoom() { return <div className="p-8"><h1 className="text-3xl font-bold">غرفة المشروع</h1></div> }
