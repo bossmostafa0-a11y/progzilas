@@ -1,24 +1,28 @@
+// src/pages/client/NewProject.jsx
+
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-
+import { useAuth } from '../../context/AuthContext';
+import { createClientProject } from '../../services/cliecnt.service.js';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import ClientSidebar from '../../components/layout/ClientSidebar';
 
 export default function NewProject() {
-
+  const { fetchUser } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1);
+  const [validationErrors, setValidationErrors] = useState({});
   
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    category: '',
-    budget: '',
-    duration: '',
+    type: '',
     skills: [],
-    attachments: []
+    time: '',
+    budget: '',
+    deadline: ''
   });
 
   const [tempSkill, setTempSkill] = useState('');
@@ -26,6 +30,8 @@ export default function NewProject() {
   const categories = [
     { value: 'web', label: 'تطوير ويب', icon: '🌐' },
     { value: 'mobile', label: 'تطبيق موبايل', icon: '📱' },
+    { value: 'desktop', label: 'تطبيق كمبيوتر', icon: '💻' }, // ✅ جديد
+    { value: 'cross-platform', label: 'كمبيوتر وموبيل معاً', icon: '🔄' }, // ✅ جديد
     { value: 'design', label: 'تصميم واجهات', icon: '🎨' },
     { value: 'ai', label: 'الذكاء الاصطناعي', icon: '🧠' },
     { value: 'cloud', label: 'الحوسبة السحابية', icon: '☁️' }
@@ -49,23 +55,87 @@ export default function NewProject() {
   };
 
   const handleChange = (e) => {
+    const { name, value } = e.target;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: value
     });
+    setValidationErrors({ ...validationErrors, [name]: '' });
   };
 
+  // ✅ التحقق من صحة النموذج
+  const validateForm = () => {
+    const errors = {};
+    
+    if (!formData.name.trim()) errors.name = 'اسم المشروع مطلوب';
+    if (!formData.type) errors.type = 'التصنيف مطلوب';
+    if (!formData.description.trim()) errors.description = 'وصف المشروع مطلوب';
+    if (!formData.deadline) errors.deadline = 'آخر ميعاد للتقديم مطلوب';
+    
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  // ✅ إرسال المشروع للباك اند
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    
     setLoading(true);
     
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      // ✅ تجهيز البيانات للإرسال
+      const submitData = {
+        name: formData.name,
+        desctption: formData.description,
+        type: formData.type,
+        skills: formData.skills || [],
+        time: formData.time || '',
+        budget: formData.budget || '',
+        deadline: formData.deadline || ''
+      };
+      
+      console.log('📤 Sending project data:', submitData);
+      
+      // ✅ استدعاء الدالة من clientService
+      const response = await createClientProject(submitData);
+      console.log('📥 Project created:', response);
+      
+      // ✅ تحديث بيانات المستخدم
+      await fetchUser();
+      
+      alert('✅ تم نشر المشروع بنجاح');
       navigate('/dashboard/client/projects');
-    }, 1500);
+      
+    } catch (error) {
+      console.error('❌ Error creating project:', error);
+      alert(error.response?.data?.message || 'حدث خطأ أثناء نشر المشروع');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const nextStep = () => {
+    // ✅ تحقق من الخطوة الأولى
+    if (step === 1) {
+      if (!formData.name.trim()) {
+        setValidationErrors({ name: 'اسم المشروع مطلوب' });
+        return;
+      }
+      if (!formData.type) {
+        setValidationErrors({ type: 'التصنيف مطلوب' });
+        return;
+      }
+      if (!formData.description.trim()) {
+        setValidationErrors({ description: 'وصف المشروع مطلوب' });
+        return;
+      }
+    }
+    
     setStep(step + 1);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -104,23 +174,31 @@ export default function NewProject() {
                         name="name"
                         value={formData.name}
                         onChange={handleChange}
-                        className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:outline-none"
+                        className={`w-full px-4 py-3 rounded-xl border-2 transition-all ${
+                          validationErrors.name ? 'border-red-500' : 'border-gray-200 focus:border-indigo-500'
+                        } focus:outline-none`}
                         placeholder="مثال: نظام إدارة متكامل"
                       />
+                      {validationErrors.name && (
+                        <p className="text-red-500 text-xs mt-1">{validationErrors.name}</p>
+                      )}
                     </div>
 
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">
                         التصنيف <span className="text-red-500">*</span>
                       </label>
-                      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                         {categories.map(cat => (
                           <button
                             key={cat.value}
                             type="button"
-                            onClick={() => setFormData({ ...formData, category: cat.value })}
+                            onClick={() => {
+                              setFormData({ ...formData, type: cat.value });
+                              setValidationErrors({ ...validationErrors, type: '' });
+                            }}
                             className={`p-3 rounded-xl border-2 transition-all duration-300 ${
-                              formData.category === cat.value
+                              formData.type === cat.value
                                 ? 'border-indigo-600 bg-indigo-50 text-indigo-600'
                                 : 'border-gray-200 hover:border-indigo-300'
                             }`}
@@ -130,6 +208,9 @@ export default function NewProject() {
                           </button>
                         ))}
                       </div>
+                      {validationErrors.type && (
+                        <p className="text-red-500 text-xs mt-1">{validationErrors.type}</p>
+                      )}
                     </div>
 
                     <div>
@@ -141,9 +222,14 @@ export default function NewProject() {
                         rows="6"
                         value={formData.description}
                         onChange={handleChange}
-                        className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:outline-none resize-none"
+                        className={`w-full px-4 py-3 rounded-xl border-2 transition-all ${
+                          validationErrors.description ? 'border-red-500' : 'border-gray-200 focus:border-indigo-500'
+                        } focus:outline-none resize-none`}
                         placeholder="وصف تفصيلي للمشروع، المتطلبات، والأهداف..."
                       />
+                      {validationErrors.description && (
+                        <p className="text-red-500 text-xs mt-1">{validationErrors.description}</p>
+                      )}
                     </div>
                   </div>
                 )}
@@ -155,32 +241,50 @@ export default function NewProject() {
                         <label className="block text-sm font-semibold text-gray-700 mb-2">
                           الميزانية ($)
                         </label>
-                        <select
+                        <input
+                          type="number"
                           name="budget"
                           value={formData.budget}
                           onChange={handleChange}
                           className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:outline-none"
-                        >
-                          <option value="">اختر الميزانية</option>
-                          <option value="under1000">أقل من $1000</option>
-                          <option value="1000-5000">$1000 - $5000</option>
-                          <option value="5000-10000">$5000 - $10000</option>
-                          <option value="above10000">أكثر من $10000</option>
-                        </select>
+                          placeholder="أدخل الميزانية المحددة"
+                          min="0"
+                          step="100"
+                        />
                       </div>
                       <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-2">
-                          المدة المتوقعة
+                          المدة المتوقعة (بالأيام)
                         </label>
                         <input
                           type="text"
-                          name="duration"
-                          value={formData.duration}
+                          name="time"
+                          value={formData.time}
                           onChange={handleChange}
                           className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:outline-none"
                           placeholder="مثال: 30 يوم"
                         />
                       </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        آخر ميعاد للتقديم <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="date"
+                        name="deadline"
+                        value={formData.deadline}
+                        onChange={handleChange}
+                        className={`w-full px-4 py-3 rounded-xl border-2 transition-all ${
+                          validationErrors.deadline ? 'border-red-500' : 'border-gray-200 focus:border-indigo-500'
+                        } focus:outline-none`}
+                        min={new Date().toISOString().split('T')[0]}
+                      />
+                      {validationErrors.deadline && (
+                        <p className="text-red-500 text-xs mt-1">{validationErrors.deadline}</p>
+                      )}
+                      <p className="text-xs text-gray-400 mt-1">📅 اختر آخر تاريخ لتلقي العروض</p>
                     </div>
 
                     <div>
@@ -230,6 +334,7 @@ export default function NewProject() {
                   {step < 2 ? (
                     <button
                       type="button"
+                      key="next"
                       onClick={nextStep}
                       className="px-6 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium hover:shadow-lg transition-all ml-auto"
                     >
@@ -238,10 +343,18 @@ export default function NewProject() {
                   ) : (
                     <button
                       type="submit"
+                      key="submit"
                       disabled={loading}
                       className="px-6 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-medium hover:shadow-lg transition-all ml-auto disabled:opacity-50"
                     >
-                      {loading ? 'جاري النشر...' : 'نشر المشروع 🚀'}
+                      {loading ? (
+                        <div className="flex items-center gap-2">
+                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          جاري النشر...
+                        </div>
+                      ) : (
+                        'نشر المشروع 🚀'
+                      )}
                     </button>
                   )}
                 </div>

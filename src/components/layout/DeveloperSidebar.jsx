@@ -1,8 +1,10 @@
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useAuth } from '../../context/AuthContext';
 
 export default function DeveloperSidebar({ activePage }) {
   const location = useLocation();
+  const { user } = useAuth(); // ✅ استخدم الـ Context عشان تجيب بيانات المستخدم
 
   const menuItems = [
     { id: 'dashboard', label: 'لوحة التحكم', icon: '📊', path: '/dashboard/developer' },
@@ -15,16 +17,32 @@ export default function DeveloperSidebar({ activePage }) {
     { id: 'settings', label: 'الإعدادات', icon: '⚙️', path: '/dashboard/developer/settings' }
   ];
 
+  // ✅ استخراج بيانات المستخدم
+  const userName = user?.name || user?.username || 'مطور';
+  const userTitle = user?.title || user?.headline || 'مطور برمجيات';
+  const userImage = user?.profileImage || user?.avatar || null;
+
+  // ✅ الحرف الأول من الاسم
+  const firstLetter = userName.charAt(0);
+
   return (
     <aside className="w-72 bg-white shadow-lg min-h-screen sticky top-16">
       <div className="p-6">
         {/* User Info */}
         <div className="text-center mb-8 pb-6 border-b border-gray-200">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 mx-auto mb-3 flex items-center justify-center text-white text-2xl font-bold">
-            أ
+          <div className="w-20 h-20 rounded-full mx-auto mb-3 flex items-center justify-center text-white text-2xl font-bold overflow-hidden bg-gradient-to-r from-indigo-500 to-purple-500">
+            {userImage ? (
+              <img 
+                src={userImage} 
+                alt={userName} 
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <span>{firstLetter}</span>
+            )}
           </div>
-          <h3 className="font-bold text-gray-800">أحمد المنصوري</h3>
-          <p className="text-sm text-gray-500 mt-1">Full Stack Developer</p>
+          <h3 className="font-bold text-gray-800">{userName}</h3>
+          <p className="text-sm text-gray-500 mt-1">{userTitle}</p>
           <div className="inline-block mt-2 px-2 py-1 bg-green-100 text-green-600 text-xs rounded-full">
             متاح للعمل ✅
           </div>

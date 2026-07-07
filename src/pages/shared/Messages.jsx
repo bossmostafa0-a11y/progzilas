@@ -1,159 +1,511 @@
-import { useState, useEffect, useRef } from 'react';
+// src/pages/shared/Messages.jsx
+
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
+import { useSocket } from '../../hooks/useSocket';
+import { getChats, getChatMessages, getChatByProject } from '../../services/chatService';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 
+// ✅ الدالة المساعدة المعدلة بالكامل - متوافقة مع الباك اند
+const getUserStatusHelper = (userId, onlineUsers, chats) => {
+  if (!userId) return { online: false, text: '⚪ غير متاح' };
+
+  const currentIdStr = userId.toString();
+
+  // ✅ 1️⃣ التحقق من الـ onlineUsers (السوكت) - من الباك اند
+  const isUserOnline = onlineUsers?.some(id => {
+    if (!id) return false;
+    const onlineIdStr = id.toString();
+    return onlineIdStr === currentIdStr;
+  });
+
+  if (isUserOnline) {
+    return { online: true, text: '🟢 متصل الآن' };
+  }
+
+  // ✅ 2️⃣ التحقق من lastSeen من الباك اند
+  const chat = chats.find(c => {
+    const userId1 = c.user?._id?.toString();
+    const userId2 = c.otherUser?._id?.toString();
+    return userId1 === currentIdStr || userId2 === currentIdStr;
+  });
+
+  if (chat) {
+    // ✅ جلب lastSeen من user أو otherUser
+    const lastSeen = chat.user?.lastSeen || chat.otherUser?.lastSeen;
+    
+    if (lastSeen) {
+      const date = new Date(lastSeen);
+      const now = new Date();
+      const diffSeconds = Math.floor((now - date) / 1000);
+      const diffMinutes = Math.floor(diffSeconds / 60);
+      const diffHours = Math.floor(diffMinutes / 60);
+
+      // ✅ أقل من دقيقة
+      if (diffSeconds < 60) {
+        return { online: false, text: '🟢 نشط منذ ثوانٍ' };
+      }
+      // ✅ أقل من ساعة
+      else if (diffMinutes < 60) {
+        return { online: false, text: `🟡 منذ ${diffMinutes} دقيقة` };
+      }
+      // ✅ أقل من يوم
+      else if (diffHours < 24) {
+        return { online: false, text: `🟡 منذ ${diffHours} ساعة` };
+      }
+      // ✅ أكثر من يوم
+      else {
+        return { online: false, text: `⚪ آخر ظهور: ${date.toLocaleDateString('ar-EG')}` };
+      }
+    }
+  }
+
+  return { online: false, text: '⚪ غير متاح' };
+};
+
+const formatTimeHelper = (timestamp) => {
+  if (!timestamp) return '';
+  const date = new Date(timestamp);
+  const now = new Date();
+  const diff = now - date;
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  
+  if (days === 0) {
+    return date.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+  } else if (days === 1) {
+    return 'أمس';
+  } else if (days < 7) {
+    return `${days} أيام`;
+  } else {
+    return date.toLocaleDateString('ar-EG', { month: 'short', day: 'numeric' });
+  }
+};
+
 export default function Messages() {
   const { user } = useAuth();
+  const { socket, onlineUsers } = useSocket();
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedChat, setSelectedChat] = useState(null);
   const [newMessage, setNewMessage] = useState('');
   const [showNewChatModal, setShowNewChatModal] = useState(false);
+  const [projectIdInput, setProjectIdInput] = useState('');
   const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
+  const [isTyping, setIsTyping] = useState(false);
+  const [otherUserTyping, setOtherUserTyping] = useState(false);
+  const typingTimeoutRef = useRef(null);
+  const isUserAtBottom = useRef(true);
 
   const [chats, setChats] = useState([]);
   const [messages, setMessages] = useState([]);
+  const [currentChatId, setCurrentChatId] = useState(null);
+  const [isLoadingChats, setIsLoadingChats] = useState(true);
+  const [currentOtherUser, setCurrentOtherUser] = useState(null);
 
+  // ✅ دالة للتحقق إذا كان المستخدم في الأسفل
+  const checkIfAtBottom = () => {
+    if (!messagesContainerRef.current) return true;
+    const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+    return scrollHeight - scrollTop - clientHeight < 50;
+  };
+
+  // ✅ استمع لحدث التمرير
   useEffect(() => {
-    // Mock data - Replace with API call
-    setTimeout(() => {
-      const mockChats = [
-        {
-          id: 1,
-          name: 'مستشفى السلام',
-          avatar: 'https://randomuser.me/api/portraits/men/1.jpg',
-          role: 'عميل',
-          lastMessage: 'شكراً على المشروع الرائع! نود استكمال العمل معك',
-          lastMessageTime: '2024-02-01T10:30:00',
-          unreadCount: 2,
-          online: true,
-          typing: false,
-          project: 'نظام إدارة المستشفيات الذكي'
-        },
-        {
-          id: 2,
-          name: 'أكاديمية المستقبل',
-          avatar: 'https://randomuser.me/api/portraits/women/2.jpg',
-          role: 'عميل',
-          lastMessage: 'هل يمكن إضافة بعض التعديلات على المنصة؟',
-          lastMessageTime: '2024-01-31T15:20:00',
-          unreadCount: 0,
-          online: false,
-          typing: false,
-          project: 'منصة تعليمية متكاملة'
-        },
-        {
-          id: 3,
-          name: 'متجر الأصالة',
-          avatar: 'https://randomuser.me/api/portraits/men/3.jpg',
-          role: 'عميل',
-          lastMessage: 'تم استلام المشروع، شكراً جزيلاً',
-          lastMessageTime: '2024-01-30T09:15:00',
-          unreadCount: 0,
-          online: true,
-          typing: false,
-          project: 'متجر إلكتروني متكامل'
-        },
-        {
-          id: 4,
-          name: 'شركة البيانات',
-          avatar: 'https://randomuser.me/api/portraits/men/4.jpg',
-          role: 'عميل',
-          lastMessage: 'متى يمكن تسليم التقرير النهائي؟',
-          lastMessageTime: '2024-01-29T14:45:00',
-          unreadCount: 1,
-          online: false,
-          typing: false,
-          project: 'لوحة تحكم تحليلات متقدمة'
-        }
-      ];
+    const container = messagesContainerRef.current;
+    if (!container) return;
 
-      setChats(mockChats);
-      setLoading(false);
-    }, 1000);
+    const handleScroll = () => {
+      isUserAtBottom.current = checkIfAtBottom();
+    };
+
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Load messages when chat is selected
+  // ✅ جلب المحادثات
+  const loadChats = useCallback(async () => {
+    try {
+      setIsLoadingChats(true);
+      const response = await getChats();
+      console.log('📥 Chats:', response);
+      const chatsData = response?.data?.chats || response?.chats || response?.data || [];
+      setChats(chatsData);
+    } catch (error) {
+      console.error('❌ Error loading chats:', error);
+    } finally {
+      setIsLoadingChats(false);
+      setLoading(false);
+    }
+  }, []);
 
-  // Auto scroll to bottom when new message arrives
+  // ✅ جلب رسائل الشات
+  const loadMessages = useCallback(async (chatId) => {
+    try {
+      const response = await getChatMessages(chatId);
+      console.log('📥 Messages response:', response);
+      
+      let messagesData = [];
+      
+      if (response?.data?.messages) {
+        messagesData = response.data.messages;
+      } else if (response?.messages) {
+        messagesData = response.messages;
+      } else if (Array.isArray(response?.data)) {
+        messagesData = response.data;
+      } else if (Array.isArray(response)) {
+        messagesData = response;
+      } else if (response?.data?.data?.messages) {
+        messagesData = response.data.data.messages;
+      }
+      
+      if (!Array.isArray(messagesData)) {
+        console.warn('⚠️ messagesData is not an array:', messagesData);
+        messagesData = [];
+      }
+      
+      const processedMessages = messagesData.map(msg => ({
+        ...msg,
+        sender: msg.sender || msg.senderId,
+        senderId: msg.senderId || msg.sender
+      }));
+      
+      console.log('📥 Processed messages:', processedMessages);
+      setMessages(processedMessages);
+      setCurrentChatId(chatId);
+      
+      if (selectedChat) {
+        const otherUser = selectedChat.user || selectedChat.otherUser;
+        setCurrentOtherUser(otherUser);
+      }
+      
+      if (socket && chatId) {
+        socket.emit('seen', { chatId, userId: user?._id });
+      }
+      
+      setTimeout(() => {
+        isUserAtBottom.current = true;
+        if (processedMessages.length > 0) {
+          const lastMessage = processedMessages[processedMessages.length - 1];
+          const messageElement = document.getElementById(`message-${lastMessage._id}`);
+          if (messageElement) {
+            messageElement.scrollIntoView({ behavior: 'smooth', block: 'end' });
+          } else {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+          }
+        } else {
+          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 300);
+      
+    } catch (error) {
+      console.error('❌ Error loading messages:', error);
+      setMessages([]);
+    }
+  }, [socket, user, selectedChat]);
+
+  // ✅ جلب المحادثات عند تحميل الصفحة
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    let isMounted = true;
+    
+    const fetchChats = async () => {
+      if (!isMounted) return;
+      await loadChats();
+    };
+    
+    fetchChats();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [loadChats]);
+
+  // ✅ اختيار محادثة
+  const selectChat = (chat) => {
+    setSelectedChat(chat);
+    setOtherUserTyping(false);
+    
+    const otherUser = chat.user || chat.otherUser;
+    setCurrentOtherUser(otherUser);
+    
+    if (chat.chatId) {
+      if (socket) {
+        socket.emit('join-chat', chat.chatId);
+      }
+      loadMessages(chat.chatId);
+    }
+  };
+
+  // ✅ استقبال رسالة جديدة
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleReceiveMessage = (message) => {
+      console.log('📩 New message received:', message);
+      
+      const msgSenderId = message.sender?._id || message.sender || message.senderId?._id || message.senderId;
+
+      const processedMessage = {
+        ...message,
+        sender: msgSenderId,
+        seen: message.seen || false,
+        delivered: message.delivered || true 
+      };
+      
+      if (message.chat === currentChatId) {
+        if (msgSenderId !== user?._id && socket) {
+          socket.emit('seen', { chatId: currentChatId, userId: user?._id });
+        }
+
+        setMessages(prev => {
+          if (!Array.isArray(prev)) return [processedMessage];
+          
+          if (msgSenderId === user?._id) {
+            const tempMessageIdx = prev.findIndex(msg => 
+              msg._id?.toString().startsWith('temp-') && 
+              msg.text?.trim() === processedMessage.text?.trim()
+            );
+            
+            if (tempMessageIdx !== -1) {
+              const updatedMessages = [...prev];
+              updatedMessages[tempMessageIdx] = processedMessage;
+              return updatedMessages;
+            }
+          }
+          
+          if (prev.some(msg => msg._id === processedMessage._id)) {
+            return prev;
+          }
+          
+          return [...prev, processedMessage];
+        });
+        
+        setTimeout(() => {
+          if (isUserAtBottom.current) {
+            const messageElement = document.getElementById(`message-${processedMessage._id}`);
+            if (messageElement) {
+              messageElement.scrollIntoView({ behavior: 'smooth', block: 'end' });
+            } else {
+              messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }
+          }
+        }, 100);
+      }
+      
+      setChats(prev => {
+        if (!Array.isArray(prev)) return [];
+        return prev.map(chat => 
+          chat.chatId === message.chat
+            ? { 
+                ...chat, 
+                lastMessage: message.text || '📎 مرفق', 
+                updatedAt: message.createdAt,
+                unreadCount: (message.chat === currentChatId) ? 0 : (msgSenderId !== user?._id ? (chat.unreadCount || 0) + 1 : 0)
+              }
+            : chat
+        );
+      });
+    };
+
+    const handleMessagesSeen = ({ chatId, seenBy }) => {
+      if (chatId === currentChatId && seenBy !== user?._id) {
+        setMessages(prev => {
+          if (!Array.isArray(prev)) return [];
+          return prev.map(msg => {
+            const msgSenderId = msg.sender?._id || msg.sender || msg.senderId?._id || msg.senderId;
+            if (msgSenderId === user?._id) {
+              return { ...msg, seen: true };
+            }
+            return msg;
+          });
+        });
+
+        setChats(prev => {
+          if (!Array.isArray(prev)) return [];
+          return prev.map(chat => 
+            chat.chatId === chatId ? { ...chat, unreadCount: 0 } : chat
+          );
+        });
+      }
+    };
+
+    const handleTyping = ({ chatId, userId }) => {
+      if (chatId === currentChatId && userId !== user?._id) {
+        setOtherUserTyping(true);
+      }
+    };
+
+    const handleStopTyping = ({ chatId, userId }) => {
+      if (chatId === currentChatId && userId !== user?._id) {
+        setOtherUserTyping(false);
+      }
+    };
+
+    const handleOnlineUsersUpdate = (usersList) => {
+      console.log("🟢 Live Online Users updated:", usersList);
+    };
+
+    socket.on('receive-message', handleReceiveMessage);
+    socket.on('messages-seen', handleMessagesSeen);
+    socket.on('typing', handleTyping);
+    socket.on('stop-typing', handleStopTyping);
+    socket.on('online-users', handleOnlineUsersUpdate);
+
+    return () => {
+      socket.off('receive-message', handleReceiveMessage);
+      socket.off('messages-seen', handleMessagesSeen);
+      socket.off('typing', handleTyping);
+      socket.off('stop-typing', handleStopTyping);
+      socket.off('online-users', handleOnlineUsersUpdate);
+    };
+  }, [socket, currentChatId, user?._id]);
+
+  // ✅ Auto scroll to bottom
+  useEffect(() => {
+    const scrollToBottom = () => {
+      if (messages.length > 0 && isUserAtBottom.current) {
+        const lastMessage = messages[messages.length - 1];
+        const messageElement = document.getElementById(`message-${lastMessage._id}`);
+        if (messageElement) {
+          messageElement.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        } else {
+          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }
+      }
+    };
+    
+    const timeoutId = setTimeout(() => {
+      requestAnimationFrame(scrollToBottom);
+    }, 100);
+    
+    return () => clearTimeout(timeoutId);
   }, [messages]);
 
+  // ✅ إرسال رسالة
   const handleSendMessage = () => {
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() || !socket || !selectedChat) return;
 
-    const newMsg = {
-      id: messages.length + 1,
-      senderId: user?.id || 'current',
-      senderName: 'أحمد المنصوري',
-      senderAvatar: 'https://randomuser.me/api/portraits/men/32.jpg',
-      text: newMessage,
-      time: new Date().toISOString(),
+    const tempId = 'temp-' + Date.now();
+
+    const messageData = {
+      chatId: selectedChat.chatId,
+      sender: user?._id,
+      text: newMessage.trim(),
+    };
+
+    const tempMessage = {
+      _id: tempId,
+      chat: selectedChat.chatId,
+      sender: user?._id,
+      text: newMessage.trim(),
+      createdAt: new Date().toISOString(),
       status: 'sending'
     };
 
-    setMessages([...messages, newMsg]);
+    setMessages(prev => {
+      if (!Array.isArray(prev)) return [tempMessage];
+      return [...prev, tempMessage];
+    });
+    
     setNewMessage('');
+    
+    setChats(prev => {
+      if (!Array.isArray(prev)) return [];
+      return prev.map(chat => 
+        chat.chatId === selectedChat.chatId
+          ? { ...chat, lastMessage: newMessage.trim(), updatedAt: new Date().toISOString() }
+          : chat
+      );
+    });
 
-    // Simulate message sent
+    socket.emit('send-message', messageData);
+
     setTimeout(() => {
-      setMessages(prev => prev.map(msg => 
-        msg.id === newMsg.id ? { ...msg, status: 'sent' } : msg
-      ));
-    }, 500);
+      isUserAtBottom.current = true;
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+  };
+
+  // ✅ Handle typing
+  const handleTypingStart = () => {
+    if (!isTyping && socket && selectedChat) {
+      setIsTyping(true);
+      socket.emit('typing', { chatId: selectedChat.chatId, userId: user?._id });
+    }
+  };
+
+  const handleTypingStop = () => {
+    if (isTyping && socket && selectedChat) {
+      setIsTyping(false);
+      socket.emit('stop-typing', { chatId: selectedChat.chatId, userId: user?._id });
+    }
   };
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
+      handleTypingStop();
     }
   };
 
-  const filteredChats = chats.filter(chat =>
-    chat.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    chat.project.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const handleTextChange = (e) => {
+    setNewMessage(e.target.value);
+    if (e.target.value.trim()) {
+      handleTypingStart();
+      clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = setTimeout(() => {
+        handleTypingStop();
+      }, 1000);
+    } else {
+      handleTypingStop();
+    }
+  };
+
+  // ✅ إنشاء شات جديد
+  const handleCreateChat = async () => {
+    if (!projectIdInput.trim()) {
+      alert('يرجى إدخال معرف المشروع');
+      return;
+    }
+
+    try {
+      const response = await getChatByProject(projectIdInput);
+      console.log('📥 Chat created:', response);
+      
+      const chat = response?.data?.chat || response?.chat || response?.data;
+      if (chat) {
+        setChats(prev => [chat, ...prev]);
+        selectChat(chat);
+        setShowNewChatModal(false);
+        setProjectIdInput('');
+        alert('✅ تم إنشاء المحادثة بنجاح');
+      }
+    } catch (error) {
+      console.error('❌ Error creating chat:', error);
+      alert(error.response?.data?.message || 'حدث خطأ أثناء إنشاء المحادثة');
+    }
+  };
+
+  // ✅ معرفة حالة المستخدم
+  const getUserStatus = (userId) => {
+    return getUserStatusHelper(userId, onlineUsers, chats);
+  };
 
   const formatTime = (timestamp) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diff = now - date;
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    
-    if (days === 0) {
-      return date.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
-    } else if (days === 1) {
-      return 'أمس';
-    } else if (days < 7) {
-      return `${days} أيام`;
-    } else {
-      return date.toLocaleDateString('ar-EG', { month: 'short', day: 'numeric' });
-    }
+    return formatTimeHelper(timestamp);
   };
 
-  const getMessageStatusIcon = (status) => {
-    switch (status) {
-      case 'sending': return '⏳';
-      case 'sent': return '✓';
-      case 'delivered': return '✓✓';
-      case 'read': return '✓✓✓';
-      default: return '';
-    }
-  };
+  const filteredChats = chats.filter(chat => {
+    const userName = chat.user?.username || chat.otherUser?.username || chat.name || '';
+    const projectName = chat.projectName || chat.project?.name || '';
+    const search = searchTerm.toLowerCase();
+    return userName.toLowerCase().includes(search) || projectName.toLowerCase().includes(search);
+  });
 
-  // Animation variants
-  const fadeInLeft = {
-    hidden: { opacity: 0, x: -30 },
-    visible: { opacity: 1, x: 0, transition: { duration: 0.3 } }
-  };
-
- 
-
-  if (loading) {
+  if (loading || isLoadingChats) {
     return (
       <div className="min-h-screen flex flex-col" dir="rtl">
         <Navbar />
@@ -182,12 +534,6 @@ export default function Messages() {
                 <div className="p-4 border-b border-gray-200">
                   <div className="flex justify-between items-center mb-4">
                     <h2 className="text-xl font-bold text-gray-800">الرسائل 💬</h2>
-                    <button
-                      onClick={() => setShowNewChatModal(true)}
-                      className="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center text-white hover:bg-indigo-700 transition"
-                    >
-                      <span className="text-xl">+</span>
-                    </button>
                   </div>
                   
                   {/* Search */}
@@ -208,71 +554,96 @@ export default function Messages() {
                     <div className="text-center py-8">
                       <div className="text-4xl mb-2">💬</div>
                       <p className="text-gray-500">لا توجد محادثات</p>
+                      <button
+                        onClick={() => setShowNewChatModal(true)}
+                        className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm hover:bg-indigo-700 transition"
+                      >
+                        بدء محادثة جديدة
+                      </button>
                     </div>
                   ) : (
-                    filteredChats.map((chat) => (
-                      <motion.div
-                        key={chat.id}
-                        variants={fadeInLeft}
-                        initial="hidden"
-                        animate="visible"
-                        onClick={() => setSelectedChat(chat)}
-                        className={`p-4 cursor-pointer transition-all duration-300 ${
-                          selectedChat?.id === chat.id
-                            ? 'bg-indigo-50 border-r-4 border-indigo-600'
-                            : 'hover:bg-gray-50'
-                        }`}
-                      >
-                        <div className="flex gap-3">
-                          <div className="relative">
-                            <img src={chat.avatar} alt={chat.name} className="w-12 h-12 rounded-full object-cover" />
-                            {chat.online && (
-                              <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+                    filteredChats.map((chat) => {
+                      const isActive = selectedChat?.chatId === chat.chatId;
+                      const userData = chat.user || chat.otherUser || {};
+                      const userName = userData.username || chat.name || 'مستخدم';
+                      const userImage = userData.profileImage || chat.avatar || 'https://randomuser.me/api/portraits/men/32.jpg';
+                      const status = getUserStatus(userData._id);
+                      
+                      return (
+                        <motion.div
+                          key={chat.chatId}
+                          initial={{ opacity: 0, x: -30 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          onClick={() => selectChat(chat)}
+                          className={`p-4 cursor-pointer transition-all duration-300 ${
+                            isActive
+                              ? 'bg-indigo-50 border-r-4 border-indigo-600'
+                              : 'hover:bg-gray-50'
+                          }`}
+                        >
+                          <div className="flex gap-3">
+                            <div className="relative">
+                              <img src={userImage} alt={userName} className="w-12 h-12 rounded-full object-cover" />
+                              {status.online && (
+                                <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex justify-between items-start">
+                                <h3 className="font-semibold text-gray-800 truncate">{userName}</h3>
+                                <span className="text-xs text-gray-400">{formatTime(chat.updatedAt || chat.lastMessage?.createdAt)}</span>
+                              </div>
+                              <p className="text-xs text-gray-500 truncate">{chat.projectName || chat.project?.name || 'مشروع'}</p>
+                              <p className="text-sm text-gray-600 truncate mt-1">{chat.lastMessage?.text || chat.lastMessage || 'ابدأ المحادثة'}</p>
+                            </div>
+                            {chat.unreadCount > 0 && (
+                              <div className="w-5 h-5 bg-indigo-600 rounded-full flex items-center justify-center flex-shrink-0">
+                                <span className="text-xs text-white">{chat.unreadCount}</span>
+                              </div>
                             )}
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex justify-between items-start">
-                              <h3 className="font-semibold text-gray-800 truncate">{chat.name}</h3>
-                              <span className="text-xs text-gray-400">{formatTime(chat.lastMessageTime)}</span>
-                            </div>
-                            <p className="text-xs text-gray-500">{chat.project}</p>
-                            <p className="text-sm text-gray-600 truncate mt-1">{chat.lastMessage}</p>
+                          <div className="mt-1">
+                            <span className={`text-xs ${status.online ? 'text-green-500' : 'text-gray-400'}`}>
+                              {status.text}
+                            </span>
                           </div>
-                          {chat.unreadCount > 0 && (
-                            <div className="w-5 h-5 bg-indigo-600 rounded-full flex items-center justify-center">
-                              <span className="text-xs text-white">{chat.unreadCount}</span>
-                            </div>
-                          )}
-                        </div>
-                      </motion.div>
-                    ))
+                        </motion.div>
+                      );
+                    })
                   )}
                 </div>
               </div>
 
               {/* Chat Area */}
-              {selectedChat ? (
+              {selectedChat && currentOtherUser ? (
                 <div className="flex-1 flex flex-col">
                   {/* Chat Header */}
                   <div className="p-4 border-b border-gray-200 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="relative">
-                        <img src={selectedChat.avatar} alt={selectedChat.name} className="w-10 h-10 rounded-full object-cover" />
-                        {selectedChat.online && (
+                        <img 
+                          src={currentOtherUser?.profileImage || 'https://randomuser.me/api/portraits/men/32.jpg'} 
+                          alt={currentOtherUser?.username || 'مستخدم'} 
+                          className="w-10 h-10 rounded-full object-cover" 
+                        />
+                        {getUserStatus(currentOtherUser?._id).online && (
                           <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white"></div>
                         )}
                       </div>
                       <div>
-                        <h3 className="font-semibold text-gray-800">{selectedChat.name}</h3>
-                        <p className="text-xs text-gray-500">{selectedChat.project}</p>
+                        <h3 className="font-semibold text-gray-800">
+                          {currentOtherUser?.username || 'مستخدم'}
+                        </h3>
+                        <p className="text-xs text-gray-500">
+                          {otherUserTyping ? (
+                            <span className="text-indigo-600">يكتب...</span>
+                          ) : (
+                            getUserStatus(currentOtherUser?._id).text
+                          )}
+                        </p>
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <button className="p-2 text-gray-500 hover:text-indigo-600 transition">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                        </svg>
-                      </button>
                       <button className="p-2 text-gray-500 hover:text-indigo-600 transition">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -282,48 +653,72 @@ export default function Messages() {
                   </div>
 
                   {/* Messages Area */}
-                  <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                    {messages.map((msg, idx) => (
-                      <motion.div
-                        key={msg.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: idx * 0.05 }}
-                        className={`flex ${msg.senderId === (user?.id || 'current') ? 'justify-end' : 'justify-start'}`}
-                      >
-                        <div className={`flex gap-2 max-w-[70%] ${msg.senderId === (user?.id || 'current') ? 'flex-row-reverse' : ''}`}>
-                          {msg.senderId !== (user?.id || 'current') && (
-                            <img src={msg.senderAvatar} alt={msg.senderName} className="w-8 h-8 rounded-full object-cover" />
-                          )}
-                          <div>
-                            <div className={`rounded-2xl p-3 ${
-                              msg.senderId === (user?.id || 'current')
-                                ? 'bg-indigo-600 text-white'
-                                : 'bg-gray-100 text-gray-800'
-                            }`}>
-                              <p className="text-sm">{msg.text}</p>
-                            </div>
-                            <div className={`flex items-center gap-1 mt-1 text-xs text-gray-400 ${msg.senderId === (user?.id || 'current') ? 'justify-end' : ''}`}>
-                              <span>{formatTime(msg.time)}</span>
-                              {msg.senderId === (user?.id || 'current') && (
-                                <span>{getMessageStatusIcon(msg.status)}</span>
+                  <div 
+                    className="flex-1 overflow-y-auto p-4 space-y-4" 
+                    ref={messagesContainerRef}
+                  >
+                    {messages.length === 0 ? (
+                      <div className="text-center py-8 text-gray-400">
+                        <p>لا توجد رسائل بعد</p>
+                        <p className="text-sm">ابدأ المحادثة الآن</p>
+                      </div>
+                    ) : (
+                      messages.map((msg, idx) => {
+                        const msgSenderId = msg.sender?._id || msg.sender;
+                        const msgSenderIdAlt = msg.senderId?._id || msg.senderId;
+                        
+                        const isOwnMessage = msgSenderId === user?._id || msgSenderIdAlt === user?._id;
+                        
+                        const otherUserImage = currentOtherUser?.profileImage || 'https://randomuser.me/api/portraits/men/32.jpg';
+                        
+                        return (
+                          <motion.div
+                            key={msg._id || idx}
+                            id={`message-${msg._id}`}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: idx * 0.02 }}
+                            className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}
+                          >
+                            <div className={`flex gap-2 max-w-[70%] ${isOwnMessage ? 'flex-row-reverse' : ''}`}>
+                              {!isOwnMessage && (
+                                <img 
+                                  src={otherUserImage}
+                                  alt=""
+                                  className="w-8 h-8 rounded-full object-cover" 
+                                />
                               )}
+                              <div>
+                                <div className={`rounded-2xl p-3 ${
+                                  isOwnMessage
+                                    ? 'bg-indigo-600 text-white'
+                                    : 'bg-gray-100 text-gray-800'
+                                }`}>
+                                  <p className="text-sm break-words">{msg.text}</p>
+                                </div>
+                                <div className={`flex items-center gap-1 mt-1 text-xs text-gray-400 ${isOwnMessage ? 'justify-end' : ''}`}>
+                                  <span>{formatTime(msg.createdAt)}</span>
+                                  {isOwnMessage && msg.seen && <span>✓✓✓</span>}
+                                  {isOwnMessage && msg.delivered && !msg.seen && <span>✓✓</span>}
+                                  {isOwnMessage && !msg.delivered && !msg.seen && <span>⏳</span>}
+                                </div>
+                              </div>
                             </div>
-                          </div>
-                        </div>
-                      </motion.div>
-                    ))}
+                          </motion.div>
+                        );
+                      })
+                    )}
                     <div ref={messagesEndRef} />
                   </div>
 
                   {/* Typing Indicator */}
-                  {selectedChat.typing && (
+                  {otherUserTyping && (
                     <div className="px-4 py-2">
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
                         <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-100"></div>
                         <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-200"></div>
-                        <span className="text-xs text-gray-500">{selectedChat.name} يكتب...</span>
+                        <span className="text-xs text-gray-500">يكتب...</span>
                       </div>
                     </div>
                   )}
@@ -338,7 +733,7 @@ export default function Messages() {
                       </button>
                       <textarea
                         value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
+                        onChange={handleTextChange}
                         onKeyPress={handleKeyPress}
                         placeholder="اكتب رسالتك هنا..."
                         rows="1"
@@ -391,14 +786,12 @@ export default function Messages() {
               <div className="space-y-4">
                 <input
                   type="text"
-                  placeholder="اسم العميل أو البريد الإلكتروني"
+                  placeholder="معرف المشروع (Project ID)"
+                  value={projectIdInput}
+                  onChange={(e) => setProjectIdInput(e.target.value)}
                   className="w-full px-4 py-2 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:outline-none"
                 />
-                <textarea
-                  placeholder="رسالة الترحيب"
-                  rows="3"
-                  className="w-full px-4 py-2 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:outline-none resize-none"
-                />
+                <p className="text-xs text-gray-400">أدخل معرف المشروع لبدء المحادثة</p>
               </div>
               <div className="flex gap-3 mt-6">
                 <button
@@ -408,13 +801,10 @@ export default function Messages() {
                   إلغاء
                 </button>
                 <button
-                  onClick={() => {
-                    alert('تم إرسال الرسالة');
-                    setShowNewChatModal(false);
-                  }}
+                  onClick={handleCreateChat}
                   className="flex-1 py-2 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition"
                 >
-                  إرسال
+                  بدء المحادثة
                 </button>
               </div>
             </motion.div>

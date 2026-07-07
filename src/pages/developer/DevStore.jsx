@@ -1,13 +1,19 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+// src/pages/developer/DevStore.jsx
 
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  getStoreProjects, 
+  toggleProjectStatus,
+  deleteStoreProject 
+} from '../../services/develper.service.js';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import DeveloperSidebar from '../../components/layout/DeveloperSidebar';
 
 export default function DevStore() {
-
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -24,138 +30,181 @@ export default function DevStore() {
     avgRating: 0
   });
 
-  useEffect(() => {
-    // Mock data for store projects
-    setTimeout(() => {
-      const mockProjects = [
-        {
-          id: 1,
-          name: 'نظام إدارة المستشفيات الذكي',
-          description: 'نظام متكامل لإدارة المستشفيات يشمل إدارة المرضى، المواعيد، الغرف، والموظفين مع لوحة تحكم متقدمة.',
-          category: 'management',
-          price: 499,
-          salesCount: 156,
-          rating: 4.9,
-          views: 2847,
-          image: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=400',
-          tech: ['React', 'Node.js', 'MongoDB', 'Tailwind'],
-          status: 'published',
-          createdAt: '2024-01-01',
-          lastUpdated: '2024-01-15',
-          packages: [
-            { name: 'Basic', price: 499, sales: 89 },
-            { name: 'Pro', price: 1499, sales: 47 },
-            { name: 'Enterprise', price: 4999, sales: 20 }
-          ],
-          reviews: [
-            { user: 'مستشفى السلام', rating: 5, comment: 'نظام رائع جداً', date: '2024-01-15' },
-            { user: 'مستشفى النور', rating: 4.8, comment: 'ممتاز وسهل الاستخدام', date: '2024-01-10' }
-          ]
-        },
-        {
-          id: 2,
-          name: 'منصة تعليمية متكاملة',
-          description: 'منصة تعليمية إلكترونية متكاملة تشمل نظام إدارة المحتوى، نظام الفصول الافتراضية، ونظام الامتحانات.',
-          category: 'education',
-          price: 599,
-          salesCount: 134,
-          rating: 4.8,
-          views: 2156,
-          image: 'https://images.unsplash.com/photo-1501504905252-473c47e087f8?w=400',
-          tech: ['Flutter', 'Django', 'PostgreSQL', 'Redis'],
-          status: 'published',
-          createdAt: '2024-01-05',
-          lastUpdated: '2024-01-20',
-          packages: [
-            { name: 'Basic', price: 599, sales: 78 },
-            { name: 'Pro', price: 1799, sales: 42 },
-            { name: 'Enterprise', price: 3999, sales: 14 }
-          ],
-          reviews: [
-            { user: 'أكاديمية المستقبل', rating: 5, comment: 'منصة تعليمية متكاملة', date: '2024-01-18' }
-          ]
-        },
-        {
-          id: 3,
-          name: 'متجر إلكتروني متكامل',
-          description: 'متجر إلكتروني احترافي مع نظام دفع متكامل، إدارة منتجات، وعملاء، وتقارير مبيعات متقدمة.',
-          category: 'ecommerce',
-          price: 399,
-          salesCount: 289,
-          rating: 4.9,
-          views: 5123,
-          image: 'https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=400',
-          tech: ['Next.js', 'Stripe', 'Tailwind', 'Prisma'],
-          status: 'published',
-          createdAt: '2024-01-10',
-          lastUpdated: '2024-01-25',
-          packages: [
-            { name: 'Basic', price: 399, sales: 156 },
-            { name: 'Pro', price: 1299, sales: 98 },
-            { name: 'Enterprise', price: 2999, sales: 35 }
-          ],
-          reviews: [
-            { user: 'متجر الأصالة', rating: 5, comment: 'أفضل متجر إلكتروني', date: '2024-01-20' },
-            { user: 'متجر الهدايا', rating: 4.9, comment: 'ممتاز وسهل التخصيص', date: '2024-01-15' }
-          ]
-        },
-        {
-          id: 4,
-          name: 'لوحة تحكم تحليلات متقدمة',
-          description: 'لوحة تحكم تفاعلية لعرض البيانات والإحصائيات مع رسوم بيانية متقدمة وتقارير قابلة للتخصيص.',
-          category: 'dashboard',
-          price: 699,
-          salesCount: 89,
-          rating: 4.9,
-          views: 1567,
-          image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400',
-          tech: ['React', 'D3.js', 'Firebase', 'Chart.js'],
-          status: 'published',
-          createdAt: '2024-01-15',
-          lastUpdated: '2024-01-28',
-          packages: [
-            { name: 'Basic', price: 699, sales: 45 },
-            { name: 'Pro', price: 1999, sales: 32 },
-            { name: 'Enterprise', price: 4999, sales: 12 }
-          ],
-          reviews: [
-            { user: 'شركة البيانات', rating: 5, comment: 'لوحة تحكم رائعة', date: '2024-01-25' }
-          ]
-        },
-        {
-          id: 5,
-          name: 'نظام إدارة المطاعم',
-          description: 'نظام متكامل لإدارة المطاعم يشمل إدارة الطلبات، المخزون، الموظفين، وتقارير المبيعات.',
-          category: 'management',
-          price: 449,
-          salesCount: 67,
-          rating: 4.7,
-          views: 1234,
-          image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400',
-          tech: ['Vue.js', 'Laravel', 'MySQL', 'Bootstrap'],
-          status: 'draft',
-          createdAt: '2024-01-20',
-          lastUpdated: '2024-01-28',
-          packages: [
-            { name: 'Basic', price: 449, sales: 45 },
-            { name: 'Pro', price: 1299, sales: 22 }
-          ],
-          reviews: []
-        }
-      ];
+  // ✅ دالة لتحويل بيانات المشروع من الباك اند إلى شكل متوافق مع الواجهة
+  const transformProjectData = (project) => {
+    // ✅ حساب عدد المبيعات من الباقات
+    const totalSales = (project.basic?.sales || 0) + (project.pro?.sales || 0) + (project.enterprise?.sales || 0);
+    
+    // ✅ حساب متوسط التقييم
+    const avgRating = project.rating || 4.5;
+    
+    // ✅ تحديد الحالة بناءً على public
+    const status = project.public === true ? 'published' : 'draft';
+    
+    // ✅ تجهيز الباقات
+    const packages = [];
+    if (project.basic) {
+      packages.push({
+        name: 'Basic',
+        price: project.basic.price || 0,
+        deliveryTime: project.basic.deliveryTime || 3,
+        features: project.basic.features || [],
+        sales: project.basic.sales || 0
+      });
+    }
+    if (project.pro) {
+      packages.push({
+        name: 'Pro',
+        price: project.pro.price || 0,
+        deliveryTime: project.pro.deliveryTime || 7,
+        features: project.pro.features || [],
+        sales: project.pro.sales || 0
+      });
+    }
+    if (project.enterprise) {
+      packages.push({
+        name: 'Enterprise',
+        price: project.enterprise.price || 0,
+        deliveryTime: project.enterprise.deliveryTime || 30,
+        features: project.enterprise.features || [],
+        sales: project.enterprise.sales || 0
+      });
+    }
 
-      setProjects(mockProjects);
-      
-      // Calculate stats
-      const total = mockProjects.length;
-      const totalSales = mockProjects.reduce((sum, p) => sum + p.salesCount, 0);
-      const totalRevenue = mockProjects.reduce((sum, p) => sum + (p.price * p.salesCount), 0);
-      const avgRating = mockProjects.reduce((sum, p) => sum + p.rating, 0) / total;
-      
-      setStats({ total, totalSales, totalRevenue, avgRating });
-      setLoading(false);
-    }, 1000);
+    return {
+      id: project._id || project.id,
+      name: project.projectName || project.name || 'مشروع بدون اسم',
+      description: project.shortDescription || project.description || '',
+      fullDescription: project.fullDescription || '',
+      category: project.category || 'other',
+      price: project.price || packages[0]?.price || 0,
+      salesCount: totalSales,
+      rating: avgRating,
+      views: project.views || 0,
+      image: project.images?.[0] || 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=400',
+      images: project.images || [],
+      tech: project.technologies || [],
+      mainFeatures: project.mainFeatures || [],
+      demoUrl: project.demoUrl || '',
+      githubUrl: project.githubUrl || '',
+      license: project.license || 'Commercial',
+      videoUrl: project.videoUrl || '',
+      supportPeriod: project.supportPeriod || '',
+      updatesPeriod: project.updatesPeriod || '',
+      status: status,
+      public: project.public || false,
+      createdAt: project.createdAt || new Date().toISOString(),
+      lastUpdated: project.updatedAt || project.lastUpdated || new Date().toISOString(),
+      packages: packages,
+      reviews: project.reviews || [],
+      basic: project.basic || null,
+      pro: project.pro || null,
+      enterprise: project.enterprise || null
+    };
+  };
+
+  // ✅ جلب المشاريع من الباك اند
+  useEffect(() => {
+    const loadProjects = async () => {
+      setLoading(true);
+      try {
+        const response = await getStoreProjects();
+        console.log('📥 Store projects from API:', response);
+        
+        const projectsData = response?.data?.myprojects || response?.myprojects || response?.data || [];
+        
+        if (projectsData.length > 0) {
+          const transformedProjects = projectsData.map(transformProjectData);
+          setProjects(transformedProjects);
+          
+          const total = transformedProjects.length;
+          const totalSales = transformedProjects.reduce((sum, p) => sum + (p.salesCount || 0), 0);
+          const totalRevenue = transformedProjects.reduce((sum, p) => sum + ((p.price || 0) * (p.salesCount || 0)), 0);
+          const avgRating = transformedProjects.reduce((sum, p) => sum + (p.rating || 0), 0) / total;
+          
+          setStats({ 
+            total, 
+            totalSales, 
+            totalRevenue, 
+            avgRating: avgRating || 0 
+          });
+        } else {
+          setProjects([]);
+          setStats({ 
+            total: 0, 
+            totalSales: 0, 
+            totalRevenue: 0, 
+            avgRating: 0 
+          });
+        }
+      } catch (error) {
+        console.error('❌ Error loading store projects:', error);
+        setProjects([]);
+        setStats({ 
+          total: 0, 
+          totalSales: 0, 
+          totalRevenue: 0, 
+          avgRating: 0 
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadProjects();
   }, []);
+
+  // ✅ تغيير حالة المشروع (public)
+  const handleToggleStatus = async (id) => {
+    const project = projects.find(p => p.id === id);
+    if (!project) return;
+    
+    const actionText = project.public ? 'إيقاف' : 'نشر';
+    
+    if (window.confirm(`هل أنت متأكد من ${actionText} هذا المشروع؟`)) {
+      setLoading(true);
+      try {
+        await toggleProjectStatus(id);
+        
+        const newStatus = !project.public;
+        const newStatusText = newStatus ? 'published' : 'draft';
+        
+        setProjects(projects.map(p => 
+          p.id === id ? { 
+            ...p, 
+            public: newStatus,
+            status: newStatusText 
+          } : p
+        ));
+        setShowDetailsModal(false);
+        
+        alert(`✅ تم ${actionText} المشروع بنجاح`);
+      } catch (error) {
+        console.error('❌ Error updating project status:', error);
+        alert(error.response?.data?.message || 'حدث خطأ أثناء تحديث حالة المشروع');
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  // ✅ حذف مشروع
+  const handleDeleteProject = async (id) => {
+    if (window.confirm('هل أنت متأكد من حذف هذا المشروع؟')) {
+      setLoading(true);
+      try {
+        await deleteStoreProject(id);
+        setProjects(projects.filter(p => p.id !== id));
+        setShowDetailsModal(false);
+        alert('✅ تم حذف المشروع بنجاح');
+      } catch (error) {
+        console.error('❌ Error deleting project:', error);
+        alert(error.response?.data?.message || 'حدث خطأ أثناء حذف المشروع');
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
 
   const categories = [
     { value: 'all', label: 'الكل', icon: '🌐' },
@@ -182,20 +231,6 @@ export default function DevStore() {
     return true;
   });
 
-  const handleDeleteProject = (id) => {
-    if (window.confirm('هل أنت متأكد من حذف هذا المشروع؟')) {
-      setProjects(projects.filter(p => p.id !== id));
-      setShowDetailsModal(false);
-    }
-  };
-
-  const handleToggleStatus = (id) => {
-    setProjects(projects.map(p => 
-      p.id === id ? { ...p, status: p.status === 'published' ? 'draft' : 'published' } : p
-    ));
-    setShowDetailsModal(false);
-  };
-
   // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -206,8 +241,6 @@ export default function DevStore() {
     hidden: { opacity: 0, y: 40, scale: 0.95 },
     visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.4, type: "spring", stiffness: 100 } }
   };
-
-  
 
   if (loading) {
     return (
@@ -261,93 +294,120 @@ export default function DevStore() {
               </Link>
             </motion.div>
 
-            {/* Stats Cards */}
-            <motion.div
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
-              className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"
-            >
-              <motion.div variants={cardVariants} className="bg-white rounded-2xl shadow-lg p-4 text-center">
-                <div className="text-2xl mb-1">📦</div>
-                <div className="text-2xl font-bold text-indigo-600">{stats.total}</div>
-                <div className="text-xs text-gray-500">إجمالي المشاريع</div>
+            {/* Stats Cards - تظهر فقط لو في مشاريع */}
+            {stats.total > 0 && (
+              <motion.div
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+                className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"
+              >
+                <motion.div variants={cardVariants} className="bg-white rounded-2xl shadow-lg p-4 text-center">
+                  <div className="text-2xl mb-1">📦</div>
+                  <div className="text-2xl font-bold text-indigo-600">{stats.total}</div>
+                  <div className="text-xs text-gray-500">إجمالي المشاريع</div>
+                </motion.div>
+                <motion.div variants={cardVariants} className="bg-white rounded-2xl shadow-lg p-4 text-center">
+                  <div className="text-2xl mb-1">🏆</div>
+                  <div className="text-2xl font-bold text-green-600">{stats.totalSales}</div>
+                  <div className="text-xs text-gray-500">إجمالي المبيعات</div>
+                </motion.div>
+                <motion.div variants={cardVariants} className="bg-white rounded-2xl shadow-lg p-4 text-center">
+                  <div className="text-2xl mb-1">💰</div>
+                  <div className="text-2xl font-bold text-purple-600">${stats.totalRevenue.toLocaleString()}</div>
+                  <div className="text-xs text-gray-500">إجمالي الأرباح</div>
+                </motion.div>
+                <motion.div variants={cardVariants} className="bg-white rounded-2xl shadow-lg p-4 text-center">
+                  <div className="text-2xl mb-1">⭐</div>
+                  <div className="text-2xl font-bold text-yellow-500">{stats.avgRating.toFixed(1)}</div>
+                  <div className="text-xs text-gray-500">متوسط التقييم</div>
+                </motion.div>
               </motion.div>
-              <motion.div variants={cardVariants} className="bg-white rounded-2xl shadow-lg p-4 text-center">
-                <div className="text-2xl mb-1">🏆</div>
-                <div className="text-2xl font-bold text-green-600">{stats.totalSales}</div>
-                <div className="text-xs text-gray-500">إجمالي المبيعات</div>
-              </motion.div>
-              <motion.div variants={cardVariants} className="bg-white rounded-2xl shadow-lg p-4 text-center">
-                <div className="text-2xl mb-1">💰</div>
-                <div className="text-2xl font-bold text-purple-600">${stats.totalRevenue.toLocaleString()}</div>
-                <div className="text-xs text-gray-500">إجمالي الأرباح</div>
-              </motion.div>
-              <motion.div variants={cardVariants} className="bg-white rounded-2xl shadow-lg p-4 text-center">
-                <div className="text-2xl mb-1">⭐</div>
-                <div className="text-2xl font-bold text-yellow-500">{stats.avgRating.toFixed(1)}</div>
-                <div className="text-xs text-gray-500">متوسط التقييم</div>
-              </motion.div>
-            </motion.div>
+            )}
 
-            {/* Search and Filters */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-2xl shadow-lg p-4 mb-8"
-            >
-              <div className="flex flex-col md:flex-row gap-4">
-                {/* Search Bar */}
-                <div className="flex-1 relative">
-                  <input
-                    type="text"
-                    placeholder="🔍 ابحث عن مشروع..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full px-4 py-2 pr-10 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:outline-none transition-all"
-                  />
-                  <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
+            {/* Search and Filters - تظهر فقط لو في مشاريع */}
+            {projects.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white rounded-2xl shadow-lg p-4 mb-8"
+              >
+                <div className="flex flex-col md:flex-row gap-4">
+                  {/* Search Bar */}
+                  <div className="flex-1 relative">
+                    <input
+                      type="text"
+                      placeholder="🔍 ابحث عن مشروع..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full px-4 py-2 pr-10 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:outline-none transition-all"
+                    />
+                    <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+
+                  {/* Filter Buttons */}
+                  <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0">
+                    {categories.map((cat) => (
+                      <motion.button
+                        key={cat.value}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setActiveFilter(cat.value)}
+                        className={`px-4 py-2 rounded-xl font-medium transition-all duration-300 whitespace-nowrap flex items-center gap-2 ${
+                          activeFilter === cat.value
+                            ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        <span>{cat.icon}</span>
+                        <span>{cat.label}</span>
+                      </motion.button>
+                    ))}
+                  </div>
                 </div>
+              </motion.div>
+            )}
 
-                {/* Filter Buttons */}
-                <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0">
-                  {categories.map((cat) => (
-                    <motion.button
-                      key={cat.value}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => setActiveFilter(cat.value)}
-                      className={`px-4 py-2 rounded-xl font-medium transition-all duration-300 whitespace-nowrap flex items-center gap-2 ${
-                        activeFilter === cat.value
-                          ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
-                    >
-                      <span>{cat.icon}</span>
-                      <span>{cat.label}</span>
-                    </motion.button>
-                  ))}
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Projects Grid */}
-            {filteredProjects.length === 0 ? (
+            {/* Projects Grid or Empty State */}
+            {projects.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="text-center py-16 bg-white rounded-2xl shadow-lg"
+              >
+                <div className="text-6xl mb-4">📭</div>
+                <h3 className="text-2xl font-bold text-gray-700 mb-2">لا توجد مشاريع حتى الآن</h3>
+                <p className="text-gray-500 mb-6">لم تقم بإضافة أي مشاريع إلى متجرك بعد</p>
+                <Link to="/dashboard/developer/add-project">
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium hover:shadow-lg transition-all"
+                  >
+                    ➕ إضافة مشروع جديد
+                  </motion.button>
+                </Link>
+              </motion.div>
+            ) : filteredProjects.length === 0 ? (
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 className="text-center py-12 bg-white rounded-2xl shadow-lg"
               >
-                <div className="text-5xl mb-3">🛒</div>
-                <h3 className="text-xl font-bold text-gray-700 mb-1">لا توجد مشاريع</h3>
+                <div className="text-5xl mb-3">🔍</div>
+                <h3 className="text-xl font-bold text-gray-700 mb-1">لا توجد نتائج</h3>
                 <p className="text-gray-500">لم نجد أي مشاريع مطابقة لمعايير البحث</p>
-                <Link to="/dashboard/developer/add-project">
-                  <button className="mt-4 px-6 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition">
-                    إضافة مشروع جديد
-                  </button>
-                </Link>
+                <button
+                  onClick={() => {
+                    setSearchTerm('');
+                    setActiveFilter('all');
+                  }}
+                  className="mt-4 px-6 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition"
+                >
+                  إعادة ضبط البحث
+                </button>
               </motion.div>
             ) : (
               <motion.div
@@ -371,7 +431,7 @@ export default function DevStore() {
                       {/* Project Image */}
                       <div className="relative h-48 overflow-hidden">
                         <img 
-                          src={project.image} 
+                          src={project.image || 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=400'} 
                           alt={project.name} 
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                         />
@@ -380,11 +440,11 @@ export default function DevStore() {
                         {/* Status Badge */}
                         <div className="absolute top-3 right-3">
                           <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                            project.status === 'published' 
+                            project.public === true 
                               ? 'bg-green-500 text-white' 
                               : 'bg-yellow-500 text-white'
                           }`}>
-                            {project.status === 'published' ? 'منشور ✓' : 'مسودة 📝'}
+                            {project.public === true ? 'منشور ✓' : 'مسودة 📝'}
                           </span>
                         </div>
                         
@@ -403,14 +463,14 @@ export default function DevStore() {
                         
                         {/* Tech Stack */}
                         <div className="flex flex-wrap gap-1 mb-3">
-                          {project.tech.slice(0, 3).map((tech, i) => (
+                          {(project.tech || []).slice(0, 3).map((tech, i) => (
                             <span key={i} className="px-2 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded-lg">
                               {tech}
                             </span>
                           ))}
-                          {project.tech.length > 3 && (
+                          {(project.tech || []).length > 3 && (
                             <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded-lg">
-                              +{project.tech.length - 3}
+                              +{(project.tech || []).length - 3}
                             </span>
                           )}
                         </div>
@@ -420,21 +480,21 @@ export default function DevStore() {
                           <div className="flex items-center gap-2">
                             <div className="flex items-center gap-1">
                               <span className="text-yellow-500 text-sm">★</span>
-                              <span className="text-sm font-semibold">{project.rating}</span>
+                              <span className="text-sm font-semibold">{project.rating || 0}</span>
                             </div>
                             <div className="text-gray-300 text-xs">|</div>
-                            <div className="text-xs text-gray-500">🏆 {project.salesCount} مبيعات</div>
+                            <div className="text-xs text-gray-500">🏆 {project.salesCount || 0} مبيعات</div>
                           </div>
-                          <div className="text-lg font-bold text-indigo-600">${project.price}</div>
+                          <div className="text-lg font-bold text-indigo-600">${project.price || 0}</div>
                         </div>
 
                         {/* Price Packages */}
                         <div className="flex gap-2 mb-4">
-                          {project.packages.map((pkg, idx) => (
+                          {(project.packages || []).map((pkg, idx) => (
                             <div key={idx} className="flex-1 text-center p-1 bg-gray-50 rounded-lg">
                               <div className="text-xs font-semibold text-gray-600">{pkg.name}</div>
                               <div className="text-xs text-indigo-600">${pkg.price}</div>
-                              <div className="text-[10px] text-gray-400">{pkg.sales} مبيعات</div>
+                              <div className="text-[10px] text-gray-400">{pkg.sales || 0} مبيعات</div>
                             </div>
                           ))}
                         </div>
@@ -444,8 +504,9 @@ export default function DevStore() {
                           <button 
                             onClick={(e) => {
                               e.stopPropagation();
-                              setEditingProject(project);
-                              setShowEditModal(true);
+                              navigate('/dashboard/developer/edit-project', { 
+                                state: { project: project }
+                              });
                             }}
                             className="flex-1 py-1.5 border border-indigo-600 text-indigo-600 rounded-lg text-sm font-medium hover:bg-indigo-50 transition"
                           >
@@ -457,12 +518,12 @@ export default function DevStore() {
                               handleToggleStatus(project.id);
                             }}
                             className={`flex-1 py-1.5 rounded-lg text-sm font-medium transition ${
-                              project.status === 'published'
+                              project.public === true
                                 ? 'bg-yellow-500 text-white hover:bg-yellow-600'
                                 : 'bg-green-500 text-white hover:bg-green-600'
                             }`}
                           >
-                            {project.status === 'published' ? 'إيقاف' : 'نشر'}
+                            {project.public === true ? 'إيقاف' : 'نشر'}
                           </button>
                         </div>
                       </div>
@@ -504,8 +565,12 @@ export default function DevStore() {
               </div>
 
               <div className="p-6 space-y-6">
-                {/* Project Image */}
-                <img src={selectedProject.image} alt={selectedProject.name} className="w-full h-64 object-cover rounded-xl" />
+                {/* Project Images */}
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {(selectedProject.images || [selectedProject.image]).map((img, idx) => (
+                    <img key={idx} src={img} alt={selectedProject.name} className="w-full h-48 object-cover rounded-xl" />
+                  ))}
+                </div>
 
                 {/* Basic Info */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -523,21 +588,21 @@ export default function DevStore() {
                   </div>
                   <div className="p-3 bg-gray-50 rounded-xl text-center">
                     <div className="text-sm text-gray-500">المشاهدات</div>
-                    <div className="text-xl font-bold text-purple-600">{selectedProject.views}</div>
+                    <div className="text-xl font-bold text-purple-600">{selectedProject.views || 0}</div>
                   </div>
                 </div>
 
                 {/* Description */}
                 <div>
                   <h3 className="font-bold text-gray-800 mb-2">📝 وصف المشروع</h3>
-                  <p className="text-gray-600">{selectedProject.description}</p>
+                  <p className="text-gray-600">{selectedProject.fullDescription || selectedProject.description}</p>
                 </div>
 
                 {/* Tech Stack */}
                 <div>
                   <h3 className="font-bold text-gray-800 mb-2">💻 التقنيات المستخدمة</h3>
                   <div className="flex flex-wrap gap-2">
-                    {selectedProject.tech.map((tech, i) => (
+                    {(selectedProject.tech || []).map((tech, i) => (
                       <span key={i} className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm">{tech}</span>
                     ))}
                   </div>
@@ -547,18 +612,19 @@ export default function DevStore() {
                 <div>
                   <h3 className="font-bold text-gray-800 mb-2">💰 الباقات والأسعار</h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {selectedProject.packages.map((pkg, idx) => (
+                    {(selectedProject.packages || []).map((pkg, idx) => (
                       <div key={idx} className="p-4 border-2 border-gray-200 rounded-xl">
                         <h4 className="font-bold text-gray-800">{pkg.name}</h4>
                         <div className="text-2xl font-bold text-indigo-600 mt-2">${pkg.price}</div>
-                        <div className="text-sm text-gray-500 mt-1">{pkg.sales} عملية بيع</div>
+                        <div className="text-sm text-gray-500 mt-1">{pkg.sales || 0} عملية بيع</div>
+                        <div className="text-xs text-gray-400 mt-2">تسليم: {pkg.deliveryTime} أيام</div>
                       </div>
                     ))}
                   </div>
                 </div>
 
                 {/* Reviews */}
-                {selectedProject.reviews.length > 0 && (
+                {(selectedProject.reviews || []).length > 0 && (
                   <div>
                     <h3 className="font-bold text-gray-800 mb-2">⭐ تقييمات العملاء</h3>
                     <div className="space-y-3">
@@ -580,9 +646,10 @@ export default function DevStore() {
                 <div className="flex gap-3 pt-4 border-t border-gray-200">
                   <button
                     onClick={() => {
-                      setEditingProject(selectedProject);
+                      navigate('/dashboard/developer/edit-project', { 
+                        state: { project: selectedProject }
+                      });
                       setShowDetailsModal(false);
-                      setShowEditModal(true);
                     }}
                     className="flex-1 py-2 border-2 border-indigo-600 text-indigo-600 rounded-xl font-medium hover:bg-indigo-50 transition"
                   >
@@ -591,12 +658,12 @@ export default function DevStore() {
                   <button
                     onClick={() => handleToggleStatus(selectedProject.id)}
                     className={`flex-1 py-2 rounded-xl font-medium transition ${
-                      selectedProject.status === 'published'
+                      selectedProject.public === true
                         ? 'bg-yellow-500 text-white hover:bg-yellow-600'
                         : 'bg-green-500 text-white hover:bg-green-600'
                     }`}
                   >
-                    {selectedProject.status === 'published' ? 'إيقاف المشروع' : 'نشر المشروع'}
+                    {selectedProject.public === true ? 'إيقاف المشروع' : 'نشر المشروع'}
                   </button>
                   <button
                     onClick={() => handleDeleteProject(selectedProject.id)}
@@ -681,6 +748,47 @@ export default function DevStore() {
                         <option key={cat.value} value={cat.value}>{cat.icon} {cat.label}</option>
                       ))}
                     </select>
+                  </div>
+                </div>
+
+                {/* حالة النشر */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">حالة النشر</label>
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingProject({ 
+                          ...editingProject, 
+                          public: true,
+                          status: 'published'
+                        });
+                      }}
+                      className={`flex-1 py-2 rounded-xl font-medium transition ${
+                        editingProject.public === true
+                          ? 'bg-green-500 text-white shadow-md'
+                          : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                      }`}
+                    >
+                      ✅ منشور
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingProject({ 
+                          ...editingProject, 
+                          public: false,
+                          status: 'draft'
+                        });
+                      }}
+                      className={`flex-1 py-2 rounded-xl font-medium transition ${
+                        editingProject.public === false
+                          ? 'bg-yellow-500 text-white shadow-md'
+                          : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                      }`}
+                    >
+                      📝 مسودة
+                    </button>
                   </div>
                 </div>
 

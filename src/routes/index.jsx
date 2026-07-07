@@ -17,6 +17,7 @@ import Login from '../pages/auth/Login'
 import CompleteProfile from '../pages/auth/CompleteProfile'
 import CompleteClientProfile from '../pages/auth/CompleteClientProfile'
 import ForgotPassword from '../pages/auth/ForgotPassword'
+import VerifyAccount from '../pages/auth/VerifyAccount';
 
 // Developer Pages
 import DevDashboard from '../pages/developer/DevDashboard'
@@ -27,6 +28,9 @@ import DevEarnings from '../pages/developer/DevEarnings'
 import DevProfileSettings from '../pages/developer/DevProfileSettings'
 import AddProject from '../pages/developer/AddProject'
 import DevSettings from '../pages/developer/DevSettings'
+import EditProject from '../pages/developer/EditProject';
+import ProjectProposals from '../pages/developer/ProjectProposals'; // ✅ أضف هذا مع بقية الـ imports
+
 
 // Client Pages
 import ClientDashboard from '../pages/client/ClientDashboard'
@@ -49,11 +53,11 @@ const router = createBrowserRouter([
   { path: '/developers', element: <Developers /> },
   { path: '/marketplace', element: <Marketplace /> },
   { path: '/marketplace/:id', element: <MarketplaceItem /> },
-  { path: '/dev/:username', element: <DevProfilePublic /> },
+  { path: '/dev/:id', element: <DevProfilePublic /> },
   { path: '/how-it-works', element: <HowItWorks /> },
   { path: '/pricing', element: <Pricing /> },
   { path: '/privacy', element: <TermsPrivacy /> },
- 
+   { path: '/verify-account', element: <VerifyAccount /> },
   { path: '/login', element: <Login /> },
   { path: '/complete-profile', element: <CompleteProfile /> },
   { path: '/complete-client-profile', element: <CompleteClientProfile /> },
@@ -68,7 +72,8 @@ const router = createBrowserRouter([
   { path: '/dashboard/developer/profile', element: <PrivateRoute allowedTypes={['developer']}><DevProfileSettings /></PrivateRoute> },
   { path: '/dashboard/developer/add-project', element: <PrivateRoute allowedTypes={['developer']}><AddProject /></PrivateRoute> },
   { path: '/dashboard/developer/settings', element: <PrivateRoute allowedTypes={['developer']}><DevSettings /></PrivateRoute> },
-
+{ path: '/dashboard/developer/edit-project', element: <PrivateRoute allowedTypes={['developer']}><EditProject /></PrivateRoute> },
+{ path: '/dashboard/developer/project-proposals', element: <PrivateRoute allowedTypes={['developer']}><ProjectProposals /></PrivateRoute> },
   // Client Routes
   { path: '/dashboard/client', element: <PrivateRoute allowedTypes={['client']}><ClientDashboard /></PrivateRoute> },
   { path: '/dashboard/client/projects', element: <PrivateRoute allowedTypes={['client']}><ClientProjects /></PrivateRoute> },

@@ -1,8 +1,18 @@
+// src/components/layout/ClientSidebar.jsx
+
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useAuth } from '../../context/AuthContext';
 
 export default function ClientSidebar({ activePage }) {
   const location = useLocation();
+  const { user } = useAuth();
+
+  // ✅ استخراج بيانات المستخدم
+  const userName = user?.name || user?.username || 'عميل';
+  const userCompany = user?.companyName || user?.company || 'شركة';
+  const userImage = user?.profileImage || user?.avatar || null;
+  const firstLetter = userName.charAt(0);
 
   const menuItems = [
     { id: 'dashboard', label: 'لوحة التحكم', icon: '📊', path: '/dashboard/client' },
@@ -19,11 +29,19 @@ export default function ClientSidebar({ activePage }) {
       <div className="p-6">
         {/* User Info */}
         <div className="text-center mb-8 pb-6 border-b border-gray-200">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 mx-auto mb-3 flex items-center justify-center text-white text-2xl font-bold">
-            ع
+          <div className="w-20 h-20 rounded-full mx-auto mb-3 flex items-center justify-center text-white text-2xl font-bold overflow-hidden bg-gradient-to-r from-indigo-500 to-purple-500">
+            {userImage ? (
+              <img 
+                src={userImage} 
+                alt={userName} 
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <span>{firstLetter}</span>
+            )}
           </div>
-          <h3 className="font-bold text-gray-800">شركة التقنية</h3>
-          <p className="text-sm text-gray-500 mt-1">عميل مميز</p>
+          <h3 className="font-bold text-gray-800">{userCompany}</h3>
+          <p className="text-sm text-gray-500 mt-1">{userName}</p>
           <div className="inline-block mt-2 px-2 py-1 bg-green-100 text-green-600 text-xs rounded-full">
             نشط ✅
           </div>

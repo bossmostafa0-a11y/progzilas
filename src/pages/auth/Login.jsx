@@ -5,6 +5,30 @@ import { useAuth } from '../../context/AuthContext';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 
+// ✅ المصفوفات الثابتة خارج الكامبوننت
+const ELEGANT_CODE = [
+  'DevHire', '✨', '</>', '{}', '()', '=>', 'const', 'let',
+  'مبرمج', 'ابتكار', 'تقنية', 'ريادة', 'نجاح', 'تطوير',
+  'React', 'Node', 'AI', 'Cloud', 'Future', 'Code',
+  '🌟', '🚀', '💡', '⚡', '🎯', '🏆'
+];
+
+const TRACKS = [
+  { value: 'frontend', label: 'Frontend Developer', icon: '🎨' },
+  { value: 'backend', label: 'Backend Developer', icon: '⚙️' },
+  { value: 'fullstack', label: 'Fullstack Developer', icon: '🚀' },
+  { value: 'mobile', label: 'Mobile Developer', icon: '📱' },
+  { value: 'devops', label: 'DevOps Engineer', icon: '🔧' },
+  { value: 'ai', label: 'AI/ML Engineer', icon: '🧠' }
+];
+
+const EXPERIENCE_LEVELS = [
+  { value: '0-1', label: 'مبتدئ (0-1 سنة)' },
+  { value: '1-3', label: 'متوسط (1-3 سنوات)' },
+  { value: '3-5', label: 'محترف (3-5 سنوات)' },
+  { value: '5+', label: 'خبير (5+ سنوات)' }
+];
+
 export default function Login() {
   const [isLogin, setIsLogin] = useState(true);
   const [userType, setUserType] = useState('developer');
@@ -20,43 +44,36 @@ export default function Login() {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [showVerification, setShowVerification] = useState(false);
+  const [tempEmail, setTempEmail] = useState('');
   
   const canvasRef = useRef(null);
-  const { login, register } = useAuth();
+  const { login, registerDeveloperUser, registerClientUser } = useAuth();
   const navigate = useNavigate();
 
-  // Hacker Matrix Effect - نسخة فخمة
+  // ✅ Hacker Matrix Effect
   useEffect(() => {
     const canvas = canvasRef.current;
+    if (!canvas) return;
     const ctx = canvas.getContext('2d');
+    
+    let animationFrameId;
+    const fontSize = 24;
     
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
     
-    const elegantCode = [
-      'DevHire', '✨', '</>', '{}', '()', '=>', 'const', 'let',
-      'مبرمج', 'ابتكار', 'تقنية', 'ريادة', 'نجاح', 'تطوير',
-      'React', 'Node', 'AI', 'Cloud', 'Future', 'Code',
-      '🌟', '🚀', '💡', '⚡', '🎯', '🏆'
-    ];
-    
-    let columns = [];
-    const fontSize = 24;
-    const columnsCount = Math.floor(canvas.width / fontSize);
-    
-    for (let i = 0; i < columnsCount; i++) {
-      columns[i] = Math.floor(Math.random() * canvas.height / fontSize);
-    }
-    
-    let opacities = columns.map(() => Math.random() * 0.3 + 0.1);
+    let columnsCount = Math.floor(canvas.width / fontSize);
+    let columns = Array.from({ length: columnsCount }, () => Math.floor(Math.random() * canvas.height / fontSize));
+    let opacities = Array.from({ length: columnsCount }, () => Math.random() * 0.3 + 0.1);
     
     function draw() {
       ctx.fillStyle = 'rgba(10, 10, 20, 0.05)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       
       for (let i = 0; i < columns.length; i++) {
-        const randomIndex = Math.floor(Math.random() * elegantCode.length);
-        const text = elegantCode[randomIndex];
+        const randomIndex = Math.floor(Math.random() * ELEGANT_CODE.length);
+        const text = ELEGANT_CODE[randomIndex];
         const x = i * fontSize;
         const y = columns[i] * fontSize;
         
@@ -84,35 +101,32 @@ export default function Login() {
         }
       }
       
-      requestAnimationFrame(draw);
+      animationFrameId = requestAnimationFrame(draw);
     }
     
     draw();
     
     const handleResize = () => {
+      if (!canvas) return;
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
       const newColumnsCount = Math.floor(canvas.width / fontSize);
-      columns = [];
-      opacities = [];
-      for (let i = 0; i < newColumnsCount; i++) {
-        columns[i] = Math.floor(Math.random() * canvas.height / fontSize);
-        opacities[i] = Math.random() * 0.3 + 0.1;
-      }
+      
+      columns = Array.from({ length: newColumnsCount }, () => Math.floor(Math.random() * canvas.height / fontSize));
+      opacities = Array.from({ length: newColumnsCount }, () => Math.random() * 0.3 + 0.1);
     };
     
     window.addEventListener('resize', handleResize);
     
     return () => {
       window.removeEventListener('resize', handleResize);
+      cancelAnimationFrame(animationFrameId);
     };
   }, []);
 
-  // دالة تسجيل الدخول عبر Google
   const handleGoogleLogin = async () => {
     setGoogleLoading(true);
     
-    // Simulate Google login
     setTimeout(async () => {
       const mockGoogleUser = {
         id: 'google_' + Date.now(),
@@ -132,15 +146,15 @@ export default function Login() {
   };
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
+    setFormData(prev => ({
+      ...prev,
       [e.target.name]: e.target.value
-    });
+    }));
     if (errors[e.target.name]) {
-      setErrors({
-        ...errors,
+      setErrors(prev => ({
+        ...prev,
         [e.target.name]: ''
-      });
+      }));
     }
   };
 
@@ -173,70 +187,129 @@ export default function Login() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!validateForm()) return;
-    
-    setLoading(true);
-    
-    try {
-      if (isLogin) {
-        await login(formData.email, formData.password);
-        const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
-        if (storedUser.userType === 'developer') {
-          navigate('/dashboard/developer');
-        } else {
-          navigate('/dashboard/client');
-        }
+ const handleSubmit = async (e) => {
+  e.preventDefault();
+  
+  if (!validateForm()) return;
+  
+  setLoading(true);
+  setShowVerification(false);
+  
+  try {
+    if (isLogin) {
+      // ✅ تسجيل الدخول
+      await login(formData.email, formData.password);
+      
+      const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+      console.log('✅ Stored user after login:', storedUser);
+      
+      if (storedUser.userType === 'developer') {
+        navigate('/dashboard/developer');
       } else {
-        const registerData = {
+        navigate('/dashboard/client');
+      }
+    } else {
+      // ============ تسجيل جديد ============
+      let response;
+      
+      if (userType === 'developer') {
+        // ✅ تسجيل مبرمج
+        response = await registerDeveloperUser({
           name: formData.name,
           email: formData.email,
           password: formData.password,
-          userType: userType,
-          ...(userType === 'developer' && {
-            track: formData.track,
-            experience: formData.experience
-          }),
-          ...(userType === 'client' && {
-            companyName: formData.companyName
-          })
-        };
+          track: formData.track,
+          experience: formData.experience
+        });
         
-        await register(registerData);
-        if (userType === 'developer') {
-          navigate('/complete-profile');
+        console.log('📥 Register developer response:', response);
+        
+        const message = response?.message || response?.data?.message || '';
+        
+        if (message.includes('تفعيل') || message.includes('verify') || message.includes('confirmed')) {
+          setTempEmail(formData.email);
+          setShowVerification(true);
+          setErrors({});
+        } else if (message.includes('استكمل الملف') || message.includes('complete') || message.includes('profile')) {
+          // ✅ مبرمج محتاج يكمل بروفايل
+          navigate(`/complete-profile?email=${encodeURIComponent(formData.email)}`);
         } else {
-          navigate('/complete-client-profile');
+          // ✅ مبرمج → يروح لداشبورد المبرمج
+          navigate('/dashboard/developer');
+        }
+      } else {
+        // ✅ تسجيل عميل
+        response = await registerClientUser({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+          companyName: formData.companyName
+        });
+        
+        console.log('📥 Register client response:', response);
+        
+        const message = response?.message || response?.data?.message || '';
+        
+        if (message.includes('تفعيل') || message.includes('verify') || message.includes('confirmed')) {
+          setTempEmail(formData.email);
+          setShowVerification(true);
+          setErrors({});
+        } else if (message.includes('اكمل ملف العميل') || message.includes('complete') || message.includes('profile')) {
+          // ✅ عميل محتاج يكمل بروفايل العميل
+          navigate(`/complete-client-profile?email=${encodeURIComponent(formData.email)}`);
+        } else {
+          // ✅ عميل → يروح لداشبورد العميل
+          navigate('/dashboard/client');
         }
       }
-    } catch (error) {
-      console.error('Error:', error);
-      setErrors({
-        submit: error.response?.data?.message || 'حدث خطأ، يرجى المحاولة مرة أخرى'
-      });
-    } finally {
-      setLoading(false);
     }
-  };
-
-  const tracks = [
-    { value: 'frontend', label: 'Frontend Developer', icon: '🎨' },
-    { value: 'backend', label: 'Backend Developer', icon: '⚙️' },
-    { value: 'fullstack', label: 'Fullstack Developer', icon: '🚀' },
-    { value: 'mobile', label: 'Mobile Developer', icon: '📱' },
-    { value: 'devops', label: 'DevOps Engineer', icon: '🔧' },
-    { value: 'ai', label: 'AI/ML Engineer', icon: '🧠' }
-  ];
-
-  const experienceLevels = [
-    { value: '0-1', label: 'مبتدئ (0-1 سنة)' },
-    { value: '1-3', label: 'متوسط (1-3 سنوات)' },
-    { value: '3-5', label: 'محترف (3-5 سنوات)' },
-    { value: '5+', label: 'خبير (5+ سنوات)' }
-  ];
-
+  } catch (error) {
+    console.error('🔴 Error:', error);
+    
+    // ✅ استخرج رسالة الخطأ
+    const errorMessage = error?.response?.data?.message || 
+                        error?.message || 
+                        error?.data?.message || 
+                        '';
+    
+    console.log('📝 Error message:', errorMessage);
+    
+    // ✅ التوجيه بناءً على الرسالة فقط (بغض النظر عن userType)
+    if (errorMessage.includes('تفعيل') || errorMessage.includes('verify') || errorMessage.includes('confirmed')) {
+      setTempEmail(formData.email);
+      setShowVerification(true);
+      setErrors({});
+    } 
+    // ✅ لو الرسالة "اكمل ملف العميل" → روح لصفحة العميل
+    else if (errorMessage.includes('اكمل ملف العميل')) {
+      console.log('✅ Redirecting to CLIENT profile page (based on message)');
+      navigate(`/complete-client-profile?email=${encodeURIComponent(formData.email)}`);
+    } 
+    // ✅ لو الرسالة "استكمل الملف" → روح لصفحة المبرمج
+    else if (errorMessage.includes('استكمل الملف')) {
+      console.log('✅ Redirecting to DEVELOPER profile page (based on message)');
+      navigate(`/complete-profile?email=${encodeURIComponent(formData.email)}`);
+    } 
+    // ✅ لو الرسالة فيها complete profile → حسب السياق
+    else if (errorMessage.toLowerCase().includes('complete') && errorMessage.toLowerCase().includes('profile')) {
+      // لو الرسالة فيها "client" روح للعميل
+      if (errorMessage.toLowerCase().includes('client')) {
+        navigate(`/complete-client-profile?email=${encodeURIComponent(formData.email)}`);
+        console.log('✅ Redirecting to CLIENT profile page (complete client)');
+      } else {
+        navigate(`/complete-profile?email=${encodeURIComponent(formData.email)}`);
+        console.log('✅ Redirecting to DEVELOPER profile page (complete profile)');
+      }
+    } 
+    else {
+      setErrors({
+        submit: errorMessage || 'حدث خطأ، يرجى المحاولة مرة أخرى'
+      });
+    }
+  } finally {
+    setLoading(false);
+  }
+};
   const fadeInUp = {
     initial: { opacity: 0, y: 30 },
     animate: { opacity: 1, y: 0 },
@@ -245,14 +318,12 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex flex-col relative" dir="rtl">
-      {/* Canvas Background */}
       <canvas
         ref={canvasRef}
         className="fixed top-0 left-0 w-full h-full z-0"
         style={{ background: 'linear-gradient(135deg, #0f0c1e 0%, #1a1025 50%, #0f0c1e 100%)' }}
       />
       
-      {/* Soft Glow Overlay */}
       <div className="fixed inset-0 z-[1] bg-gradient-to-b from-indigo-950/30 via-transparent to-purple-950/30 pointer-events-none"></div>
       
       <div className="relative z-10">
@@ -266,7 +337,6 @@ export default function Login() {
               transition={{ duration: 0.6 }}
               className="bg-white/5 backdrop-blur-2xl rounded-3xl shadow-2xl p-8 border border-white/10"
             >
-              {/* Header */}
               <div className="text-center mb-8">
                 <motion.div
                   initial={{ scale: 0 }}
@@ -315,7 +385,6 @@ export default function Login() {
                 )}
               </motion.button>
 
-              {/* Divider */}
               <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-white/20"></div>
@@ -325,9 +394,29 @@ export default function Login() {
                 </div>
               </div>
 
+              {/* ✅ رسالة التفعيل */}
+              {showVerification && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="mb-4 p-4 bg-yellow-500/20 border border-yellow-500/50 rounded-xl text-center"
+                >
+                  <p className="text-yellow-300 text-sm mb-3">
+                    ⏳ تم إنشاء الحساب بنجاح! يرجى تفعيل حسابك من خلال البريد الإلكتروني
+                  </p>
+                  <Link 
+                    to={`/verify-account?email=${encodeURIComponent(tempEmail)}`}
+                    className="inline-block px-5 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg text-sm font-medium hover:shadow-lg transition-all"
+                  >
+                    🔐 الذهاب لتفعيل الحساب
+                  </Link>
+                </motion.div>
+              )}
+
               {/* Toggle Buttons */}
               <div className="flex gap-2 bg-white/5 rounded-xl p-1 mb-8 border border-white/10">
                 <button
+                  type="button"
                   onClick={() => setIsLogin(true)}
                   className={`flex-1 py-2 rounded-lg font-semibold transition-all duration-300 ${
                     isLogin 
@@ -338,6 +427,7 @@ export default function Login() {
                   تسجيل الدخول
                 </button>
                 <button
+                  type="button"
                   onClick={() => setIsLogin(false)}
                   className={`flex-1 py-2 rounded-lg font-semibold transition-all duration-300 ${
                     !isLogin 
@@ -517,7 +607,7 @@ export default function Login() {
                         } focus:border-indigo-500 focus:outline-none transition-colors text-white`}
                       >
                         <option value="" className="bg-gray-900">اختر تخصصك</option>
-                        {tracks.map(track => (
+                        {TRACKS.map(track => (
                           <option key={track.value} value={track.value} className="bg-gray-900">
                             {track.icon} {track.label}
                           </option>
@@ -541,7 +631,7 @@ export default function Login() {
                         } focus:border-indigo-500 focus:outline-none transition-colors text-white`}
                       >
                         <option value="" className="bg-gray-900">اختر سنوات الخبرة</option>
-                        {experienceLevels.map(level => (
+                        {EXPERIENCE_LEVELS.map(level => (
                           <option key={level.value} value={level.value} className="bg-gray-900">
                             {level.label}
                           </option>
@@ -582,12 +672,12 @@ export default function Login() {
                 </motion.button>
               </form>
 
-              {/* Footer */}
               <div className="mt-6 text-center text-sm text-white/40">
                 {isLogin ? (
                   <p>
                     ليس لديك حساب؟{' '}
                     <button
+                      type="button"
                       onClick={() => setIsLogin(false)}
                       className="text-indigo-400 font-semibold hover:text-indigo-300"
                     >
@@ -598,6 +688,7 @@ export default function Login() {
                   <p>
                     لديك حساب بالفعل؟{' '}
                     <button
+                      type="button"
                       onClick={() => setIsLogin(true)}
                       className="text-indigo-400 font-semibold hover:text-indigo-300"
                     >

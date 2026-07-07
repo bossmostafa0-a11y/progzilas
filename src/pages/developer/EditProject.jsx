@@ -1,50 +1,98 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+// src/pages/developer/EditProject.jsx
+
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
-import { createProject } from '../../services/develper.service.js';
+import { updatestoreProject  } from '../../services/develper.service.js';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import DeveloperSidebar from '../../components/layout/DeveloperSidebar';
 
-export default function AddProject() {
-  const {  fetchUser } = useAuth();
+export default function EditProject() {
+  const location = useLocation();
+  const { fetchUser } = useAuth();
   const navigate = useNavigate();
-  const [step, setStep] = useState(1);
-  const [loading, setLoading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
+  const [saving, setSaving] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
+  const [step, setStep] = useState(1);
   
-  // Form Data
-  const [formData, setFormData] = useState({
-    projectName: '',
-    category: '',
-    shortDescription: '',
-    fullDescription: '',
-    demoUrl: '',
-    githubUrl: '',
-    license: 'Commercial',
-    videoUrl: '',
-    supportPeriod: '',
-    updatesPeriod: '',
-    technologies: [],
-    mainFeatures: [],
-    images: [],
-    basic: {
-      price: '',
-      deliveryTime: 3,
-      features: ['كود المصدر', 'التثبيت', 'شرح بالفيديو']
-    },
-    pro: {
-      price: '',
-      deliveryTime: 7,
-      features: ['كل ما في Basic', 'تعديل الألوان', 'إضافة ميزة جديدة']
-    },
-    enterprise: {
-      price: '',
-      deliveryTime: 30,
-      features: ['كل ما في Pro', 'بناء مخصص', 'دعم فني كامل']
+  // ✅ استقبال البيانات من الـ state
+  const projectData = location.state?.project;
+  
+  // ✅ التحقق من وجود البيانات - بدون setState
+  useEffect(() => {
+    if (!projectData) {
+      alert('لا توجد بيانات للمشروع');
+      navigate('/dashboard/developer/store');
     }
+  }, [projectData, navigate]);
+
+  // Form Data - يتم تعبئتها مباشرة من projectData
+  const [formData, setFormData] = useState(() => {
+    if (projectData) {
+      console.log('📥 Project data from state:', projectData);
+      return {
+        projectName: projectData.name || '',
+        category: projectData.category || '',
+        shortDescription: projectData.description || '',
+        fullDescription: projectData.fullDescription || '',
+        demoUrl: projectData.demoUrl || '',
+        githubUrl: projectData.githubUrl || '',
+        license: projectData.license || 'Commercial',
+        videoUrl: projectData.videoUrl || '',
+        supportPeriod: projectData.supportPeriod || '',
+        updatesPeriod: projectData.updatesPeriod || '',
+        technologies: projectData.tech || [],
+        mainFeatures: projectData.mainFeatures || [],
+        images: projectData.images || [],
+        basic: projectData.basic || { 
+          price: '', 
+          deliveryTime: 3, 
+          features: ['كود المصدر', 'التثبيت', 'شرح بالفيديو'] 
+        },
+        pro: projectData.pro || { 
+          price: '', 
+          deliveryTime: 7, 
+          features: ['كل ما في Basic', 'تعديل الألوان', 'إضافة ميزة جديدة'] 
+        },
+        enterprise: projectData.enterprise || { 
+          price: '', 
+          deliveryTime: 30, 
+          features: ['كل ما في Pro', 'بناء مخصص', 'دعم فني كامل'] 
+        }
+      };
+    }
+    return {
+      projectName: '',
+      category: '',
+      shortDescription: '',
+      fullDescription: '',
+      demoUrl: '',
+      githubUrl: '',
+      license: 'Commercial',
+      videoUrl: '',
+      supportPeriod: '',
+      updatesPeriod: '',
+      technologies: [],
+      mainFeatures: [],
+      images: [],
+      basic: {
+        price: '',
+        deliveryTime: 3,
+        features: ['كود المصدر', 'التثبيت', 'شرح بالفيديو']
+      },
+      pro: {
+        price: '',
+        deliveryTime: 7,
+        features: ['كل ما في Basic', 'تعديل الألوان', 'إضافة ميزة جديدة']
+      },
+      enterprise: {
+        price: '',
+        deliveryTime: 30,
+        features: ['كل ما في Pro', 'بناء مخصص', 'دعم فني كامل']
+      }
+    };
   });
 
   // Temporary states
@@ -98,29 +146,12 @@ export default function AddProject() {
     if (!formData.shortDescription.trim()) errors.shortDescription = 'الوصف القصير مطلوب';
     if (formData.technologies.length === 0) errors.technologies = 'أضف تقنية واحدة على الأقل';
     if (formData.mainFeatures.length === 0) errors.mainFeatures = 'أضف ميزة واحدة على الأقل';
-    if (formData.images.length === 0) errors.images = 'أضف صورة واحدة على الأقل';
     if (!formData.basic.price || formData.basic.price <= 0) errors.basicPrice = 'سعر باقة Basic مطلوب';
     if (!formData.pro.price || formData.pro.price <= 0) errors.proPrice = 'سعر باقة Pro مطلوب';
     if (!formData.enterprise.price || formData.enterprise.price <= 0) errors.enterprisePrice = 'سعر باقة Enterprise مطلوب';
     
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
-  };
-
-  // Handle image upload
-  const handleImageUpload = (e) => {
-    const files = Array.from(e.target.files);
-    setFormData(prev => ({
-      ...prev,
-      images: [...prev.images, ...files]
-    }));
-  };
-
-  const removeImage = (index) => {
-    setFormData(prev => ({
-      ...prev,
-      images: prev.images.filter((_, i) => i !== index)
-    }));
   };
 
   // Tech Stack Functions
@@ -221,89 +252,71 @@ export default function AddProject() {
     setValidationErrors({ ...validationErrors, [`${packageName}Price`]: '' });
   };
 
-  // ✅ الإرسال للباك اند باستخدام createProject
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!validateForm()) {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
-    
-    setLoading(true);
-    
-    try {
-      const submitData = new FormData();
-      
-      // ✅ بيانات المشروع
-      submitData.append('projectName', formData.projectName);
-      submitData.append('category', formData.category);
-      submitData.append('shortDescription', formData.shortDescription);
-      submitData.append('fullDescription', formData.fullDescription || '');
-      submitData.append('demoUrl', formData.demoUrl || '');
-      submitData.append('githubUrl', formData.githubUrl || '');
-      submitData.append('license', formData.license);
-      submitData.append('videoUrl', formData.videoUrl || '');
-      submitData.append('supportPeriod', formData.supportPeriod || '');
-      submitData.append('updatesPeriod', formData.updatesPeriod || '');
-      
-      // ✅ التقنيات (JSON)
-      submitData.append('technologies', JSON.stringify(formData.technologies));
-      
-      // ✅ المميزات (JSON)
-      submitData.append('mainFeatures', JSON.stringify(formData.mainFeatures));
-      
-      // ✅ الباقات (JSON)
-      submitData.append('basic', JSON.stringify({
+  // ✅ تحديث المشروع - تم التعديل: التحديث يحدث فقط عند الضغط على الزر
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  
+  if (!validateForm()) {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    return;
+  }
+  
+  setSaving(true);
+  
+  try {
+    // ✅ تجهيز البيانات كـ JSON
+    const submitData = {
+      id: projectData.id,
+      projectName: formData.projectName,
+      category: formData.category,
+      shortDescription: formData.shortDescription,
+      fullDescription: formData.fullDescription || '',
+      demoUrl: formData.demoUrl || '',
+      githubUrl: formData.githubUrl || '',
+      license: formData.license,
+      videoUrl: formData.videoUrl || '',
+      supportPeriod: formData.supportPeriod || '',
+      updatesPeriod: formData.updatesPeriod || '',
+      technologies: formData.technologies,
+      mainFeatures: formData.mainFeatures,
+      basic: {
         price: formData.basic.price,
         deliveryTime: formData.basic.deliveryTime,
         features: formData.basic.features
-      }));
-      
-      submitData.append('pro', JSON.stringify({
+      },
+      pro: {
         price: formData.pro.price,
         deliveryTime: formData.pro.deliveryTime,
         features: formData.pro.features
-      }));
-      
-      submitData.append('enterprise', JSON.stringify({
+      },
+      enterprise: {
         price: formData.enterprise.price,
         deliveryTime: formData.enterprise.deliveryTime,
         features: formData.enterprise.features
-      }));
-      
-      // ✅ الصور
-      formData.images.forEach((image) => {
-        submitData.append('images', image);
-      });
-      
-      // ✅ استخدم createProject من developerService
-      const response = await createProject(submitData, (progressEvent) => {
-        const percentCompleted = Math.round(
-          (progressEvent.loaded * 100) / progressEvent.total
-        );
-        setUploadProgress(percentCompleted);
-      });
-      
-      console.log('✅ Project created:', response);
-      
-      // ✅ تحديث بيانات المستخدم
-      await fetchUser();
-      
-      setTimeout(() => {
-        setLoading(false);
-        navigate('/dashboard/developer/store');
-      }, 500);
-      
-    } catch (error) {
-      console.error('❌ Error creating project:', error);
-      alert(error.response?.data?.message || 'حدث خطأ أثناء نشر المشروع');
-      setLoading(false);
-    }
-  };
+      }
+    };
+    
+    console.log('📤 Sending data:', submitData);
+    
+    // ✅ استدعاء updatestoreProject مع JSON
+    const response = await updatestoreProject(projectData.id, submitData);
+    console.log('📥 Response:', response);
+    
+    await fetchUser();
+    
+    alert('✅ تم تحديث المشروع بنجاح');
+    navigate('/dashboard/developer/store');
+    
+  } catch (error) {
+    console.error('❌ Error updating project:', error);
+    console.error('❌ Error response:', error.response?.data);
+    alert(error.response?.data?.message || 'حدث خطأ أثناء تحديث المشروع');
+  } finally {
+    setSaving(false);
+  }
+};
 
   const nextStep = () => {
-    // Basic validation before moving to next step
     if (step === 1) {
       if (!formData.projectName.trim()) {
         setValidationErrors({ projectName: 'اسم المشروع مطلوب' });
@@ -358,15 +371,20 @@ export default function AddProject() {
     { number: 1, title: 'المعلومات الأساسية', icon: '📝' },
     { number: 2, title: 'المميزات والتقنيات', icon: '⚙️' },
     { number: 3, title: 'الباقات والأسعار', icon: '💰' },
-    { number: 4, title: 'الصور والنشر', icon: '🚀' }
+    { number: 4, title: 'الصور', icon: '🖼️' }
   ];
+
+  // ✅ لو مفيش بيانات، ارجع للصفحة السابقة
+  if (!projectData) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 to-indigo-50/20" dir="rtl">
       <Navbar />
       
       <div className="flex-grow flex">
-        <DeveloperSidebar activePage="add-project" />
+        <DeveloperSidebar activePage="store" />
 
         <div className="flex-1 overflow-x-auto">
           <div className="p-6 lg:p-8">
@@ -377,9 +395,9 @@ export default function AddProject() {
               className="mb-8"
             >
               <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                إضافة مشروع جديد 🚀
+                تعديل المشروع ✏️
               </h1>
-              <p className="text-gray-500 mt-1">أضف مشروعك للمتجر وابدأ في بيعه لعدة عملاء</p>
+              <p className="text-gray-500 mt-1">قم بتحديث معلومات مشروعك</p>
             </motion.div>
 
             {/* Progress Steps */}
@@ -942,7 +960,7 @@ export default function AddProject() {
                   </motion.div>
                 )}
 
-                {/* Step 4: Images & Publish */}
+                {/* Step 4: Images */}
                 {step === 4 && (
                   <motion.div
                     key="step4"
@@ -952,54 +970,23 @@ export default function AddProject() {
                     transition={{ duration: 0.3 }}
                     className="space-y-6"
                   >
-                    {/* Image Upload */}
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        صور المشروع <span className="text-red-500">*</span>
+                        صور المشروع
                       </label>
-                      <div className={`border-2 border-dashed rounded-2xl p-6 text-center transition-all ${
-                        validationErrors.images ? 'border-red-500' : 'border-gray-300 hover:border-indigo-500'
-                      }`}>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          multiple
-                          onChange={handleImageUpload}
-                          className="hidden"
-                          id="imageUpload"
-                        />
-                        <label htmlFor="imageUpload" className="cursor-pointer">
-                          <div className="text-4xl mb-2">🖼️</div>
-                          <p className="text-gray-500">اضغط لرفع الصور</p>
-                          <p className="text-xs text-gray-400 mt-1">يمكنك رفع أكثر من صورة</p>
-                        </label>
-                      </div>
-                      {validationErrors.images && (
-                        <p className="text-red-500 text-xs mt-1">{validationErrors.images}</p>
-                      )}
-                      
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                         {formData.images.map((img, idx) => (
                           <div key={idx} className="relative group">
                             <img 
-                              src={URL.createObjectURL(img)} 
-                              alt={`Preview ${idx}`} 
+                              src={img} 
+                              alt={`Project ${idx}`} 
                               className="w-full h-32 object-cover rounded-xl"
                             />
-                            <button
-                              type="button"
-                              onClick={() => removeImage(idx)}
-                              className="absolute top-2 right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition"
-                            >
-                              ✕
-                            </button>
                           </div>
                         ))}
                       </div>
+                      <p className="text-xs text-gray-400 mt-2">💡 لتغيير الصور، قم بحذف المشروع وإعادة إنشائه</p>
                     </div>
-
-                    {/* Preview Card */}
-                   
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -1017,6 +1004,7 @@ export default function AddProject() {
                 )}
                 {step < 4 ? (
                   <button
+                    key="next"
                     type="button"
                     onClick={nextStep}
                     className="px-6 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium hover:shadow-lg transition-all ml-auto"
@@ -1025,17 +1013,18 @@ export default function AddProject() {
                   </button>
                 ) : (
                   <button
+                    key="submit"
                     type="submit"
-                    disabled={loading}
+                    disabled={saving}
                     className="px-6 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-medium hover:shadow-lg transition-all ml-auto disabled:opacity-50"
                   >
-                    {loading ? (
+                    {saving ? (
                       <div className="flex items-center gap-2">
                         <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        <span>جاري النشر... {uploadProgress}%</span>
+                        <span>جاري التحديث...</span>
                       </div>
                     ) : (
-                      'نشر المشروع 🚀'
+                      'تحديث المشروع 💾'
                     )}
                   </button>
                 )}

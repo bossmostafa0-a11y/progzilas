@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, memo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import Particles from "@tsparticles/react";
@@ -6,270 +6,95 @@ import { loadSlim } from "@tsparticles/slim";
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 
-export default function Home() {
-  const [stats, setStats] = useState([
-    { value: 0, label: 'مبرمج محترف', suffix: '+', target: 850 },
-    { value: 0, label: 'مشروع مكتمل', suffix: '+', target: 2150 },
-    { value: 0, label: 'أرباح بالملايين', suffix: 'M+', target: 125 },
-    { value: 0, label: 'رضا العملاء', suffix: '%', target: 99 }
-  ]);
+// ✅ نقل المصفوفات الثابتة برة عشان الـ React ما يعيدش حجز مساحة ليها في الذاكرة مع كل رندر
+const TOP_DEVELOPERS = [
+  { id: 1, name: 'أحمد المنصوري', title: 'Full Stack Architect', tech: ['React', 'Node.js', 'AWS'], rating: 4.9, completed: 142, hourlyRate: 75, avatar: 'https://randomuser.me/api/portraits/men/32.jpg', badge: '🏆 الأفضل', cover: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=400' },
+  { id: 2, name: 'سارة القحطاني', title: 'Frontend Expert', tech: ['React', 'Vue', 'Tailwind'], rating: 4.8, completed: 118, hourlyRate: 65, avatar: 'https://randomuser.me/api/portraits/women/68.jpg', badge: '⭐ متميز', cover: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400' },
+  { id: 3, name: 'يوسف إبراهيم', title: 'Mobile Dev Expert', tech: ['Flutter', 'iOS', 'Android'], rating: 4.9, completed: 94, hourlyRate: 70, avatar: 'https://randomuser.me/api/portraits/men/45.jpg', badge: '🚀 مميز', cover: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=400' },
+  { id: 4, name: 'نورة خالد', title: 'UI/UX + Frontend', tech: ['React', 'Figma', 'Next.js'], rating: 4.7, completed: 82, hourlyRate: 55, avatar: 'https://randomuser.me/api/portraits/women/45.jpg', badge: '✨ صاعدة', cover: 'https://images.unsplash.com/photo-1581291518633-83b4ebd1d83e?w=400' },
+  { id: 5, name: 'عبدالله السالم', title: 'DevOps Engineer', tech: ['Docker', 'K8s', 'AWS'], rating: 4.9, completed: 108, hourlyRate: 85, avatar: 'https://randomuser.me/api/portraits/men/78.jpg', badge: '🔥 خبير', cover: 'https://images.unsplash.com/photo-1504639725590-34d0984388bd?w=400' },
+  { id: 6, name: 'هند العتيبي', title: 'AI/ML Specialist', tech: ['Python', 'TensorFlow', 'PyTorch'], rating: 4.8, completed: 63, hourlyRate: 80, avatar: 'https://randomuser.me/api/portraits/women/89.jpg', badge: '🧠 خبيرة', cover: 'https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=400' }
+];
 
-  // تهيئة الحبيبات
+const FEATURED_PROJECTS = [
+  { id: 1, name: 'نظام إدارة المستشفيات الذكي', dev: 'أحمد المنصوري', devAvatar: 'https://randomuser.me/api/portraits/men/32.jpg', category: 'نظام إدارة', sales: 47, price: 499, rating: 4.9, image: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=600', tech: ['React', 'Node.js', 'MongoDB'] },
+  { id: 2, name: 'منصة تعليمية متكاملة', dev: 'يوسف إبراهيم', devAvatar: 'https://randomuser.me/api/portraits/men/45.jpg', category: 'منصة تعليمية', sales: 38, price: 599, rating: 4.8, image: 'https://images.unsplash.com/photo-1501504905252-473c47e087f8?w=600', tech: ['Flutter', 'Django', 'PostgreSQL'] },
+  { id: 3, name: 'متجر إلكتروني متكامل', dev: 'نورة خالد', devAvatar: 'https://randomuser.me/api/portraits/women/45.jpg', category: 'متجر إلكتروني', sales: 89, price: 399, rating: 4.9, image: 'https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=600', tech: ['Next.js', 'Stripe', 'Tailwind'] },
+  { id: 4, name: 'لوحة تحكم تحليلات متقدمة', dev: 'عبدالله السالم', devAvatar: 'https://randomuser.me/api/portraits/men/78.jpg', category: 'داشبورد', sales: 56, price: 699, rating: 4.9, image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=600', tech: ['React', 'D3.js', 'Firebase'] }
+];
+
+const STEPS = [
+  { number: '01', title: 'سجل مجاناً', description: 'أنشئ حسابك كمبرمج أو عميل في دقيقة واحدة', icon: '📝', color: 'from-blue-500 to-cyan-500' },
+  { number: '02', title: 'اعرض مشروعك أو ابحث عن مبرمج', description: 'مبرمج: ارفع مشروعك للبيع | عميل: انشر متطلباتك', icon: '🔍', color: 'from-purple-500 to-pink-500' },
+  { number: '03', title: 'احصل على عروض وابدأ العمل', description: 'استلم العروض، وافق على العرض، وابدأ رحلة النجاح', icon: '🚀', color: 'from-green-500 to-emerald-500' }
+];
+
+// ✅ كامبوننت الأرقام المعزولة بنفس الشكل والتصميم بالظبط، بس سريعة باستخدام requestAnimationFrame
+const AnimatedCounter = memo(({ target, duration = 2500 }) => {
+  const [value, setValue] = useState(0);
+
+  useEffect(() => {
+    let startTime = null;
+    let frameId;
+
+    const run = (timestamp) => {
+      if (!startTime) startTime = timestamp;
+      const progress = timestamp - startTime;
+      const rate = Math.min(progress / duration, 1);
+      setValue(Math.floor(rate * target));
+
+      if (progress < duration) {
+        frameId = requestAnimationFrame(run);
+      }
+    };
+
+    frameId = requestAnimationFrame(run);
+    return () => cancelAnimationFrame(frameId);
+  }, [target, duration]);
+
+  return <>{value}</>;
+});
+
+AnimatedCounter.displayName = 'AnimatedCounter';
+
+export default function Home() {
+  const statsConfig = [
+    { label: 'مبرمج محترف', suffix: '+', target: 850 },
+    { label: 'مشروع مكتمل', suffix: '+', target: 2150 },
+    { label: 'أرباح بالملايين', suffix: 'M+', target: 125 },
+    { label: 'رضا العملاء', suffix: '%', target: 99 }
+  ];
+
   const particlesInit = useCallback(async (engine) => {
     await loadSlim(engine);
   }, []);
 
-  // أنيميشن الأرقام
-  useEffect(() => {
-    const duration = 2500;
-    const interval = 20;
-    const steps = duration / interval;
-    
-    stats.forEach((stat, index) => {
-      let currentStep = 0;
-      const increment = stat.target / steps;
-      
-      const timer = setInterval(() => {
-        currentStep++;
-        if (currentStep <= steps) {
-          setStats(prevStats => {
-            const newStats = [...prevStats];
-            newStats[index] = {
-              ...newStats[index],
-              value: Math.min(Math.floor(currentStep * increment), stat.target)
-            };
-            return newStats;
-          });
-        } else {
-          clearInterval(timer);
-        }
-      }, interval);
-    });
-  }, []);
-
-  // بيانات المبرمجين المميزين
-  const topDevelopers = [
-    {
-      id: 1,
-      name: 'أحمد المنصوري',
-      title: 'Full Stack Architect',
-      tech: ['React', 'Node.js', 'AWS'],
-      rating: 4.9,
-      completed: 142,
-      hourlyRate: 75,
-      avatar: 'https://randomuser.me/api/portraits/men/32.jpg',
-      badge: '🏆 الأفضل',
-      cover: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=400'
-    },
-    {
-      id: 2,
-      name: 'سارة القحطاني',
-      title: 'Frontend Expert',
-      tech: ['React', 'Vue', 'Tailwind'],
-      rating: 4.8,
-      completed: 118,
-      hourlyRate: 65,
-      avatar: 'https://randomuser.me/api/portraits/women/68.jpg',
-      badge: '⭐ متميز',
-      cover: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400'
-    },
-    {
-      id: 3,
-      name: 'يوسف إبراهيم',
-      title: 'Mobile Dev Expert',
-      tech: ['Flutter', 'iOS', 'Android'],
-      rating: 4.9,
-      completed: 94,
-      hourlyRate: 70,
-      avatar: 'https://randomuser.me/api/portraits/men/45.jpg',
-      badge: '🚀 مميز',
-      cover: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=400'
-    },
-    {
-      id: 4,
-      name: 'نورة خالد',
-      title: 'UI/UX + Frontend',
-      tech: ['React', 'Figma', 'Next.js'],
-      rating: 4.7,
-      completed: 82,
-      hourlyRate: 55,
-      avatar: 'https://randomuser.me/api/portraits/women/45.jpg',
-      badge: '✨ صاعدة',
-      cover: 'https://images.unsplash.com/photo-1581291518633-83b4ebd1d83e?w=400'
-    },
-    {
-      id: 5,
-      name: 'عبدالله السالم',
-      title: 'DevOps Engineer',
-      tech: ['Docker', 'K8s', 'AWS'],
-      rating: 4.9,
-      completed: 108,
-      hourlyRate: 85,
-      avatar: 'https://randomuser.me/api/portraits/men/78.jpg',
-      badge: '🔥 خبير',
-      cover: 'https://images.unsplash.com/photo-1504639725590-34d0984388bd?w=400'
-    },
-    {
-      id: 6,
-      name: 'هند العتيبي',
-      title: 'AI/ML Specialist',
-      tech: ['Python', 'TensorFlow', 'PyTorch'],
-      rating: 4.8,
-      completed: 63,
-      hourlyRate: 80,
-      avatar: 'https://randomuser.me/api/portraits/women/89.jpg',
-      badge: '🧠 خبيرة',
-      cover: 'https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=400'
-    }
-  ];
-
-  // بيانات المشاريع الضخمة
-  const featuredProjects = [
-    {
-      id: 1,
-      name: 'نظام إدارة المستشفيات الذكي',
-      dev: 'أحمد المنصوري',
-      devAvatar: 'https://randomuser.me/api/portraits/men/32.jpg',
-      category: 'نظام إدارة',
-      sales: 47,
-      price: 499,
-      rating: 4.9,
-      image: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=600',
-      tech: ['React', 'Node.js', 'MongoDB']
-    },
-    {
-      id: 2,
-      name: 'منصة تعليمية متكاملة',
-      dev: 'يوسف إبراهيم',
-      devAvatar: 'https://randomuser.me/api/portraits/men/45.jpg',
-      category: 'منصة تعليمية',
-      sales: 38,
-      price: 599,
-      rating: 4.8,
-      image: 'https://images.unsplash.com/photo-1501504905252-473c47e087f8?w=600',
-      tech: ['Flutter', 'Django', 'PostgreSQL']
-    },
-    {
-      id: 3,
-      name: 'متجر إلكتروني متكامل',
-      dev: 'نورة خالد',
-      devAvatar: 'https://randomuser.me/api/portraits/women/45.jpg',
-      category: 'متجر إلكتروني',
-      sales: 89,
-      price: 399,
-      rating: 4.9,
-      image: 'https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=600',
-      tech: ['Next.js', 'Stripe', 'Tailwind']
-    },
-    {
-      id: 4,
-      name: 'لوحة تحكم تحليلات متقدمة',
-      dev: 'عبدالله السالم',
-      devAvatar: 'https://randomuser.me/api/portraits/men/78.jpg',
-      category: 'داشبورد',
-      sales: 56,
-      price: 699,
-      rating: 4.9,
-      image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=600',
-      tech: ['React', 'D3.js', 'Firebase']
-    }
-  ];
-
-  // خطوات كيف يعمل
-  const steps = [
-    {
-      number: '01',
-      title: 'سجل مجاناً',
-      description: 'أنشئ حسابك كمبرمج أو عميل في دقيقة واحدة',
-      icon: '📝',
-      color: 'from-blue-500 to-cyan-500'
-    },
-    {
-      number: '02',
-      title: 'اعرض مشروعك أو ابحث عن مبرمج',
-      description: 'مبرمج: ارفع مشروعك للبيع | عميل: انشر متطلباتك',
-      icon: '🔍',
-      color: 'from-purple-500 to-pink-500'
-    },
-    {
-      number: '03',
-      title: 'احصل على عروض وابدأ العمل',
-      description: 'استلم العروض، وافق على العرض، وابدأ رحلة النجاح',
-      icon: '🚀',
-      color: 'from-green-500 to-emerald-500'
-    }
-  ];
-
-  // إعدادات الحبيبات
+  // إعدادات الحبيبات (نفس خصائصك بظبط، بس قفلنا الـ detectRetina وقللنا الـ value لـ 50 عشان تحسين الـ CPU وضمان السلاسة)
   const particlesOptions = {
-    background: {
-      color: {
-        value: "transparent",
-      },
-    },
+    background: { color: { value: "transparent" } },
     fpsLimit: 60,
     interactivity: {
       events: {
-        onClick: {
-          enable: false,
-          mode: "push",
-        },
-        onHover: {
-          enable: true,
-          mode: "repulse",
-        },
+        onClick: { enable: false, mode: "push" },
+        onHover: { enable: true, mode: "repulse" },
       },
       modes: {
-        push: {
-          quantity: 4,
-        },
-        repulse: {
-          distance: 100,
-          duration: 0.4,
-        },
+        push: { quantity: 4 },
+        repulse: { distance: 100, duration: 0.4 },
       },
     },
     particles: {
-      color: {
-        value: ["#4f46e5", "#7c3aed", "#ec4899", "#06b6d4"],
-      },
-      links: {
-        color: "#4f46e5",
-        distance: 150,
-        enable: true,
-        opacity: 0.2,
-        width: 1,
-      },
-      move: {
-        direction: "none",
-        enable: true,
-        outModes: {
-          default: "bounce",
-        },
-        random: false,
-        speed: 2,
-        straight: false,
-      },
-      number: {
-        density: {
-          enable: true,
-        },
-        value: 80,
-      },
-      opacity: {
-        value: 0.3,
-      },
-      shape: {
-        type: "circle",
-      },
-      size: {
-        value: { min: 2, max: 5 },
-      },
+      color: { value: ["#4f46e5", "#7c3aed", "#ec4899", "#06b6d4"] },
+      links: { color: "#4f46e5", distance: 150, enable: true, opacity: 0.2, width: 1 },
+      move: { direction: "none", enable: true, outModes: { default: "bounce" }, random: false, speed: 2, straight: false },
+      number: { value: 50 }, // 50 بدل 80 عشان تخفف الحمل في الخلفية والمستخدم مش هيلاحظ فرق بصري
+      opacity: { value: 0.3 },
+      shape: { type: "circle" },
+      size: { value: { min: 2, max: 5 } },
     },
-    detectRetina: true,
+    detectRetina: false, 
   };
 
-  // Animation variants
   const fadeInUp = {
     initial: { opacity: 0, y: 50 },
     animate: { opacity: 1, y: 0 },
@@ -286,23 +111,14 @@ export default function Home() {
 
       <main className="flex-grow relative">
         {/* Particles Background */}
-        <Particles
-          id="tsparticles"
-          init={particlesInit}
-          options={particlesOptions}
-          className="absolute inset-0 z-0"
-        />
+        <Particles id="tsparticles" init={particlesInit} options={particlesOptions} className="absolute inset-0 z-0" />
 
         {/* Gradient Overlay */}
         <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/80 via-white/80 to-purple-50/80 z-[1]"></div>
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-20">
-          <motion.div
-            initial="initial"
-            animate="animate"
-            variants={staggerContainer}
-            className="text-center"
-          >
+          <motion.div initial="initial" animate="animate" variants={staggerContainer} className="text-center">
+            
             <motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -349,9 +165,9 @@ export default function Home() {
               </Link>
             </motion.div>
 
-            {/* Stats Section */}
+            {/* Stats Section بنفس التصميم تماماً */}
             <motion.div variants={fadeInUp} className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-5xl mx-auto">
-              {stats.map((stat, index) => (
+              {statsConfig.map((stat, index) => (
                 <motion.div
                   key={index}
                   initial={{ opacity: 0, scale: 0.5 }}
@@ -361,24 +177,20 @@ export default function Home() {
                   className="glass rounded-2xl p-6 text-center border border-gray-100 shadow-lg hover:shadow-2xl transition-all duration-300"
                 >
                   <div className="text-4xl md:text-5xl font-black bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
-                    {Math.floor(stat.value)}{stat.suffix}
+                    <AnimatedCounter target={stat.target} />{stat.suffix}
                   </div>
                   <div className="text-sm md:text-base text-gray-600 font-semibold">{stat.label}</div>
                 </motion.div>
               ))}
             </motion.div>
+
           </motion.div>
         </div>
 
-        {/* ========== قسم "كيف يعمل" ========== */}
+        {/* ========== قسم "كيف يعمل" بنفس الاستايل والأنيميشن ========== */}
         <div className="relative py-24 bg-white/50 backdrop-blur-sm z-10">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="text-center mb-16"
-            >
+            <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="text-center mb-16">
               <h2 className="text-4xl md:text-5xl font-bold mb-4">
                 كيف يعمل <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">DevHire</span>؟
               </h2>
@@ -389,7 +201,7 @@ export default function Home() {
               <div className="hidden md:block absolute top-1/2 left-0 right-0 h-0.5 bg-gradient-to-r from-indigo-200 via-purple-200 to-pink-200 -translate-y-1/2"></div>
               
               <div className="grid md:grid-cols-3 gap-8 relative">
-                {steps.map((step, index) => (
+                {STEPS.map((step, index) => (
                   <motion.div
                     key={index}
                     initial={{ opacity: 0, y: 40 }}
@@ -417,15 +229,10 @@ export default function Home() {
           </div>
         </div>
 
-        {/* ========== قسم "أمهر المبرمجين" ========== */}
+        {/* ========== قسم "أمهر المبرمجين" مع كل الـ Hover Effects والأفاتارز والصور ========== */}
         <div className="relative py-24 bg-gradient-to-br from-gray-50 via-white to-indigo-50/30 z-10">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="text-center mb-16"
-            >
+            <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="text-center mb-16">
               <h2 className="text-4xl md:text-5xl font-bold mb-4">
                 <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">أمهر المبرمجين</span>
               </h2>
@@ -433,7 +240,7 @@ export default function Home() {
             </motion.div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {topDevelopers.map((dev, index) => (
+              {TOP_DEVELOPERS.map((dev, index) => (
                 <motion.div
                   key={dev.id}
                   initial={{ opacity: 0, scale: 0.9 }}
@@ -502,15 +309,10 @@ export default function Home() {
           </div>
         </div>
 
-        {/* ========== قسم "أضخم المشاريع" ========== */}
+        {/* ========== قسم "أضخم المشاريع" بكل تفاصيله وسطور الأنيميشن ========== */}
         <div className="relative py-24 bg-white/50 backdrop-blur-sm z-10">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="text-center mb-16"
-            >
+            <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="text-center mb-16">
               <h2 className="text-4xl md:text-5xl font-bold mb-4">
                 <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">أضخم المشاريع</span>
               </h2>
@@ -518,7 +320,7 @@ export default function Home() {
             </motion.div>
 
             <div className="grid md:grid-cols-2 gap-8">
-              {featuredProjects.map((project, index) => (
+              {FEATURED_PROJECTS.map((project, index) => (
                 <motion.div
                   key={project.id}
                   initial={{ opacity: 0, x: index % 2 === 0 ? -50 : 50 }}
@@ -576,33 +378,18 @@ export default function Home() {
         </div>
 
         {/* ========== CTA Banner ========== */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.6 }}
-          className="relative py-16 mb-12 z-10"
-        >
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }} transition={{ duration: 0.6 }} className="relative py-16 mb-12 z-10" >
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-3xl p-12 text-center text-white shadow-2xl relative overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent animate-pulse"></div>
               <div className="relative z-10">
-                <h3 className="text-3xl md:text-4xl font-bold mb-4">
-                  جاهز تبدأ رحلتك مع DevHire؟
-                </h3>
-                <p className="text-lg opacity-90 mb-8 max-w-2xl mx-auto">
-                  انضم لأكثر من 850 مبرمج عربي بيحققوا أرباحاً خيالية على منصتنا
-                </p>
+                <h3 className="text-3xl md:text-4xl font-bold mb-4">جاهز تبدأ رحلتك مع DevHire؟</h3>
+                <p className="text-lg opacity-90 mb-8 max-w-2xl mx-auto">انضم لأكثر من 850 مبرمج عربي بيحققوا أرباحاً خيالية على منصتنا</p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Link 
-                    to="/login" 
-                    className="bg-white text-indigo-600 hover:bg-gray-100 font-bold py-3 px-8 rounded-xl transition-all duration-300 hover:scale-105 hover:shadow-xl inline-block"
-                  >
+                  <Link to="/login" className="bg-white text-indigo-600 hover:bg-gray-100 font-bold py-3 px-8 rounded-xl transition-all duration-300 hover:scale-105 hover:shadow-xl inline-block">
                     ✨ ابدأ مجاناً الآن
                   </Link>
-                  <Link 
-                    to="/how-it-works" 
-                    className="border-2 border-white text-white hover:bg-white/10 font-bold py-3 px-8 rounded-xl transition-all duration-300 hover:scale-105 inline-block"
-                  >
+                  <Link to="/how-it-works" className="border-2 border-white text-white hover:bg-white/10 font-bold py-3 px-8 rounded-xl transition-all duration-300 hover:scale-105 inline-block">
                     📖 اعرف أكثر
                   </Link>
                 </div>

@@ -1,206 +1,83 @@
 import { useState, useEffect } from 'react';
-
 import { motion, AnimatePresence } from 'framer-motion';
-
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import DeveloperSidebar from '../../components/layout/DeveloperSidebar';
-
+import { getDeveloperProject } from '../../services/develper.service';
+import { Link } from 'react-router-dom';
 export default function DevProjects() {
-
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProject, setSelectedProject] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
-
   const [projects, setProjects] = useState([]);
+  const [stats, setStats] = useState({
+    total: 0,
+    completed: 0,
+    inProgress: 0,
+    review: 0,
+    pending: 0,
+    totalEarnings: 0,
+    pendingAmount: 0
+  });
 
+  // ✅ جلب المشاريع من الباك اند
   useEffect(() => {
-    // Mock data
-    setTimeout(() => {
-      const mockProjects = [
-        {
-          id: 1,
-          name: 'نظام إدارة المستشفيات الذكي',
-          client: 'مستشفى السلام',
-          clientAvatar: 'https://randomuser.me/api/portraits/men/1.jpg',
-          clientCompany: 'مستشفى السلام',
-          status: 'completed',
-          progress: 100,
-          startDate: '2024-01-01',
-          dueDate: '2024-02-01',
-          actualDeliveryDate: '2024-01-28',
-          amount: 4999,
-          paidAmount: 4999,
-          remainingAmount: 0,
-          description: 'نظام متكامل لإدارة المستشفيات يشمل إدارة المرضى، المواعيد، الغرف، والموظفين مع لوحة تحكم متقدمة.',
-          techStack: ['React', 'Node.js', 'MongoDB', 'Tailwind'],
-          milestones: [
-            { name: 'تسليم التصميم', status: 'completed', date: '2024-01-10' },
-            { name: 'تسليم قاعدة البيانات', status: 'completed', date: '2024-01-15' },
-            { name: 'تسليم الواجهات', status: 'completed', date: '2024-01-20' },
-            { name: 'تسليم المشروع النهائي', status: 'completed', date: '2024-01-28' }
-          ],
-          payments: [
-            { amount: 1500, date: '2024-01-05', status: 'paid', type: 'دفعة أولى' },
-            { amount: 2000, date: '2024-01-20', status: 'paid', type: 'دفعة ثانية' },
-            { amount: 1499, date: '2024-01-28', status: 'paid', type: 'دفعة نهائية' }
-          ],
-          rating: 5,
-          review: 'عمل رائع جداً، أنجز المشروع قبل الموعد المحدد بدقة عالية'
-        },
-        {
-          id: 2,
-          name: 'منصة تعليمية متكاملة',
-          client: 'أكاديمية المستقبل',
-          clientAvatar: 'https://randomuser.me/api/portraits/women/2.jpg',
-          clientCompany: 'أكاديمية المستقبل',
-          status: 'in_progress',
-          progress: 75,
-          startDate: '2024-01-15',
-          dueDate: '2024-02-15',
-          amount: 3500,
-          paidAmount: 2000,
-          remainingAmount: 1500,
-          description: 'منصة تعليمية إلكترونية متكاملة مع نظام إدارة المحتوى والامتحانات والفصول الافتراضية.',
-          techStack: ['Next.js', 'Django', 'PostgreSQL', 'Redis'],
-          milestones: [
-            { name: 'تسليم التصميم', status: 'completed', date: '2024-01-20' },
-            { name: 'تسليم قاعدة البيانات', status: 'completed', date: '2024-01-25' },
-            { name: 'تسليم الواجهات', status: 'in_progress', date: null },
-            { name: 'تسليم المشروع النهائي', status: 'pending', date: null }
-          ],
-          payments: [
-            { amount: 1000, date: '2024-01-15', status: 'paid', type: 'دفعة أولى' },
-            { amount: 1000, date: '2024-01-25', status: 'paid', type: 'دفعة ثانية' },
-            { amount: 1500, date: null, status: 'pending', type: 'دفعة نهائية' }
-          ],
-          rating: null,
-          review: null
-        },
-        {
-          id: 3,
-          name: 'متجر إلكتروني متكامل',
-          client: 'متجر الأصالة',
-          clientAvatar: 'https://randomuser.me/api/portraits/men/3.jpg',
-          clientCompany: 'متجر الأصالة',
-          status: 'review',
-          progress: 90,
-          startDate: '2024-01-20',
-          dueDate: '2024-02-10',
-          amount: 1299,
-          paidAmount: 899,
-          remainingAmount: 400,
-          description: 'متجر إلكتروني احترافي مع نظام دفع متكامل وإدارة منتجات وعملاء.',
-          techStack: ['React', 'Stripe', 'Tailwind', 'Prisma'],
-          milestones: [
-            { name: 'تسليم التصميم', status: 'completed', date: '2024-01-22' },
-            { name: 'تسليم قاعدة البيانات', status: 'completed', date: '2024-01-27' },
-            { name: 'تسليم الواجهات', status: 'completed', date: '2024-02-01' },
-            { name: 'تسليم المشروع النهائي', status: 'in_progress', date: null }
-          ],
-          payments: [
-            { amount: 500, date: '2024-01-20', status: 'paid', type: 'دفعة أولى' },
-            { amount: 399, date: '2024-02-01', status: 'paid', type: 'دفعة ثانية' },
-            { amount: 400, date: null, status: 'pending', type: 'دفعة نهائية' }
-          ],
-          rating: null,
-          review: null
-        },
-        {
-          id: 4,
-          name: 'لوحة تحكم تحليلات متقدمة',
-          client: 'شركة البيانات',
-          clientAvatar: 'https://randomuser.me/api/portraits/men/4.jpg',
-          clientCompany: 'شركة البيانات',
-          status: 'pending',
-          progress: 30,
-          startDate: '2024-01-25',
-          dueDate: '2024-02-28',
-          amount: 1999,
-          paidAmount: 500,
-          remainingAmount: 1499,
-          description: 'لوحة تحكم تفاعلية لعرض البيانات والإحصائيات مع رسوم بيانية متقدمة.',
-          techStack: ['React', 'D3.js', 'Firebase', 'Chart.js'],
-          milestones: [
-            { name: 'تسليم التصميم', status: 'completed', date: '2024-01-28' },
-            { name: 'تسليم قاعدة البيانات', status: 'pending', date: null },
-            { name: 'تسليم الواجهات', status: 'pending', date: null },
-            { name: 'تسليم المشروع النهائي', status: 'pending', date: null }
-          ],
-          payments: [
-            { amount: 500, date: '2024-01-25', status: 'paid', type: 'دفعة أولى' },
-            { amount: 700, date: null, status: 'pending', type: 'دفعة ثانية' },
-            { amount: 799, date: null, status: 'pending', type: 'دفعة نهائية' }
-          ],
-          rating: null,
-          review: null
-        },
-        {
-          id: 5,
-          name: 'نظام إدارة المطاعم',
-          client: 'مطعم الأندلس',
-          clientAvatar: 'https://randomuser.me/api/portraits/men/5.jpg',
-          clientCompany: 'مطعم الأندلس',
-          status: 'completed',
-          progress: 100,
-          startDate: '2023-12-01',
-          dueDate: '2024-01-15',
-          actualDeliveryDate: '2024-01-10',
-          amount: 2499,
-          paidAmount: 2499,
-          remainingAmount: 0,
-          description: 'نظام متكامل لإدارة المطاعم يشمل إدارة الطلبات والمخزون والموظفين.',
-          techStack: ['Vue.js', 'Laravel', 'MySQL', 'Bootstrap'],
-          milestones: [
-            { name: 'تسليم التصميم', status: 'completed', date: '2023-12-10' },
-            { name: 'تسليم قاعدة البيانات', status: 'completed', date: '2023-12-20' },
-            { name: 'تسليم الواجهات', status: 'completed', date: '2024-01-05' },
-            { name: 'تسليم المشروع النهائي', status: 'completed', date: '2024-01-10' }
-          ],
-          payments: [
-            { amount: 800, date: '2023-12-01', status: 'paid', type: 'دفعة أولى' },
-            { amount: 800, date: '2023-12-25', status: 'paid', type: 'دفعة ثانية' },
-            { amount: 899, date: '2024-01-10', status: 'paid', type: 'دفعة نهائية' }
-          ],
-          rating: 4.8,
-          review: 'نظام ممتاز وسهل الاستخدام، التعامل مع المطور كان احترافياً'
-        },
-        {
-          id: 6,
-          name: 'تطبيق موبايل للتوصيل',
-          client: 'شركة توصيل',
-          clientAvatar: 'https://randomuser.me/api/portraits/women/6.jpg',
-          clientCompany: 'شركة توصيل',
-          status: 'in_progress',
-          progress: 60,
-          startDate: '2024-01-10',
-          dueDate: '2024-02-20',
-          amount: 4500,
-          paidAmount: 2000,
-          remainingAmount: 2500,
-          description: 'تطبيق موبايل للتوصيل يشمل تطبيقين (عميل - كابتن) ولوحة تحكم.',
-          techStack: ['Flutter', 'Node.js', 'MongoDB', 'Firebase'],
-          milestones: [
-            { name: 'تسليم التصميم', status: 'completed', date: '2024-01-15' },
-            { name: 'تسليم قاعدة البيانات', status: 'completed', date: '2024-01-20' },
-            { name: 'تسليم الواجهات', status: 'in_progress', date: null },
-            { name: 'تسليم المشروع النهائي', status: 'pending', date: null }
-          ],
-          payments: [
-            { amount: 1000, date: '2024-01-10', status: 'paid', type: 'دفعة أولى' },
-            { amount: 1000, date: '2024-01-25', status: 'paid', type: 'دفعة ثانية' },
-            { amount: 2500, date: null, status: 'pending', type: 'دفعة نهائية' }
-          ],
-          rating: null,
-          review: null
-        }
-      ];
+    const loadProjects = async () => {
+      setLoading(true);
+      try {
+        const response = await getDeveloperProject();
+        console.log('📥 Developer projects:', response);
 
-      setProjects(mockProjects);
-      setLoading(false);
-    }, 1000);
+        // ✅ استخراج البيانات من الـ Response
+        const projectsData = response?.data?.projects || response?.projects || response?.data || [];
+        
+        // ✅ تحويل البيانات للشكل المطلوب
+        const formattedProjects = projectsData.map(project => ({
+          id: project._id || project.id,
+          name: project.projectName || project.name || 'مشروع بدون اسم',
+          client: project.client?.username || project.clientName || 'عميل',
+          clientAvatar: project.client?.profileImage || project.clientAvatar || 'https://randomuser.me/api/portraits/men/1.jpg',
+          clientCompany: project.client?.company || project.clientCompany || '',
+          status: project.status || 'pending',
+          progress: project.progress || 0,
+          startDate: project.startDate ? new Date(project.startDate).toLocaleDateString('ar-EG') : 'غير محدد',
+          dueDate: project.dueDate ? new Date(project.dueDate).toLocaleDateString('ar-EG') : 'غير محدد',
+          actualDeliveryDate: project.completedAt ? new Date(project.completedAt).toLocaleDateString('ar-EG') : null,
+          amount: parseInt(project.budget) || project.amount || 0,
+          paidAmount: project.paidAmount || 0,
+          remainingAmount: (parseInt(project.budget) || project.amount || 0) - (project.paidAmount || 0),
+          description: project.description || '',
+          techStack: project.skills || project.techStack || [],
+          tasks: project.tasks || [], // ✅ المهام = المراحل
+          payments: project.payments || [],
+          rating: project.rating || null,
+          review: project.review || null
+        }));
+
+        setProjects(formattedProjects);
+
+        // ✅ حساب الإحصائيات
+        const total = formattedProjects.length;
+        const completed = formattedProjects.filter(p => p.status === 'completed').length;
+        const inProgress = formattedProjects.filter(p => p.status === 'in_progress').length;
+        const review = formattedProjects.filter(p => p.status === 'review').length;
+        const pending = formattedProjects.filter(p => p.status === 'pending').length;
+        const totalEarnings = formattedProjects.reduce((sum, p) => sum + (p.paidAmount || 0), 0);
+        const pendingAmount = formattedProjects.reduce((sum, p) => sum + (p.remainingAmount || 0), 0);
+
+        setStats({ total, completed, inProgress, review, pending, totalEarnings, pendingAmount });
+
+      } catch (error) {
+        console.error('❌ Error loading projects:', error);
+        setProjects([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProjects();
   }, []);
 
   const getStatusColor = (status) => {
@@ -233,22 +110,48 @@ export default function DevProjects() {
     return icons[status] || '📌';
   };
 
+  // ✅ تنسيق التاريخ
+  const formatDate = (dateString) => {
+    if (!dateString) return 'غير محدد';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('ar-EG', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    } catch {
+      return dateString;
+    }
+  };
+
+  // ✅ حالة المهمة
+  const getTaskStatusColor = (status) => {
+    const map = {
+      'completed': 'bg-green-100 text-green-600',
+      'in_progress': 'bg-blue-100 text-blue-600',
+      'pending': 'bg-yellow-100 text-yellow-600',
+      'todo': 'bg-gray-100 text-gray-500'
+    };
+    return map[status] || 'bg-gray-100 text-gray-500';
+  };
+
+  const getTaskStatusText = (status) => {
+    const map = {
+      'completed': 'مكتمل',
+      'in_progress': 'قيد التنفيذ',
+      'pending': 'قيد الانتظار',
+      'todo': 'قيد الانتظار'
+    };
+    return map[status] || status;
+  };
+
   const filteredProjects = projects.filter(project => {
     if (activeFilter !== 'all' && project.status !== activeFilter) return false;
     if (searchTerm && !project.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
         !project.client.toLowerCase().includes(searchTerm.toLowerCase())) return false;
     return true;
   });
-
-  const stats = {
-    total: projects.length,
-    completed: projects.filter(p => p.status === 'completed').length,
-    inProgress: projects.filter(p => p.status === 'in_progress').length,
-    review: projects.filter(p => p.status === 'review').length,
-    pending: projects.filter(p => p.status === 'pending').length,
-    totalEarnings: projects.reduce((sum, p) => sum + p.paidAmount, 0),
-    pendingAmount: projects.reduce((sum, p) => sum + p.remainingAmount, 0)
-  };
 
   // Animation variants
   const containerVariants = {
@@ -260,7 +163,6 @@ export default function DevProjects() {
     hidden: { opacity: 0, y: 40, scale: 0.95 },
     visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.4, type: "spring", stiffness: 100 } }
   };
-
 
   if (loading) {
     return (
@@ -338,7 +240,6 @@ export default function DevProjects() {
               className="bg-white rounded-2xl shadow-lg p-4 mb-8"
             >
               <div className="flex flex-col md:flex-row gap-4">
-                {/* Search Bar */}
                 <div className="flex-1 relative">
                   <input
                     type="text"
@@ -352,7 +253,6 @@ export default function DevProjects() {
                   </svg>
                 </div>
 
-                {/* Filter Buttons */}
                 <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0">
                   {[
                     { value: 'all', label: 'الكل', icon: '📋' },
@@ -554,30 +454,32 @@ export default function DevProjects() {
                     </div>
                   </div>
 
-                  {/* Milestones */}
+                  {/* ✅ المهام = المراحل */}
                   <div className="space-y-3 mt-4">
-                    {selectedProject.milestones.map((milestone, idx) => (
-                      <div key={idx} className="flex items-center gap-3">
-                        <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                          milestone.status === 'completed' ? 'bg-green-100 text-green-600' :
-                          milestone.status === 'in_progress' ? 'bg-blue-100 text-blue-600' :
-                          'bg-gray-100 text-gray-400'
-                        }`}>
-                          {milestone.status === 'completed' ? '✓' : milestone.status === 'in_progress' ? '🔄' : '○'}
+                    <h4 className="font-semibold text-gray-700 mb-2">📋 المهام</h4>
+                    {selectedProject.tasks && selectedProject.tasks.length > 0 ? (
+                      selectedProject.tasks.map((task, idx) => (
+                        <div key={task._id || idx} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                          <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                            task.status === 'completed' ? 'bg-green-100 text-green-600' :
+                            task.status === 'in_progress' ? 'bg-blue-100 text-blue-600' :
+                            'bg-gray-100 text-gray-400'
+                          }`}>
+                            {task.status === 'completed' ? '✓' : task.status === 'in_progress' ? '🔄' : '○'}
+                          </div>
+                          <div className="flex-1">
+                            <div className="font-medium text-gray-800">{task.title}</div>
+                            {task.description && <div className="text-xs text-gray-500">{task.description}</div>}
+                            {task.dueDate && <div className="text-xs text-gray-400">📅 {formatDate(task.dueDate)}</div>}
+                          </div>
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${getTaskStatusColor(task.status)}`}>
+                            {getTaskStatusText(task.status)}
+                          </span>
                         </div>
-                        <div className="flex-1">
-                          <div className="font-medium text-gray-800">{milestone.name}</div>
-                          {milestone.date && <div className="text-xs text-gray-400">{milestone.date}</div>}
-                        </div>
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${
-                          milestone.status === 'completed' ? 'bg-green-100 text-green-600' :
-                          milestone.status === 'in_progress' ? 'bg-blue-100 text-blue-600' :
-                          'bg-gray-100 text-gray-500'
-                        }`}>
-                          {milestone.status === 'completed' ? 'مكتمل' : milestone.status === 'in_progress' ? 'قيد التنفيذ' : 'قادم'}
-                        </span>
-                      </div>
-                    ))}
+                      ))
+                    ) : (
+                      <p className="text-gray-400 text-sm">لا توجد مهام</p>
+                    )}
                   </div>
                 </div>
 
@@ -585,22 +487,26 @@ export default function DevProjects() {
                 <div>
                   <h3 className="font-bold text-gray-800 mb-3">💰 المدفوعات</h3>
                   <div className="space-y-3">
-                    {selectedProject.payments.map((payment, idx) => (
-                      <div key={idx} className="flex justify-between items-center p-3 bg-gray-50 rounded-xl">
-                        <div>
-                          <div className="font-medium text-gray-800">{payment.type}</div>
-                          <div className="text-xs text-gray-400">{payment.date || 'لم يتم الدفع بعد'}</div>
+                    {selectedProject.payments && selectedProject.payments.length > 0 ? (
+                      selectedProject.payments.map((payment, idx) => (
+                        <div key={payment._id || idx} className="flex justify-between items-center p-3 bg-gray-50 rounded-xl">
+                          <div>
+                            <div className="font-medium text-gray-800">{payment.namePayment || payment.type || 'دفعة'}</div>
+                            <div className="text-xs text-gray-400">{payment.createdAt ? formatDate(payment.createdAt) : 'غير محدد'}</div>
+                          </div>
+                          <div className="text-left">
+                            <div className="font-bold text-indigo-600">${payment.amount}</div>
+                            <span className={`text-xs px-2 py-0.5 rounded-full ${
+                              payment.status === 'paid' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'
+                            }`}>
+                              {payment.status === 'paid' ? 'تم الدفع ✓' : 'معلق'}
+                            </span>
+                          </div>
                         </div>
-                        <div className="text-left">
-                          <div className="font-bold text-indigo-600">${payment.amount}</div>
-                          <span className={`text-xs px-2 py-0.5 rounded-full ${
-                            payment.status === 'paid' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'
-                          }`}>
-                            {payment.status === 'paid' ? 'تم الدفع ✓' : 'معلق'}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
+                      ))
+                    ) : (
+                      <p className="text-gray-400 text-sm">لا توجد مدفوعات</p>
+                    )}
                   </div>
                 </div>
 
@@ -619,12 +525,15 @@ export default function DevProjects() {
 
                 {/* Action Buttons */}
                 <div className="flex gap-3 pt-4 border-t border-gray-200">
-                  <button className="flex-1 py-2 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition">
-                    إرسال تحديث
-                  </button>
-                  <button className="flex-1 py-2 border-2 border-indigo-600 text-indigo-600 rounded-xl font-medium hover:bg-indigo-50 transition">
-                    طلب تعديل
-                  </button>
+                <Link 
+  to={`/project/${selectedProject.id}`}
+  className="flex-1"
+>
+  <button className="w-full py-2 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition">
+    🚀 فتح لوحة التحكم
+  </button>
+</Link>
+
                 </div>
               </div>
             </motion.div>

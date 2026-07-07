@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
+import { getMarketplaceProjects } from '../../services/develper.service.js';
 
 export default function Marketplace() {
   const [projects, setProjects] = useState([]);
@@ -13,178 +14,51 @@ export default function Marketplace() {
   const [sortBy, setSortBy] = useState('popular');
   const [viewMode, setViewMode] = useState('grid');
 
-  
-  // Refs for scroll animations
   const containerRef = useRef(null);
 
-  // Mock data for marketplace projects
+  // ✅ جلب البيانات من الباك إند
   useEffect(() => {
-    const mockProjects = [
-      {
-        id: 1,
-        name: 'نظام إدارة المستشفيات الذكي',
-        description: 'نظام متكامل لإدارة المستشفيات يشمل إدارة المرضى، المواعيد، الغرف، والموظفين مع لوحة تحكم متقدمة.',
-        developer: 'أحمد المنصوري',
-        developerAvatar: 'https://randomuser.me/api/portraits/men/32.jpg',
-        category: 'management',
-        price: 499,
-        salesCount: 156,
-        rating: 4.9,
-        image: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=600',
-        tech: ['React', 'Node.js', 'MongoDB', 'Tailwind'],
-        features: ['إدارة المرضى', 'جدولة المواعيد', 'تقارير متقدمة', 'API مفتوحة'],
-        packages: [
-          { name: 'Basic', price: 499, delivery: '3 أيام', features: ['كود المصدر', 'تثبيت', 'شرح بالفيديو'] },
-          { name: 'Pro', price: 1499, delivery: '7 أيام', features: ['كل ما في Basic', 'تعديل الألوان', 'إضافة ميزة واحدة'] },
-          { name: 'Enterprise', price: 4999, delivery: '30 يوم', features: ['بناء مخصص كامل', 'دعم فني شهر', 'استضافة'] }
-        ],
-        badge: 'الأكثر مبيعاً',
-        popular: true
-      },
-      {
-        id: 2,
-        name: 'منصة تعليمية متكاملة',
-        description: 'منصة تعليمية إلكترونية متكاملة تشمل نظام إدارة المحتوى، نظام الفصول الافتراضية، ونظام الامتحانات.',
-        developer: 'يوسف إبراهيم',
-        developerAvatar: 'https://randomuser.me/api/portraits/men/45.jpg',
-        category: 'education',
-        price: 599,
-        salesCount: 134,
-        rating: 4.8,
-        image: 'https://images.unsplash.com/photo-1501504905252-473c47e087f8?w=600',
-        tech: ['Flutter', 'Django', 'PostgreSQL', 'Redis'],
-        features: ['دروس فيديو', 'نظام امتحانات', 'شهادات إلكترونية', 'منتدى نقاش'],
-        packages: [
-          { name: 'Basic', price: 599, delivery: '3 أيام', features: ['كود المصدر', 'تثبيت', 'شرح بالفيديو'] },
-          { name: 'Pro', price: 1799, delivery: '7 أيام', features: ['كل ما في Basic', 'تعديل الشعار', 'إضافة نظام الدفع'] }
-        ],
-        badge: 'مميز',
-        popular: true
-      },
-      {
-        id: 3,
-        name: 'متجر إلكتروني متكامل',
-        description: 'متجر إلكتروني احترافي مع نظام دفع متكامل، إدارة منتجات، وعملاء، وتقارير مبيعات متقدمة.',
-        developer: 'نورة خالد',
-        developerAvatar: 'https://randomuser.me/api/portraits/women/45.jpg',
-        category: 'ecommerce',
-        price: 399,
-        salesCount: 289,
-        rating: 4.9,
-        image: 'https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=600',
-        tech: ['Next.js', 'Stripe', 'Tailwind', 'Prisma'],
-        features: ['سلة مشتريات', 'بوابات دفع', 'إدارة مخزون', 'تقارير مبيعات'],
-        packages: [
-          { name: 'Basic', price: 399, delivery: '3 أيام', features: ['كود المصدر', 'تثبيت', 'شرح بالفيديو'] },
-          { name: 'Pro', price: 1299, delivery: '7 أيام', features: ['كل ما في Basic', 'إضافة وحدة الدفع', 'تعديل التصميم'] }
-        ],
-        badge: 'الأكثر مبيعاً',
-        popular: true
-      },
-      {
-        id: 4,
-        name: 'لوحة تحكم تحليلات متقدمة',
-        description: 'لوحة تحكم تفاعلية لعرض البيانات والإحصائيات مع رسوم بيانية متقدمة وتقارير قابلة للتخصيص.',
-        developer: 'عبدالله السالم',
-        developerAvatar: 'https://randomuser.me/api/portraits/men/78.jpg',
-        category: 'dashboard',
-        price: 699,
-        salesCount: 89,
-        rating: 4.9,
-        image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=600',
-        tech: ['React', 'D3.js', 'Firebase', 'Chart.js'],
-        features: ['رسوم بيانية تفاعلية', 'تصدير تقارير', 'لوحات مخصصة', 'تحديث لحظي'],
-        packages: [
-          { name: 'Basic', price: 699, delivery: '5 أيام', features: ['كود المصدر', 'تثبيت', 'شرح بالفيديو'] },
-          { name: 'Pro', price: 1999, delivery: '14 يوم', features: ['كل ما في Basic', 'API مخصصة', 'دعم فني'] }
-        ],
-        badge: 'جديد',
-        popular: false
-      },
-      {
-        id: 5,
-        name: 'نظام إدارة المطاعم',
-        description: 'نظام متكامل لإدارة المطاعم يشمل إدارة الطلبات، المخزون، الموظفين، وتقارير المبيعات.',
-        developer: 'سارة القحطاني',
-        developerAvatar: 'https://randomuser.me/api/portraits/women/68.jpg',
-        category: 'management',
-        price: 449,
-        salesCount: 67,
-        rating: 4.7,
-        image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600',
-        tech: ['Vue.js', 'Laravel', 'MySQL', 'Bootstrap'],
-        features: ['نظام طلبات', 'إدارة طاولات', 'نظام فواتير', 'تقارير يومية'],
-        packages: [
-          { name: 'Basic', price: 449, delivery: '3 أيام', features: ['كود المصدر', 'تثبيت', 'شرح بالفيديو'] }
-        ],
-        badge: 'مميز',
-        popular: false
-      },
-      {
-        id: 6,
-        name: 'تطبيق موبايل للتسوق',
-        description: 'تطبيق موبايل كامل للتسوق الإلكتروني مع نظام دفع وإشعارات وتكامل مع APIs.',
-        developer: 'هند العتيبي',
-        developerAvatar: 'https://randomuser.me/api/portraits/women/89.jpg',
-        category: 'mobile',
-        price: 899,
-        salesCount: 45,
-        rating: 4.8,
-        image: 'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=600',
-        tech: ['Flutter', 'Firebase', 'REST API', 'Node.js'],
-        features: ['تسجيل دخول', 'عربة تسوق', 'إشعارات', 'بوابات دفع'],
-        packages: [
-          { name: 'Basic', price: 899, delivery: '7 أيام', features: ['كود المصدر', 'تثبيت', 'شرح بالفيديو'] },
-          { name: 'Pro', price: 2499, delivery: '21 يوم', features: ['كل ما في Basic', 'إصدار iOS و Android', 'دعم فني'] }
-        ],
-        badge: 'جديد',
-        popular: false
-      },
-      {
-        id: 7,
-        name: 'نظام CRM لإدارة العملاء',
-        description: 'نظام متكامل لإدارة علاقات العملاء مع تتبع المبيعات والتسويق ودعم العملاء.',
-        developer: 'محمد رشاد',
-        developerAvatar: 'https://randomuser.me/api/portraits/men/15.jpg',
-        category: 'management',
-        price: 549,
-        salesCount: 78,
-        rating: 4.8,
-        image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=600',
-        tech: ['React', 'Node.js', 'PostgreSQL', 'Material-UI'],
-        features: ['إدارة جهات اتصال', 'تتبع المبيعات', 'تقارير', 'تذكيرات'],
-        packages: [
-          { name: 'Basic', price: 549, delivery: '5 أيام', features: ['كود المصدر', 'تثبيت', 'شرح بالفيديو'] }
-        ],
-        badge: 'مميز',
-        popular: false
-      },
-      {
-        id: 8,
-        name: 'منصة بث مباشر',
-        description: 'منصة متكاملة للبث المباشر تشمل غرف دردشة، تفاعل مع المشاهدين، ونظام اشتراكات.',
-        developer: 'فاطمة الزهراء',
-        developerAvatar: 'https://randomuser.me/api/portraits/women/23.jpg',
-        category: 'education',
-        price: 799,
-        salesCount: 34,
-        rating: 4.9,
-        image: 'https://images.unsplash.com/photo-1593642532744-d377ab507dc8?w=600',
-        tech: ['Next.js', 'WebRTC', 'Socket.io', 'Redis'],
-        features: ['بث مباشر', 'دردشة حية', 'نظام اشتراكات', 'إشعارات'],
-        packages: [
-          { name: 'Basic', price: 799, delivery: '7 أيام', features: ['كود المصدر', 'تثبيت', 'شرح بالفيديو'] },
-          { name: 'Pro', price: 2999, delivery: '30 يوم', features: ['كل ما في Basic', 'تطبيق موبايل', 'دعم فني 24/7'] }
-        ],
-        badge: 'جديد',
-        popular: false
+    const loadProjects = async () => {
+      try {
+        setLoading(true);
+        const response = await getMarketplaceProjects();
+        
+        let data = response;
+        if (typeof data === 'string') data = JSON.parse(data);
+        
+        const stores = data?.data?.stores || data?.stores || [];
+        
+        const mappedProjects = stores.map(project => ({
+          id: project._id,
+          name: project.projectName || '',
+          description: project.shortDescription || '',
+          developer: project.owner?.username || 'مطور',
+          developerAvatar: project.owner?.profileImage || 'https://randomuser.me/api/portraits/men/32.jpg',
+          category: project.category || 'management',
+          price: project.basic?.price || 0,
+          salesCount: project.sales || 0,
+          rating: project.rating || 0,
+          image: project.images?.[0] || 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=600',
+          tech: project.technologies || [],
+          features: project.mainFeatures || [],
+          packages: [
+            project.basic && { name: 'Basic', price: project.basic.price, delivery: `${project.basic.deliveryTime} أيام`, features: project.basic.features },
+            project.pro && { name: 'Pro', price: project.pro.price, delivery: `${project.pro.deliveryTime} أيام`, features: project.pro.features },
+            project.enterprise && { name: 'Enterprise', price: project.enterprise.price, delivery: `${project.enterprise.deliveryTime} يوم`, features: project.enterprise.features }
+          ].filter(Boolean),
+          badge: project.sales > 100 ? 'الأكثر مبيعاً' : project.sales > 50 ? 'مميز' : 'جديد',
+          popular: project.sales > 100
+        }));
+        
+        setProjects(mappedProjects);
+      } catch (error) {
+        console.error('❌ Error loading marketplace:', error);
+      } finally {
+        setLoading(false);
       }
-    ];
+    };
 
-    setTimeout(() => {
-      setProjects(mockProjects);
-      setLoading(false);
-    }, 1000);
+    loadProjects();
   }, []);
 
   // Filter and sort projects
@@ -246,7 +120,6 @@ export default function Marketplace() {
     { value: 'above1000', label: 'أكثر من $1000' }
   ];
 
-  // Scroll Animation Variants
   const scrollRevealVariants = {
     hidden: (custom) => ({
       opacity: 0,
@@ -279,9 +152,6 @@ export default function Marketplace() {
     }
   };
 
- 
-
-  // Animation variants for filters
   const staggerFilters = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.05, delayChildren: 0.1 } }
@@ -318,7 +188,7 @@ export default function Marketplace() {
               className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-4 py-1.5 mb-3"
             >
               <span className="text-yellow-400 text-sm">🏪</span>
-              <span className="text-white/90 text-xs">أكثر من 500 مشروع قابل للشراء الفوري</span>
+              <span className="text-white/90 text-xs">أكثر من {projects.length} مشروع قابل للشراء الفوري</span>
             </motion.div>
             <motion.h1
               initial={{ opacity: 0, y: 30 }}
@@ -348,7 +218,6 @@ export default function Marketplace() {
         >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             
-            {/* Search Bar */}
             <motion.div variants={filterItemVariants} className="mb-4">
               <div className="relative group">
                 <div className="relative">
@@ -403,22 +272,11 @@ export default function Marketplace() {
                   >
                     <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-2.5 flex items-center justify-between border border-indigo-100">
                       <div className="flex items-center gap-2">
-                        <motion.div
-                          animate={{ rotate: [0, 360] }}
-                          transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 2 }}
-                          className="text-indigo-600 text-sm"
-                        >
-                          🔍
-                        </motion.div>
                         <span className="text-xs text-gray-700">
                           تم العثور على <span className="font-bold text-indigo-600 mx-0.5">{filteredProjects.length}</span> مشروع
-                          {searchTerm && ` تطابق "${searchTerm}"`}
                         </span>
                       </div>
-                      <button
-                        onClick={() => setSearchTerm('')}
-                        className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
-                      >
+                      <button onClick={() => setSearchTerm('')} className="text-xs text-indigo-600 hover:text-indigo-800 font-medium">
                         مسح الكل ✕
                       </button>
                     </div>
@@ -427,7 +285,6 @@ export default function Marketplace() {
               </AnimatePresence>
             </motion.div>
 
-            {/* Filters Row */}
             <div className="flex flex-wrap gap-3 items-center justify-between">
               <div className="flex flex-wrap gap-2">
                 {categories.map((cat) => (
@@ -454,7 +311,7 @@ export default function Marketplace() {
                   value={selectedPriceRange}
                   onChange={(e) => setSelectedPriceRange(e.target.value)}
                   className="px-3 py-1.5 rounded-lg border-2 border-gray-200 focus:border-indigo-500 focus:outline-none bg-white/50 backdrop-blur-sm appearance-none cursor-pointer text-gray-700 text-sm"
-                  style={{ backgroundImage: "url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"%236b7280\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M19 9l-7 7-7-7\" /></svg>')", backgroundRepeat: "no-repeat", backgroundPosition: "left 0.5rem center", backgroundSize: "0.875rem", paddingRight: '1.75rem', paddingLeft: '1.75rem' }}
+                  style={{ backgroundImage: "url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"%236b7280\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M19 9l-7 7-7-7\" /></svg>')", backgroundRepeat: "no-repeat", backgroundPosition: "left 0.5rem center", backgroundSize: "0.875rem", paddingLeft: '1.75rem' }}
                 >
                   {priceRanges.map(range => (
                     <option key={range.value} value={range.value}>💰 {range.label}</option>
@@ -465,7 +322,7 @@ export default function Marketplace() {
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
                   className="px-3 py-1.5 rounded-lg border-2 border-gray-200 focus:border-indigo-500 focus:outline-none bg-white/50 backdrop-blur-sm appearance-none cursor-pointer text-gray-700 text-sm"
-                  style={{ backgroundImage: "url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"%236b7280\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M19 9l-7 7-7-7\" /></svg>')", backgroundRepeat: "no-repeat", backgroundPosition: "left 0.5rem center", backgroundSize: "0.875rem", paddingRight: '1.75rem', paddingLeft: '1.75rem' }}
+                  style={{ backgroundImage: "url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"%236b7280\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M19 9l-7 7-7-7\" /></svg>')", backgroundRepeat: "no-repeat", backgroundPosition: "left 0.5rem center", backgroundSize: "0.875rem", paddingLeft: '1.75rem' }}
                 >
                   <option value="popular">🏆 الأكثر مبيعاً</option>
                   <option value="priceLow">💰 السعر: من الأقل للأعلى</option>
@@ -477,9 +334,7 @@ export default function Marketplace() {
                   <button
                     onClick={() => setViewMode('grid')}
                     className={`p-1.5 rounded-lg transition-all duration-300 ${
-                      viewMode === 'grid'
-                        ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md'
-                        : 'text-gray-500 hover:bg-gray-200'
+                      viewMode === 'grid' ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-200'
                     }`}
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -489,9 +344,7 @@ export default function Marketplace() {
                   <button
                     onClick={() => setViewMode('list')}
                     className={`p-1.5 rounded-lg transition-all duration-300 ${
-                      viewMode === 'list'
-                        ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md'
-                        : 'text-gray-500 hover:bg-gray-200'
+                      viewMode === 'list' ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-200'
                     }`}
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -502,7 +355,6 @@ export default function Marketplace() {
               </div>
             </div>
 
-            {/* Active Filters */}
             <AnimatePresence>
               {(selectedCategory !== 'all' || selectedPriceRange !== 'all') && (
                 <motion.div
@@ -536,7 +388,6 @@ export default function Marketplace() {
           </div>
         </motion.div>
 
-        {/* Results Count */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -545,15 +396,8 @@ export default function Marketplace() {
         >
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
-              <motion.div
-                animate={{ rotate: [0, 360] }}
-                transition={{ duration: 1, repeat: Infinity, repeatDelay: 3 }}
-                className="text-indigo-500 text-sm"
-              >
-                ✨
-              </motion.div>
               <p className="text-gray-600 text-xs">
-                عرض <motion.span key={filteredProjects.length} initial={{ scale: 1.2 }} animate={{ scale: 1 }} className="font-bold text-indigo-600 mx-0.5 inline-block">{filteredProjects.length}</motion.span> مشروع
+                عرض <span className="font-bold text-indigo-600 mx-0.5">{filteredProjects.length}</span> مشروع
               </p>
             </div>
             {loading && (
@@ -565,7 +409,6 @@ export default function Marketplace() {
           </div>
         </motion.div>
 
-        {/* Projects Grid/List with Scroll Animation */}
         <div ref={containerRef} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -581,18 +424,8 @@ export default function Marketplace() {
               ))}
             </div>
           ) : filteredProjects.length === 0 ? (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="text-center py-12"
-            >
-              <motion.div
-                animate={{ y: [0, -10, 0] }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className="text-5xl mb-3"
-              >
-                🔍
-              </motion.div>
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-12">
+              <div className="text-5xl mb-3">🔍</div>
               <h3 className="text-xl font-bold text-gray-700 mb-1">لا يوجد مشاريع</h3>
               <p className="text-sm text-gray-500">لم نجد أي مشاريع مطابقة لمعايير البحث</p>
               <button
@@ -615,41 +448,23 @@ export default function Marketplace() {
                   key={project.id}
                   custom={index}
                   variants={scrollRevealVariants}
-                  whileHover={{ y: -8, transition: { duration: 0.2 } }}
+                  whileHover={{ y: -8 }}
                   className="group bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer"
                 >
-                  {/* Project Image */}
                   <div className="relative h-40 overflow-hidden">
-                    <motion.img
-                      src={project.image}
-                      alt={project.name}
-                      className="w-full h-full object-cover"
-                      whileHover={{ scale: 1.1 }}
-                      transition={{ duration: 0.5 }}
-                    />
+                    <motion.img src={project.image} alt={project.name} className="w-full h-full object-cover" whileHover={{ scale: 1.1 }} transition={{ duration: 0.5 }} onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=600'; }} />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
                     
-                    {/* Badge */}
                     {project.badge && (
-                      <motion.div 
-                        initial={{ x: 50, opacity: 0 }}
-                        animate={{ x: 0, opacity: 1 }}
-                        transition={{ delay: index * 0.05 }}
-                        className="absolute top-3 right-3"
-                      >
+                      <div className="absolute top-3 right-3">
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          project.badge === 'الأكثر مبيعاً' 
-                            ? 'bg-yellow-500 text-white' 
-                            : project.badge === 'مميز'
-                            ? 'bg-purple-500 text-white'
-                            : 'bg-blue-500 text-white'
+                          project.badge === 'الأكثر مبيعاً' ? 'bg-yellow-500 text-white' : project.badge === 'مميز' ? 'bg-purple-500 text-white' : 'bg-blue-500 text-white'
                         }`}>
                           {project.badge}
                         </span>
-                      </motion.div>
+                      </div>
                     )}
                     
-                    {/* Price Tag */}
                     <div className="absolute bottom-3 left-3">
                       <div className="bg-black/70 backdrop-blur-sm rounded-lg px-2 py-1">
                         <span className="text-white font-bold text-sm">${project.price}</span>
@@ -657,74 +472,42 @@ export default function Marketplace() {
                     </div>
                   </div>
 
-                  {/* Content */}
                   <div className="p-4">
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex-1 ml-2">
                         <h3 className="text-base font-bold text-gray-800 truncate">{project.name}</h3>
                         <div className="flex items-center gap-1 mt-1">
-                          <motion.img 
-                            whileHover={{ scale: 1.2, rotate: 10 }}
-                            src={project.developerAvatar} 
-                            alt={project.developer} 
-                            className="w-4 h-4 rounded-full" 
-                          />
+                          <img src={project.developerAvatar} alt={project.developer} className="w-4 h-4 rounded-full" onError={(e) => { e.target.src = 'https://randomuser.me/api/portraits/men/32.jpg'; }} />
                           <span className="text-[10px] text-gray-500 truncate">{project.developer}</span>
                         </div>
                       </div>
                       <div className="flex items-center gap-0.5 shrink-0">
-                        <motion.span 
-                          animate={{ scale: [1, 1.2, 1] }}
-                          transition={{ duration: 0.5, delay: index * 0.1 }}
-                          className="text-yellow-400 text-xs"
-                        >
-                          ★
-                        </motion.span>
+                        <span className="text-yellow-400 text-xs">★</span>
                         <span className="text-xs font-semibold">{project.rating}</span>
                       </div>
                     </div>
 
-                    <p className="text-gray-500 text-xs line-clamp-2 mb-3">
-                      {project.description}
-                    </p>
+                    <p className="text-gray-500 text-xs line-clamp-2 mb-3">{project.description}</p>
 
-                    {/* Tech Stack */}
                     <div className="flex flex-wrap gap-1 mb-3">
                       {project.tech.slice(0, 3).map((tech, i) => (
-                        <motion.span 
-                          key={i}
-                          initial={{ opacity: 0, scale: 0 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ delay: index * 0.05 + i * 0.03 }}
-                          className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[9px] rounded-lg"
-                        >
-                          {tech}
-                        </motion.span>
+                        <span key={i} className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[9px] rounded-lg">{tech}</span>
                       ))}
                       {project.tech.length > 3 && (
-                        <span className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[9px] rounded-lg">
-                          +{project.tech.length - 3}
-                        </span>
+                        <span className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[9px] rounded-lg">+{project.tech.length - 3}</span>
                       )}
                     </div>
 
-                    {/* Sales Count */}
                     <div className="flex items-center gap-2 mb-3 text-[10px] text-gray-400">
                       <span>🏆 {project.salesCount} عملية بيع</span>
                     </div>
 
-                    {/* View Details Button */}
-                    <motion.div
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
+                    <Link
+                      to={`/marketplace/${project.id}`}
+                      className="block w-full text-center py-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:shadow-lg transition-all duration-300 text-xs font-medium"
                     >
-                      <Link
-                        to={`/marketplace/${project.id}`}
-                        className="block w-full text-center py-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:shadow-lg transition-all duration-300 text-xs font-medium"
-                      >
-                        تفاصيل المشروع
-                      </Link>
-                    </motion.div>
+                      تفاصيل المشروع
+                    </Link>
                   </div>
                 </motion.div>
               ))}
@@ -746,53 +529,33 @@ export default function Marketplace() {
                   className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-4 cursor-pointer"
                 >
                   <div className="flex gap-4">
-                    <motion.img 
-                      whileHover={{ scale: 1.05 }}
-                      src={project.image} 
-                      alt={project.name} 
-                      className="w-24 h-24 rounded-xl object-cover shrink-0" 
-                    />
+                    <img src={project.image} alt={project.name} className="w-24 h-24 rounded-xl object-cover shrink-0" onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=600'; }} />
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-start mb-1">
                         <div className="flex-1 ml-2">
                           <h3 className="text-base font-bold truncate">{project.name}</h3>
                           <div className="flex items-center gap-2 mt-0.5">
-                            <img src={project.developerAvatar} alt={project.developer} className="w-4 h-4 rounded-full" />
+                            <img src={project.developerAvatar} alt={project.developer} className="w-4 h-4 rounded-full" onError={(e) => { e.target.src = 'https://randomuser.me/api/portraits/men/32.jpg'; }} />
                             <span className="text-xs text-gray-500 truncate">{project.developer}</span>
                             <span className="text-gray-300 text-xs">|</span>
-                            <div className="flex items-center gap-0.5">
-                              <span className="text-yellow-400 text-xs">★</span>
-                              <span className="text-xs">{project.rating}</span>
-                            </div>
+                            <span className="text-yellow-400 text-xs">★ {project.rating}</span>
                           </div>
                         </div>
-                        <motion.div 
-                          whileHover={{ scale: 1.05 }}
-                          className="text-lg font-bold text-indigo-600 shrink-0"
-                        >
-                          ${project.price}
-                        </motion.div>
+                        <div className="text-lg font-bold text-indigo-600 shrink-0">${project.price}</div>
                       </div>
                       <p className="text-gray-500 text-xs line-clamp-1 mb-2">{project.description}</p>
                       <div className="flex items-center gap-3">
                         <div className="flex flex-wrap gap-1">
                           {project.tech.slice(0, 3).map((tech, i) => (
-                            <span key={i} className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[9px] rounded-lg">
-                              {tech}
-                            </span>
+                            <span key={i} className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[9px] rounded-lg">{tech}</span>
                           ))}
                         </div>
                         <span className="text-[10px] text-gray-400">🏆 {project.salesCount} بيع</span>
                       </div>
                     </div>
-                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                      <Link
-                        to={`/marketplace/${project.id}`}
-                        className="px-4 py-1.5 bg-indigo-600 text-white text-sm rounded-xl hover:bg-indigo-700 transition whitespace-nowrap shrink-0"
-                      >
-                        تفاصيل
-                      </Link>
-                    </motion.div>
+                    <Link to={`/marketplace/${project.id}`} className="px-4 py-1.5 bg-indigo-600 text-white text-sm rounded-xl hover:bg-indigo-700 transition whitespace-nowrap shrink-0">
+                      تفاصيل
+                    </Link>
                   </div>
                 </motion.div>
               ))}

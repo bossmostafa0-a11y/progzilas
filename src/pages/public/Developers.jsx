@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
+import { getDevelopers } from '../../services/develper.service.js';
 
 export default function Developers() {
   const [developers, setDevelopers] = useState([]);
@@ -13,192 +14,50 @@ export default function Developers() {
   const [sortBy, setSortBy] = useState('rating');
   const [viewMode, setViewMode] = useState('grid');
 
-
-  // Mock data
+  // ✅ جلب البيانات من الباك إند
   useEffect(() => {
-    const mockDevelopers = [
-      {
-        id: 1,
-        name: 'أحمد المنصوري',
-        email: 'ahmed@devhire.com',
-        title: 'Full Stack Architect',
-        bio: 'خبير في تطوير تطبيقات الويب باستخدام React و Node.js. أكثر من 8 سنوات خبرة.',
-        track: 'fullstack',
-        level: 'expert',
-        rating: 4.9,
-        completedProjects: 142,
-        hourlyRate: 75,
-        avatar: 'https://randomuser.me/api/portraits/men/32.jpg',
-        cover: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=600',
-        tech: ['React', 'Node.js', 'TypeScript', 'MongoDB', 'AWS'],
-        badges: ['🏆 الأفضل', '🚀 مميز'],
-        available: true,
-        location: 'مصر',
-        languages: ['العربية', 'English'],
-        social: { github: 'ahmed_dev', linkedin: 'ahmed-dev' },
-        projectsCount: 47,
-        salesCount: 156
-      },
-      {
-        id: 2,
-        name: 'سارة القحطاني',
-        email: 'sara@devhire.com',
-        title: 'Frontend Expert',
-        bio: 'متخصصة في واجهات المستخدم وتجربة المستخدم. شغوفة بإنشاء تصاميم جذابة.',
-        track: 'frontend',
-        level: 'senior',
-        rating: 4.8,
-        completedProjects: 118,
-        hourlyRate: 65,
-        avatar: 'https://randomuser.me/api/portraits/women/68.jpg',
-        cover: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600',
-        tech: ['React', 'Vue.js', 'Tailwind', 'Figma', 'Next.js'],
-        badges: ['⭐ متميز', '🎨 إبداعية'],
-        available: true,
-        location: 'السعودية',
-        languages: ['العربية', 'English'],
-        social: { github: 'sara_dev', linkedin: 'sara-dev' },
-        projectsCount: 38,
-        salesCount: 98
-      },
-      {
-        id: 3,
-        name: 'يوسف إبراهيم',
-        email: 'youssef@devhire.com',
-        title: 'Mobile Dev Expert',
-        bio: 'مطور تطبيقات موبايل محترف باستخدام Flutter و React Native.',
-        track: 'mobile',
-        level: 'expert',
-        rating: 4.9,
-        completedProjects: 94,
-        hourlyRate: 70,
-        avatar: 'https://randomuser.me/api/portraits/men/45.jpg',
-        cover: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=600',
-        tech: ['Flutter', 'React Native', 'Dart', 'iOS', 'Android'],
-        badges: ['🚀 مميز', '📱 خبير'],
-        available: true,
-        location: 'الإمارات',
-        languages: ['العربية', 'English'],
-        social: { github: 'youssef_mobile', linkedin: 'youssef-mobile' },
-        projectsCount: 52,
-        salesCount: 134
-      },
-      {
-        id: 4,
-        name: 'نورة خالد',
-        email: 'noura@devhire.com',
-        title: 'UI/UX + Frontend',
-        bio: 'مصممة واجهات ومطورة Frontend. أهتم بتجربة المستخدم.',
-        track: 'frontend',
-        level: 'mid',
-        rating: 4.7,
-        completedProjects: 82,
-        hourlyRate: 55,
-        avatar: 'https://randomuser.me/api/portraits/women/45.jpg',
-        cover: 'https://images.unsplash.com/photo-1581291518633-83b4ebd1d83e?w=600',
-        tech: ['React', 'Figma', 'Adobe XD', 'CSS3', 'HTML5'],
-        badges: ['✨ صاعدة', '🎨 مصممة'],
-        available: true,
-        location: 'الكويت',
-        languages: ['العربية', 'English'],
-        social: { github: 'noura_ui', linkedin: 'noura-ui' },
-        projectsCount: 29,
-        salesCount: 67
-      },
-      {
-        id: 5,
-        name: 'عبدالله السالم',
-        email: 'abdullah@devhire.com',
-        title: 'DevOps Engineer',
-        bio: 'مهندس DevOps محترف مع خبرة في AWS و Kubernetes.',
-        track: 'devops',
-        level: 'expert',
-        rating: 4.9,
-        completedProjects: 108,
-        hourlyRate: 85,
-        avatar: 'https://randomuser.me/api/portraits/men/78.jpg',
-        cover: 'https://images.unsplash.com/photo-1504639725590-34d0984388bd?w=600',
-        tech: ['AWS', 'Docker', 'Kubernetes', 'Jenkins', 'Terraform'],
-        badges: ['🔥 خبير', '⚙️ DevOps'],
-        available: false,
-        location: 'قطر',
-        languages: ['العربية', 'English'],
-        social: { github: 'abdullah_devops', linkedin: 'abdullah-devops' },
-        projectsCount: 61,
-        salesCount: 89
-      },
-      {
-        id: 6,
-        name: 'هند العتيبي',
-        email: 'hind@devhire.com',
-        title: 'AI/ML Specialist',
-        bio: 'متخصصة في الذكاء الاصطناعي وتعلم الآلة.',
-        track: 'ai',
-        level: 'senior',
-        rating: 4.8,
-        completedProjects: 63,
-        hourlyRate: 80,
-        avatar: 'https://randomuser.me/api/portraits/women/89.jpg',
-        cover: 'https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=600',
-        tech: ['Python', 'TensorFlow', 'PyTorch', 'Pandas', 'Scikit-learn'],
-        badges: ['🧠 خبيرة', '🤖 AI'],
-        available: true,
-        location: 'البحرين',
-        languages: ['العربية', 'English'],
-        social: { github: 'hind_ai', linkedin: 'hind-ai' },
-        projectsCount: 34,
-        salesCount: 78
-      },
-      {
-        id: 7,
-        name: 'محمد رشاد',
-        email: 'mohamed@devhire.com',
-        title: 'Backend Developer',
-        bio: 'مطور Backend محترف باستخدام Python و Django.',
-        track: 'backend',
-        level: 'senior',
-        rating: 4.7,
-        completedProjects: 76,
-        hourlyRate: 60,
-        avatar: 'https://randomuser.me/api/portraits/men/15.jpg',
-        cover: 'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=600',
-        tech: ['Python', 'Django', 'PostgreSQL', 'Redis', 'Celery'],
-        badges: ['💪 قوي', '🔧 Backend'],
-        available: true,
-        location: 'مصر',
-        languages: ['العربية', 'English'],
-        social: { github: 'mohamed_backend', linkedin: 'mohamed-backend' },
-        projectsCount: 43,
-        salesCount: 112
-      },
-      {
-        id: 8,
-        name: 'فاطمة الزهراء',
-        email: 'fatima@devhire.com',
-        title: 'Full Stack Developer',
-        bio: 'مطورة Full Stack شغوفة بتقنيات الويب الحديثة.',
-        track: 'fullstack',
-        level: 'mid',
-        rating: 4.6,
-        completedProjects: 58,
-        hourlyRate: 50,
-        avatar: 'https://randomuser.me/api/portraits/women/23.jpg',
-        cover: 'https://images.unsplash.com/photo-1553877522-43269d4ea984?w=600',
-        tech: ['React', 'Node.js', 'Express', 'MongoDB', 'GraphQL'],
-        badges: ['🌟 واعدة', '💻 Full Stack'],
-        available: true,
-        location: 'الأردن',
-        languages: ['العربية', 'English'],
-        social: { github: 'fatima_fullstack', linkedin: 'fatima-fullstack' },
-        projectsCount: 25,
-        salesCount: 56
+    const loadDevelopers = async () => {
+      try {
+        setLoading(true);
+        const response = await getDevelopers();
+        
+        let data = response;
+        if (typeof data === 'string') data = JSON.parse(data);
+        
+        const devs = data?.data?.dev || data?.dev || data?.data || [];
+        
+        // ✅ تحويل البيانات للشكل المطلوب
+        const mappedDevelopers = devs.map(dev => ({
+          id: dev._id,
+          name: dev.username || 'غير معروف',
+          title: dev.title || dev.track || 'مطور',
+          bio: dev.bio || '',
+          track: dev.track || 'fullstack',
+          level: dev.experience === '0-1' ? 'junior' : dev.experience === '1-3' ? 'mid' : dev.experience === '3-5' ? 'senior' : 'expert',
+          rating: dev.rating || 0,
+          completedProjects: dev.completedProjects || 0,
+          hourlyRate: dev.hourlyRate || 0,
+          avatar: dev.profileImage || 'https://randomuser.me/api/portraits/men/32.jpg',
+          cover: dev.coverImage || 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=600',
+          tech: dev.techStack || [],
+          badges: dev.rating > 4.5 ? ['🏆 مميز'] : [],
+          available: dev.isOnline !== undefined ? dev.isOnline : true,
+          location: dev.country || '',
+          languages: dev.languages || ['العربية'],
+          social: { github: dev.github || '', linkedin: dev.linkedin || '' },
+          projectsCount: dev.totalProjects || 0,
+          salesCount: dev.salesCount || 0
+        }));
+        
+        setDevelopers(mappedDevelopers);
+      } catch (error) {
+        console.error('❌ Error loading developers:', error);
+      } finally {
+        setLoading(false);
       }
-    ];
+    };
 
-    setTimeout(() => {
-      setDevelopers(mockDevelopers);
-      setLoading(false);
-    }, 1000);
+    loadDevelopers();
   }, []);
 
   // Filter and sort
@@ -262,7 +121,6 @@ export default function Developers() {
     return colors[level] || 'bg-gray-500/20 text-gray-400';
   };
 
-  // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.08, delayChildren: 0.1 } }
@@ -273,8 +131,6 @@ export default function Developers() {
     visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.4, ease: "easeOut" } },
     hover: { y: -8, transition: { duration: 0.2, type: "spring", stiffness: 300 } }
   };
-
-
 
   const filterItemVariants = {
     hidden: { opacity: 0, scale: 0.9, y: -10 },
@@ -297,7 +153,7 @@ export default function Developers() {
               className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-4 py-1.5 mb-3"
             >
               <span className="text-yellow-400 text-sm">✨</span>
-              <span className="text-white/90 text-xs">أكثر من 1000 مبرمج محترف</span>
+              <span className="text-white/90 text-xs">أكثر من {developers.length} مبرمج محترف</span>
             </motion.div>
             <motion.h1
               initial={{ opacity: 0, y: 30 }}
@@ -318,7 +174,7 @@ export default function Developers() {
           </div>
         </div>
 
-        {/* Search and Filters Section - NON-sticky to prevent overlap */}
+        {/* Search and Filters Section */}
         <div className="bg-white/80 backdrop-blur-lg border-b border-gray-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             
@@ -326,7 +182,6 @@ export default function Developers() {
             <motion.div variants={filterItemVariants} className="mb-4">
               <div className="relative group">
                 <div className="relative">
-                  {/* Search Icon */}
                   <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
                     <motion.svg
                       animate={{ rotate: searchTerm ? [0, 360] : 0, scale: searchTerm ? [1, 1.2, 1] : 1 }}
@@ -338,7 +193,6 @@ export default function Developers() {
                     </motion.svg>
                   </div>
 
-                  {/* Input Field */}
                   <input
                     type="text"
                     placeholder="🔍 ابحث عن مبرمج... (بالاسم، التخصص، أو التقنية)"
@@ -348,7 +202,6 @@ export default function Developers() {
                     style={{ paddingRight: '3rem', paddingLeft: '3rem' }}
                   />
 
-                  {/* Clear Button */}
                   <AnimatePresence>
                     {searchTerm && (
                       <motion.button
@@ -369,7 +222,6 @@ export default function Developers() {
                 </div>
               </div>
 
-              {/* Search Stats */}
               <AnimatePresence>
                 {searchTerm && (
                   <motion.div
@@ -405,9 +257,8 @@ export default function Developers() {
               </AnimatePresence>
             </motion.div>
 
-            {/* Filters Row - Balanced layout */}
+            {/* Filters Row */}
             <div className="flex flex-wrap gap-3 items-center justify-between">
-              {/* Track Filters - Left side */}
               <div className="flex flex-wrap gap-2">
                 {tracks.map((track) => (
                   <motion.button
@@ -427,9 +278,7 @@ export default function Developers() {
                 ))}
               </div>
 
-              {/* Right Side Controls */}
               <div className="flex gap-2">
-                {/* Level Filter */}
                 <select
                   value={selectedLevel}
                   onChange={(e) => setSelectedLevel(e.target.value)}
@@ -441,7 +290,6 @@ export default function Developers() {
                   ))}
                 </select>
 
-                {/* Sort Filter */}
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
@@ -454,7 +302,6 @@ export default function Developers() {
                   <option value="sales">🏆 المبيعات</option>
                 </select>
 
-                {/* View Toggle */}
                 <div className="flex gap-0.5 bg-gray-100 rounded-lg p-0.5">
                   <button
                     onClick={() => setViewMode('grid')}
@@ -484,7 +331,6 @@ export default function Developers() {
               </div>
             </div>
 
-            {/* Active Filters */}
             <AnimatePresence>
               {(selectedTrack !== 'all' || selectedLevel !== 'all') && (
                 <motion.div
@@ -518,7 +364,7 @@ export default function Developers() {
           </div>
         </div>
 
-        {/* Results Count - Added margin top for spacing */}
+        {/* Results Count */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4 mb-3">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
@@ -536,7 +382,7 @@ export default function Developers() {
           </div>
         </div>
 
-        {/* Developers Grid/List - Added padding bottom for spacing */}
+        {/* Developers Grid/List */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -589,7 +435,6 @@ export default function Developers() {
                     layout
                     className="group bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer"
                   >
-                    {/* Cover Image */}
                     <div className="relative h-24 overflow-hidden">
                       <motion.img
                         src={dev.cover}
@@ -597,17 +442,16 @@ export default function Developers() {
                         className="w-full h-full object-cover"
                         whileHover={{ scale: 1.1 }}
                         transition={{ duration: 0.5 }}
+                        onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=600'; }}
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
                       
-                      {/* Availability Badge */}
                       <div className="absolute top-2 right-2">
                         <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${dev.available ? 'bg-green-500 text-white' : 'bg-gray-500 text-white'}`}>
                           {dev.available ? 'متاح' : 'مشغول'}
                         </span>
                       </div>
                       
-                      {/* Badges */}
                       <div className="absolute bottom-2 right-2 flex gap-1">
                         {dev.badges.slice(0, 2).map((badge, i) => (
                           <span key={i} className="px-1.5 py-0.5 bg-yellow-400 text-gray-800 text-[10px] rounded-full">
@@ -617,18 +461,16 @@ export default function Developers() {
                       </div>
                     </div>
 
-                    {/* Avatar */}
                     <div className="relative px-5">
                       <motion.div
                         whileHover={{ rotate: 360, scale: 1.1 }}
                         transition={{ duration: 0.5 }}
                         className="absolute -top-9 right-5 w-14 h-14 rounded-xl border-4 border-white shadow-xl overflow-hidden bg-white"
                       >
-                        <img src={dev.avatar} alt={dev.name} className="w-full h-full object-cover" />
+                        <img src={dev.avatar} alt={dev.name} className="w-full h-full object-cover" onError={(e) => { e.target.src = 'https://randomuser.me/api/portraits/men/32.jpg'; }} />
                       </motion.div>
                     </div>
 
-                    {/* Content */}
                     <div className="pt-8 pb-4 px-5">
                       <div className="flex justify-between items-start mb-1">
                         <div>
@@ -641,7 +483,6 @@ export default function Developers() {
                         </div>
                       </div>
 
-                      {/* Rating & Projects */}
                       <div className="flex items-center gap-2 mb-2 flex-wrap">
                         <div className="flex items-center gap-0.5">
                           <span className="text-yellow-400 text-[11px]">★</span>
@@ -652,14 +493,12 @@ export default function Developers() {
                         <div className="text-[10px] text-gray-600">🏆 {dev.salesCount}</div>
                       </div>
 
-                      {/* Level */}
                       <div className="mb-2">
                         <span className={`px-1.5 py-0.5 rounded-lg text-[10px] font-semibold border ${getLevelColor(dev.level)}`}>
                           {levels.find(l => l.value === dev.level)?.label}
                         </span>
                       </div>
 
-                      {/* Tech Stack */}
                       <div className="flex flex-wrap gap-1 mb-3">
                         {dev.tech.slice(0, 4).map((tech, i) => (
                           <span key={i} className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded-lg">
@@ -673,9 +512,8 @@ export default function Developers() {
                         )}
                       </div>
 
-                      {/* View Profile Button */}
                       <Link
-                        to={`/dev/${dev.name}`}
+                        to={`/dev/${dev.id}`}
                         className="block w-full text-center py-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:shadow-lg transition-all duration-300 text-[11px] font-medium"
                       >
                         عرض البروفايل
@@ -708,6 +546,7 @@ export default function Developers() {
                         src={dev.avatar}
                         alt={dev.name}
                         className="w-14 h-14 rounded-full object-cover"
+                        onError={(e) => { e.target.src = 'https://randomuser.me/api/portraits/men/32.jpg'; }}
                       />
                       <div className="flex-1">
                         <div className="flex justify-between items-start mb-1">
@@ -729,7 +568,7 @@ export default function Developers() {
                         <p className="text-gray-500 text-xs line-clamp-1">{dev.bio}</p>
                       </div>
                       <Link
-                        to={`/dev/${dev.name}`}
+                        to={`/dev/${dev.id}`}
                         className="px-4 py-1.5 bg-indigo-600 text-white text-sm rounded-xl hover:bg-indigo-700 transition whitespace-nowrap"
                       >
                         عرض البروفايل

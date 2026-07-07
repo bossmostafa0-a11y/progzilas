@@ -1,13 +1,53 @@
+// src/pages/client/ClientProjects.jsx
+
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-
+import { getClientProjects } from '../../services/cliecnt.service.js';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import ClientSidebar from '../../components/layout/ClientSidebar';
 
-export default function ClientProjects() {
+// ✅ نقل الدالة خارج المكون
+const transformProjectData = (project) => {
+  // تحديد حالة المشروع
+  let status = 'pending';
+  if (project.status === 'completed') status = 'completed';
+  else if (project.status === 'in_progress') status = 'in_progress';
+  else if (project.status === 'review') status = 'review';
+  else if (project.status === 'pending') status = 'pending';
   
+  // حساب التقدم
+  const progress = project.progress || 0;
+  
+  // حساب المبالغ
+  const amount = project.budget || project.amount || 0;
+  const paidAmount = project.paidAmount || 0;
+  const remainingAmount = amount - paidAmount;
+  
+  return {
+    id: project._id || project.id,
+    name: project.name || project.projectName || 'مشروع بدون اسم',
+    developer: project.developer?.name || project.developerName || 'مطور',
+    developerAvatar: project.developer?.avatar || project.developerAvatar || 'https://randomuser.me/api/portraits/men/32.jpg',
+    developerId: project.developer?.id || project.developerId || 1,
+    projectId: project._id || project.id, // ✅ إضافة projectId للربط
+    chatId: project.chatId || project.chat?.id || null, // ✅ إضافة chatId إن وجد
+    status: status,
+    progress: progress,
+    startDate: project.startDate || project.createdAt?.split('T')[0] || '2024-01-01',
+    dueDate: project.dueDate || project.deadline || '2024-02-15',
+    amount: amount,
+    paidAmount: paidAmount,
+    remainingAmount: remainingAmount,
+    description: project.description || project.shortDescription || '',
+    lastUpdate: project.updatedAt ? new Date(project.updatedAt).toLocaleDateString('ar') : 'منذ يوم',
+    messages: project.messages || 0,
+    unreadMessages: project.unreadMessages || 0
+  };
+};
+
+export default function ClientProjects() {
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -15,86 +55,49 @@ export default function ClientProjects() {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
 
   const [projects, setProjects] = useState([]);
+  const [stats, setStats] = useState({
+    total: 0,
+    active: 0,
+    completed: 0,
+    totalSpent: 0
+  });
 
+  // ✅ جلب المشاريع من الباك اند
   useEffect(() => {
-    setTimeout(() => {
-      const mockProjects = [
-        {
-          id: 1,
-          name: 'نظام إدارة المستشفيات الذكي',
-          developer: 'أحمد المنصوري',
-          developerAvatar: 'https://randomuser.me/api/portraits/men/32.jpg',
-          developerId: 1,
-          status: 'in_progress',
-          progress: 75,
-          startDate: '2024-01-01',
-          dueDate: '2024-02-15',
-          amount: 4999,
-          paidAmount: 3000,
-          remainingAmount: 1999,
-          description: 'نظام متكامل لإدارة المستشفيات يشمل إدارة المرضى، المواعيد، الغرف، والموظفين',
-          lastUpdate: 'منذ ساعة',
-          messages: 3,
-          unreadMessages: 1
-        },
-        {
-          id: 2,
-          name: 'منصة تعليمية متكاملة',
-          developer: 'يوسف إبراهيم',
-          developerAvatar: 'https://randomuser.me/api/portraits/men/45.jpg',
-          developerId: 2,
-          status: 'review',
-          progress: 90,
-          startDate: '2024-01-10',
-          dueDate: '2024-02-10',
-          amount: 3500,
-          paidAmount: 2000,
-          remainingAmount: 1500,
-          description: 'منصة تعليمية إلكترونية متكاملة مع نظام إدارة المحتوى والامتحانات',
-          lastUpdate: 'منذ 3 ساعات',
-          messages: 5,
-          unreadMessages: 2
-        },
-        {
-          id: 3,
-          name: 'متجر إلكتروني متكامل',
-          developer: 'نورة خالد',
-          developerAvatar: 'https://randomuser.me/api/portraits/women/45.jpg',
-          developerId: 3,
-          status: 'completed',
-          progress: 100,
-          startDate: '2024-01-15',
-          dueDate: '2024-02-01',
-          amount: 1299,
-          paidAmount: 1299,
-          remainingAmount: 0,
-          description: 'متجر إلكتروني احترافي مع نظام دفع متكامل',
-          lastUpdate: 'منذ يوم',
-          messages: 8,
-          unreadMessages: 0
-        },
-        {
-          id: 4,
-          name: 'لوحة تحكم تحليلات',
-          developer: 'عبدالله السالم',
-          developerAvatar: 'https://randomuser.me/api/portraits/men/78.jpg',
-          developerId: 4,
-          status: 'pending',
-          progress: 30,
-          startDate: '2024-01-20',
-          dueDate: '2024-02-28',
-          amount: 1999,
-          paidAmount: 500,
-          remainingAmount: 1499,
-          description: 'لوحة تحكم تفاعلية لعرض البيانات والإحصائيات',
-          lastUpdate: 'منذ 3 أيام',
-          messages: 2,
-          unreadMessages: 0
+    const loadProjects = async () => {
+      setLoading(true);
+      try {
+        const response = await getClientProjects();
+        console.log('📥 Client projects from API:', response);
+        
+        const projectsData = response?.data?.projects || response?.projects || response?.data || [];
+        
+        if (projectsData.length > 0) {
+          // ✅ تحويل البيانات للشكل المطلوب
+          const transformedProjects = projectsData.map(transformProjectData);
+          setProjects(transformedProjects);
+          
+          // ✅ حساب الإحصائيات
+          const total = transformedProjects.length;
+          const active = transformedProjects.filter(p => p.status === 'in_progress' || p.status === 'pending').length;
+          const completed = transformedProjects.filter(p => p.status === 'completed').length;
+          const totalSpent = transformedProjects.reduce((sum, p) => sum + (p.paidAmount || 0), 0);
+          
+          setStats({ total, active, completed, totalSpent });
+        } else {
+          setProjects([]);
+          setStats({ total: 0, active: 0, completed: 0, totalSpent: 0 });
         }
-      ];
-      setProjects(mockProjects);
-      setLoading(false);
-    }, 1000);
+      } catch (error) {
+        console.error('❌ Error loading projects:', error);
+        setProjects([]);
+        setStats({ total: 0, active: 0, completed: 0, totalSpent: 0 });
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadProjects();
   }, []);
 
   const getStatusColor = (status) => {
@@ -123,13 +126,6 @@ export default function ClientProjects() {
         !project.developer.toLowerCase().includes(searchTerm.toLowerCase())) return false;
     return true;
   });
-
-  const stats = {
-    total: projects.length,
-    active: projects.filter(p => p.status === 'in_progress').length,
-    completed: projects.filter(p => p.status === 'completed').length,
-    totalSpent: projects.reduce((sum, p) => sum + p.paidAmount, 0)
-  };
 
   if (loading) {
     return (
@@ -199,7 +195,7 @@ export default function ClientProjects() {
                     className="w-full px-4 py-2 pr-10 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:outline-none"
                   />
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0">
                   {[
                     { value: 'all', label: 'الكل', icon: '📋' },
                     { value: 'in_progress', label: 'قيد التنفيذ', icon: '🔄' },
@@ -347,9 +343,13 @@ export default function ClientProjects() {
                 >
                   إغلاق
                 </button>
-                <Link to={`/messages?chat=${selectedProject.developerId}`} className="flex-1">
+                {/* ✅ زر فتح لوحة التحكم - ينقل إلى ProjectRoom */}
+                <Link 
+                  to={`/project/${selectedProject.projectId || selectedProject.id}`} 
+                  className="flex-1"
+                >
                   <button className="w-full py-2 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition">
-                    إرسال رسالة
+                    🚀 فتح لوحة التحكم
                   </button>
                 </Link>
               </div>

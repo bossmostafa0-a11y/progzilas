@@ -1,47 +1,121 @@
-import { useState } from 'react';
-
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
+import { updateUserProfile } from '../../services/authService';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import DeveloperSidebar from '../../components/layout/DeveloperSidebar';
 
 export default function DevProfileSettings() {
-  const { user, updateProfile } = useAuth();
+  const { user, fetchUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [activeTab, setActiveTab] = useState('personal');
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [coverPreview, setCoverPreview] = useState(null);
   
-  // Form Data
+  // ✅ استخدم useRef لمنع التكرار
+  const hasLoaded = useRef(false);
+  
+  // ✅ Form Data
   const [formData, setFormData] = useState({
-    fullName: user?.name || 'أحمد المنصوري',
-    email: user?.email || 'ahmed@devhire.com',
-    title: 'Full Stack Architect',
-    bio: 'مبرمج Full Stack محترف مع أكثر من 8 سنوات خبرة. متخصص في بناء تطبيقات الويب الحديثة باستخدام React و Node.js. عملت على أكثر من 50 مشروع ناجح لعملاء حول العالم.',
-    location: 'مصر',
-    phone: '+20123456789',
-    website: 'https://ahmedmansouri.com',
-    github: 'ahmed_mansouri',
-    linkedin: 'ahmed-mansouri',
-    twitter: 'ahmed_dev',
-    experience: '5-8',
-    hourlyRate: 75,
-    techStack: ['React', 'Node.js', 'TypeScript', 'MongoDB', 'AWS', 'Docker', 'GraphQL', 'TailwindCSS'],
-    skills: ['حل المشكلات', 'التواصل الفعال', 'القيادة', 'إدارة الوقت', 'التفكير النقدي', 'العمل الجماعي'],
-    languages: ['العربية', 'الإنجليزية'],
-    education: [
-      { degree: 'ماجستير علوم الحاسب', institution: 'جامعة القاهرة', year: '2018', description: 'تخصص في هندسة البرمجيات' },
-      { degree: 'بكالوريوس علوم الحاسب', institution: 'جامعة عين شمس', year: '2015', description: 'تقدير امتياز مع مرتبة الشرف' }
-    ],
-    certificates: [
-      { name: 'AWS Certified Solutions Architect', issuer: 'Amazon', date: '2023', credentialId: 'AWS-12345' },
-      { name: 'Meta Backend Developer', issuer: 'Meta', date: '2022', credentialId: 'META-67890' }
-    ],
-    avatar: user?.avatar || 'https://randomuser.me/api/portraits/men/32.jpg',
-    coverImage: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=1200'
+    fullName: user?.name || user?.username || '',
+    email: user?.email || '',
+    title: user?.title || '',
+    bio: user?.bio || user?.about || '',
+    location: user?.location || '',
+    phone: user?.phone || '',
+    website: user?.website || '',
+    github: user?.github || '',
+    linkedin: user?.linkedin || '',
+    twitter: user?.twitter || '',
+    experience: user?.experience || '3-5',
+    hourlyRate: user?.hourlyRate || 50,
+    techStack: user?.techStack || [],
+    skills: user?.skills || [],
+    languages: user?.languages || ['العربية'],
+    education: user?.education || [],
+    certificates: user?.certificates || [],
+    country: user?.country || '',
+    avatar: user?.profileImage || user?.avatar || 'https://via.placeholder.com/200/6366f1/ffffff?text=User',
+    coverImage: user?.coverImage || 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=1200'
   });
+
+  // ✅ ملفات للرفع
+  const [profileImageFile, setProfileImageFile] = useState(null);
+  const [coverImageFile, setCoverImageFile] = useState(null);
+
+  // ✅ دالة مساعدة لتحويل البيانات من الباك اند (string -> array)
+  const parseArray = (value) => {
+    if (Array.isArray(value)) return value;
+    if (typeof value === 'string') {
+      try {
+        const parsed = JSON.parse(value);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return value.split(',').filter(Boolean);
+      }
+    }
+    return [];
+  };
+
+  // ✅ دالة مساعدة للتأكد من إن القيمة Array قبل الإرسال (قوية)
+  const parseToArray = (value) => {
+    if (Array.isArray(value)) return value;
+    if (typeof value === 'string') {
+      try {
+        const parsed = JSON.parse(value);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return value.split(',').filter(Boolean);
+      }
+    }
+    return [];
+  };
+
+  // ✅ جلب بيانات المستخدم عند تحميل الصفحة (مرة واحدة فقط)
+  useEffect(() => {
+    if (hasLoaded.current) return;
+    
+    const loadUserData = async () => {
+      try {
+        console.log('📥 Loading user data...');
+        const userData = await fetchUser();
+        console.log('📥 User data loaded:', userData);
+        
+        if (userData) {
+          setFormData({
+            fullName: userData.name || userData.username || '',
+            email: userData.email || '',
+            title: userData.title || '',
+            bio: userData.bio || userData.about || '',
+            location: userData.location || '',
+            phone: userData.phone || '',
+            website: userData.website || '',
+            github: userData.github || '',
+            linkedin: userData.linkedin || '',
+            twitter: userData.twitter || '',
+            experience: userData.experience || '3-5',
+            hourlyRate: userData.hourlyRate || 50,
+            techStack: parseArray(userData.techStack),
+            skills: parseArray(userData.skills),
+            languages: parseArray(userData.languages),
+            education: parseArray(userData.education),
+            certificates: parseArray(userData.certificates),
+            country: userData.country || '',
+            avatar: userData.profileImage || userData.avatar || 'https://via.placeholder.com/200/6366f1/ffffff?text=User',
+            coverImage: userData.coverImage || 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=1200'
+          });
+          
+          hasLoaded.current = true;
+        }
+      } catch (error) {
+        console.error('❌ Error loading user data:', error);
+      }
+    };
+    
+    loadUserData();
+  }, []);
 
   // Temporary states
   const [tempTech, setTempTech] = useState('');
@@ -61,13 +135,10 @@ export default function DevProfileSettings() {
   const handleAvatarUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
+      setProfileImageFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setAvatarPreview(reader.result);
-        setFormData({
-          ...formData,
-          avatar: reader.result
-        });
       };
       reader.readAsDataURL(file);
     }
@@ -77,13 +148,10 @@ export default function DevProfileSettings() {
   const handleCoverUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
+      setCoverImageFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setCoverPreview(reader.result);
-        setFormData({
-          ...formData,
-          coverImage: reader.result
-        });
       };
       reader.readAsDataURL(file);
     }
@@ -181,17 +249,66 @@ export default function DevProfileSettings() {
     });
   };
 
+  // ✅ الإرسال
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     
-    await updateProfile(formData);
-    
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      const submitData = new FormData();
+      
+      // ✅ الحقول النصية
+      submitData.append('fullName', formData.fullName || '');
+      submitData.append('title', formData.title || '');
+      submitData.append('bio', formData.bio || '');
+      submitData.append('experience', formData.experience || '3-5');
+      submitData.append('hourlyRate', formData.hourlyRate || 50);
+      submitData.append('country', formData.country || '');
+      submitData.append('phone', formData.phone || '');
+      submitData.append('github', formData.github || '');
+      submitData.append('linkedin', formData.linkedin || '');
+      submitData.append('twitter', formData.twitter || '');
+      submitData.append('website', formData.website || '');
+      
+      // ✅ تأكد من إنها Arrays قبل الإرسال باستخدام parseToArray
+      const techStack = parseToArray(formData.techStack);
+      const skills = parseToArray(formData.skills);
+      const languages = parseToArray(formData.languages);
+      const education = parseToArray(formData.education);
+      const certificates = parseToArray(formData.certificates);
+      
+      // ✅ للتأكد من القيم قبل الإرسال
+      console.log('📤 Sending techStack (array):', techStack);
+      console.log('📤 Sending skills (array):', skills);
+      console.log('📤 Sending languages (array):', languages);
+      
+      submitData.append('techStack', JSON.stringify(techStack));
+      submitData.append('skills', JSON.stringify(skills));
+      submitData.append('languages', JSON.stringify(languages));
+      submitData.append('education', JSON.stringify(education));
+      submitData.append('certificates', JSON.stringify(certificates));
+      
+      // ✅ الملفات
+      if (profileImageFile) {
+        submitData.append('profileImage', profileImageFile);
+      }
+      if (coverImageFile) {
+        submitData.append('coverImage', coverImageFile);
+      }
+      
+      const response = await updateUserProfile(submitData);
+      console.log('✅ Profile updated:', response);
+      
       setSaveSuccess(true);
+      await fetchUser();
       setTimeout(() => setSaveSuccess(false), 3000);
-    }, 1500);
+      
+    } catch (error) {
+      console.error('❌ Error updating profile:', error);
+      alert(error.message || 'حدث خطأ أثناء حفظ البيانات');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const experienceLevels = [
@@ -362,7 +479,8 @@ export default function DevProfileSettings() {
                             name="email"
                             value={formData.email}
                             onChange={handleChange}
-                            className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:outline-none"
+                            className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-gray-100 text-gray-500 cursor-not-allowed"
+                            disabled
                           />
                         </div>
                       </div>
@@ -396,19 +514,23 @@ export default function DevProfileSettings() {
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        
                         <div>
                           <label className="block text-sm font-semibold text-gray-700 mb-2">
-                            الموقع
+                            الدولة
                           </label>
                           <input
                             type="text"
-                            name="location"
-                            value={formData.location}
+                            name="country"
+                            value={formData.country}
                             onChange={handleChange}
                             className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:outline-none"
-                            placeholder="مثال: مصر، القاهرة"
+                            placeholder="مثال: مصر"
                           />
                         </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                           <label className="block text-sm font-semibold text-gray-700 mb-2">
                             رقم الهاتف
@@ -422,24 +544,6 @@ export default function DevProfileSettings() {
                             placeholder="+20123456789"
                           />
                         </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-2">
-                            سنوات الخبرة
-                          </label>
-                          <select
-                            name="experience"
-                            value={formData.experience}
-                            onChange={handleChange}
-                            className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:outline-none"
-                          >
-                            {experienceLevels.map(level => (
-                              <option key={level.value} value={level.value}>{level.label}</option>
-                            ))}
-                          </select>
-                        </div>
                         <div>
                           <label className="block text-sm font-semibold text-gray-700 mb-2">
                             السعر بالساعة ($)
@@ -452,6 +556,22 @@ export default function DevProfileSettings() {
                             className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:outline-none"
                           />
                         </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          سنوات الخبرة
+                        </label>
+                        <select
+                          name="experience"
+                          value={formData.experience}
+                          onChange={handleChange}
+                          className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:outline-none"
+                        >
+                          {experienceLevels.map(level => (
+                            <option key={level.value} value={level.value}>{level.label}</option>
+                          ))}
+                        </select>
                       </div>
                     </motion.div>
                   )}
