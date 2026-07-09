@@ -91,3 +91,32 @@ export const getClientDashboard = async () => {
   const response = await api.get('/client/clinetdashboard');
   return response.data.data;
 };
+
+
+// ✅ تحديث بيانات الحساب
+export const updateAccountSettings = async (data) => {
+  const response = await api.put('/client/updateAccountSettings', data);
+  return response.data;
+};
+
+// ✅ تحديث إعدادات الإشعارات
+export const updateNotificationSettings = async (data) => {
+  const response = await api.put('/client/updateNotificationSettings', data);
+  return response.data;
+};
+
+// ✅ تغيير كلمة المرور
+export const changePassword = async (data) => {
+  const response = await api.put('/auth/changePassword', data);
+  return response.data;
+};
+
+// ✅ حذف الحساب
+export const deleteAccount = async () => {
+  const response = await api.delete('/client/deleteAccount');
+  return response.data;
+};
+export const getMarketplaceProjectById = async (id) => {
+  const response = await api.get(`/client/getdetilsproject/${id}`);
+  return response.data;
+};

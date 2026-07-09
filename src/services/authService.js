@@ -113,3 +113,8 @@ export const verifyEmail = async (email, code) => {
     return response.data;
   } catch (error) { throw handleApiError(error); }
 };
+//تغير كلمة السر
+export const forgotPassword = async (email) => {
+  const response = await api.post('/auth/changePasswordemail', { email });
+  return response.data;
+};

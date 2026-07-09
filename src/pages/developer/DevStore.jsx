@@ -19,8 +19,6 @@ export default function DevStore() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProject, setSelectedProject] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editingProject, setEditingProject] = useState(null);
 
   const [projects, setProjects] = useState([]);
   const [stats, setStats] = useState({
@@ -30,18 +28,11 @@ export default function DevStore() {
     avgRating: 0
   });
 
-  // ✅ دالة لتحويل بيانات المشروع من الباك اند إلى شكل متوافق مع الواجهة
   const transformProjectData = (project) => {
-    // ✅ حساب عدد المبيعات من الباقات
     const totalSales = (project.basic?.sales || 0) + (project.pro?.sales || 0) + (project.enterprise?.sales || 0);
-    
-    // ✅ حساب متوسط التقييم
     const avgRating = project.rating || 4.5;
-    
-    // ✅ تحديد الحالة بناءً على public
     const status = project.public === true ? 'published' : 'draft';
     
-    // ✅ تجهيز الباقات
     const packages = [];
     if (project.basic) {
       packages.push({
@@ -103,7 +94,6 @@ export default function DevStore() {
     };
   };
 
-  // ✅ جلب المشاريع من الباك اند
   useEffect(() => {
     const loadProjects = async () => {
       setLoading(true);
@@ -130,22 +120,12 @@ export default function DevStore() {
           });
         } else {
           setProjects([]);
-          setStats({ 
-            total: 0, 
-            totalSales: 0, 
-            totalRevenue: 0, 
-            avgRating: 0 
-          });
+          setStats({ total: 0, totalSales: 0, totalRevenue: 0, avgRating: 0 });
         }
       } catch (error) {
         console.error('❌ Error loading store projects:', error);
         setProjects([]);
-        setStats({ 
-          total: 0, 
-          totalSales: 0, 
-          totalRevenue: 0, 
-          avgRating: 0 
-        });
+        setStats({ total: 0, totalSales: 0, totalRevenue: 0, avgRating: 0 });
       } finally {
         setLoading(false);
       }
@@ -154,7 +134,6 @@ export default function DevStore() {
     loadProjects();
   }, []);
 
-  // ✅ تغيير حالة المشروع (public)
   const handleToggleStatus = async (id) => {
     const project = projects.find(p => p.id === id);
     if (!project) return;
@@ -170,11 +149,7 @@ export default function DevStore() {
         const newStatusText = newStatus ? 'published' : 'draft';
         
         setProjects(projects.map(p => 
-          p.id === id ? { 
-            ...p, 
-            public: newStatus,
-            status: newStatusText 
-          } : p
+          p.id === id ? { ...p, public: newStatus, status: newStatusText } : p
         ));
         setShowDetailsModal(false);
         
@@ -188,7 +163,6 @@ export default function DevStore() {
     }
   };
 
-  // ✅ حذف مشروع
   const handleDeleteProject = async (id) => {
     if (window.confirm('هل أنت متأكد من حذف هذا المشروع؟')) {
       setLoading(true);
@@ -231,7 +205,6 @@ export default function DevStore() {
     return true;
   });
 
-  // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.08, delayChildren: 0.1 } }
@@ -294,7 +267,7 @@ export default function DevStore() {
               </Link>
             </motion.div>
 
-            {/* Stats Cards - تظهر فقط لو في مشاريع */}
+            {/* Stats Cards */}
             {stats.total > 0 && (
               <motion.div
                 variants={containerVariants}
@@ -325,7 +298,7 @@ export default function DevStore() {
               </motion.div>
             )}
 
-            {/* Search and Filters - تظهر فقط لو في مشاريع */}
+            {/* Search and Filters */}
             {projects.length > 0 && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -333,7 +306,6 @@ export default function DevStore() {
                 className="bg-white rounded-2xl shadow-lg p-4 mb-8"
               >
                 <div className="flex flex-col md:flex-row gap-4">
-                  {/* Search Bar */}
                   <div className="flex-1 relative">
                     <input
                       type="text"
@@ -347,7 +319,6 @@ export default function DevStore() {
                     </svg>
                   </div>
 
-                  {/* Filter Buttons */}
                   <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0">
                     {categories.map((cat) => (
                       <motion.button
@@ -400,10 +371,7 @@ export default function DevStore() {
                 <h3 className="text-xl font-bold text-gray-700 mb-1">لا توجد نتائج</h3>
                 <p className="text-gray-500">لم نجد أي مشاريع مطابقة لمعايير البحث</p>
                 <button
-                  onClick={() => {
-                    setSearchTerm('');
-                    setActiveFilter('all');
-                  }}
+                  onClick={() => { setSearchTerm(''); setActiveFilter('all'); }}
                   className="mt-4 px-6 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition"
                 >
                   إعادة ضبط البحث
@@ -428,7 +396,6 @@ export default function DevStore() {
                         setShowDetailsModal(true);
                       }}
                     >
-                      {/* Project Image */}
                       <div className="relative h-48 overflow-hidden">
                         <img 
                           src={project.image || 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=400'} 
@@ -437,18 +404,14 @@ export default function DevStore() {
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
                         
-                        {/* Status Badge */}
                         <div className="absolute top-3 right-3">
                           <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                            project.public === true 
-                              ? 'bg-green-500 text-white' 
-                              : 'bg-yellow-500 text-white'
+                            project.public === true ? 'bg-green-500 text-white' : 'bg-yellow-500 text-white'
                           }`}>
                             {project.public === true ? 'منشور ✓' : 'مسودة 📝'}
                           </span>
                         </div>
                         
-                        {/* Category Badge */}
                         <div className="absolute bottom-3 right-3">
                           <span className="px-2 py-1 bg-black/50 backdrop-blur-sm text-white text-xs rounded-lg">
                             {getCategoryIcon(project.category)} {getCategoryLabel(project.category)}
@@ -456,26 +419,19 @@ export default function DevStore() {
                         </div>
                       </div>
 
-                      {/* Content */}
                       <div className="p-5">
                         <h3 className="text-lg font-bold text-gray-800 mb-2 line-clamp-1">{project.name}</h3>
                         <p className="text-gray-500 text-sm line-clamp-2 mb-3">{project.description}</p>
                         
-                        {/* Tech Stack */}
                         <div className="flex flex-wrap gap-1 mb-3">
                           {(project.tech || []).slice(0, 3).map((tech, i) => (
-                            <span key={i} className="px-2 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded-lg">
-                              {tech}
-                            </span>
+                            <span key={i} className="px-2 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded-lg">{tech}</span>
                           ))}
                           {(project.tech || []).length > 3 && (
-                            <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded-lg">
-                              +{(project.tech || []).length - 3}
-                            </span>
+                            <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded-lg">+{(project.tech || []).length - 3}</span>
                           )}
                         </div>
 
-                        {/* Stats Row */}
                         <div className="flex justify-between items-center mb-4">
                           <div className="flex items-center gap-2">
                             <div className="flex items-center gap-1">
@@ -488,7 +444,6 @@ export default function DevStore() {
                           <div className="text-lg font-bold text-indigo-600">${project.price || 0}</div>
                         </div>
 
-                        {/* Price Packages */}
                         <div className="flex gap-2 mb-4">
                           {(project.packages || []).map((pkg, idx) => (
                             <div key={idx} className="flex-1 text-center p-1 bg-gray-50 rounded-lg">
@@ -499,7 +454,7 @@ export default function DevStore() {
                           ))}
                         </div>
 
-                        {/* Action Buttons */}
+                        {/* ✅ زر تعديل - بينقل لصفحة التعديل */}
                         <div className="flex gap-2">
                           <button 
                             onClick={(e) => {
@@ -565,11 +520,32 @@ export default function DevStore() {
               </div>
 
               <div className="p-6 space-y-6">
-                {/* Project Images */}
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {(selectedProject.images || [selectedProject.image]).map((img, idx) => (
-                    <img key={idx} src={img} alt={selectedProject.name} className="w-full h-48 object-cover rounded-xl" />
-                  ))}
+                {/* فيديو */}
+                {selectedProject.videoUrl && (
+                  <div>
+                    <h3 className="font-bold text-gray-800 mb-2">🎬 فيديو توضيحي</h3>
+                    <div className="relative rounded-xl overflow-hidden bg-black">
+                      <video
+                        src={selectedProject.videoUrl}
+                        controls
+                        className="w-full max-h-[400px] object-contain"
+                      >
+                        متصفحك لا يدعم تشغيل الفيديو
+                      </video>
+                    </div>
+                  </div>
+                )}
+
+                {/* صور */}
+                <div>
+                  <h3 className="font-bold text-gray-800 mb-2">🖼️ صور المشروع</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {(selectedProject.images || []).length > 0 ? selectedProject.images.map((img, idx) => (
+                      <img key={idx} src={img} alt={`${selectedProject.name} ${idx + 1}`} className="w-full h-48 object-cover rounded-xl" />
+                    )) : (
+                      <img src={selectedProject.image} alt={selectedProject.name} className="w-full h-48 object-cover rounded-xl" />
+                    )}
+                  </div>
                 </div>
 
                 {/* Basic Info */}
@@ -670,143 +646,6 @@ export default function DevStore() {
                     className="flex-1 py-2 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 transition"
                   >
                     حذف المشروع
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Edit Project Modal */}
-      <AnimatePresence>
-        {showEditModal && editingProject && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto"
-            onClick={() => setShowEditModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0, y: 50 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 50 }}
-              transition={{ type: "spring", damping: 20 }}
-              className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex justify-between items-center">
-                <h2 className="text-xl font-bold text-gray-800">تعديل المشروع</h2>
-                <button
-                  onClick={() => setShowEditModal(false)}
-                  className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition"
-                >
-                  ✕
-                </button>
-              </div>
-
-              <div className="p-6 space-y-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">اسم المشروع</label>
-                  <input
-                    type="text"
-                    value={editingProject.name}
-                    onChange={(e) => setEditingProject({ ...editingProject, name: e.target.value })}
-                    className="w-full px-4 py-2 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">وصف المشروع</label>
-                  <textarea
-                    rows="4"
-                    value={editingProject.description}
-                    onChange={(e) => setEditingProject({ ...editingProject, description: e.target.value })}
-                    className="w-full px-4 py-2 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:outline-none resize-none"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">السعر الأساسي ($)</label>
-                    <input
-                      type="number"
-                      value={editingProject.price}
-                      onChange={(e) => setEditingProject({ ...editingProject, price: e.target.value })}
-                      className="w-full px-4 py-2 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">التصنيف</label>
-                    <select
-                      value={editingProject.category}
-                      onChange={(e) => setEditingProject({ ...editingProject, category: e.target.value })}
-                      className="w-full px-4 py-2 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:outline-none"
-                    >
-                      {categories.filter(c => c.value !== 'all').map(cat => (
-                        <option key={cat.value} value={cat.value}>{cat.icon} {cat.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                {/* حالة النشر */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">حالة النشر</label>
-                  <div className="flex gap-3">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditingProject({ 
-                          ...editingProject, 
-                          public: true,
-                          status: 'published'
-                        });
-                      }}
-                      className={`flex-1 py-2 rounded-xl font-medium transition ${
-                        editingProject.public === true
-                          ? 'bg-green-500 text-white shadow-md'
-                          : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
-                      }`}
-                    >
-                      ✅ منشور
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditingProject({ 
-                          ...editingProject, 
-                          public: false,
-                          status: 'draft'
-                        });
-                      }}
-                      className={`flex-1 py-2 rounded-xl font-medium transition ${
-                        editingProject.public === false
-                          ? 'bg-yellow-500 text-white shadow-md'
-                          : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
-                      }`}
-                    >
-                      📝 مسودة
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex gap-3 pt-4">
-                  <button
-                    onClick={() => setShowEditModal(false)}
-                    className="flex-1 py-2 border-2 border-gray-300 text-gray-600 rounded-xl font-medium hover:bg-gray-50 transition"
-                  >
-                    إلغاء
-                  </button>
-                  <button
-                    onClick={() => {
-                      setProjects(projects.map(p => p.id === editingProject.id ? editingProject : p));
-                      setShowEditModal(false);
-                    }}
-                    className="flex-1 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium hover:shadow-lg transition"
-                  >
-                    حفظ التعديلات
                   </button>
                 </div>
               </div>

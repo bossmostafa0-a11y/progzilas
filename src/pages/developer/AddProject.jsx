@@ -6,10 +6,12 @@ import { createProject } from '../../services/develper.service.js';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import DeveloperSidebar from '../../components/layout/DeveloperSidebar';
+import { useNotificationSound } from '../../hooks/useNotificationSound';
 
 export default function AddProject() {
-  const {  fetchUser } = useAuth();
+  const { fetchUser } = useAuth();
   const navigate = useNavigate();
+  const { playSound } = useNotificationSound();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -24,7 +26,8 @@ export default function AddProject() {
     demoUrl: '',
     githubUrl: '',
     license: 'Commercial',
-    videoUrl: '',
+    videoFile: null,
+    downloadFile: null,
     supportPeriod: '',
     updatesPeriod: '',
     technologies: [],
@@ -96,9 +99,16 @@ export default function AddProject() {
     if (!formData.projectName.trim()) errors.projectName = 'اسم المشروع مطلوب';
     if (!formData.category) errors.category = 'التصنيف مطلوب';
     if (!formData.shortDescription.trim()) errors.shortDescription = 'الوصف القصير مطلوب';
+    if (!formData.fullDescription.trim()) errors.fullDescription = 'الوصف المفصل مطلوب';
+    if (!formData.demoUrl.trim()) errors.demoUrl = 'رابط العرض التجريبي مطلوب';
+    if (!formData.githubUrl.trim()) errors.githubUrl = 'رابط GitHub مطلوب';
+    if (!formData.supportPeriod) errors.supportPeriod = 'مدة الدعم الفني مطلوبة';
+    if (!formData.updatesPeriod) errors.updatesPeriod = 'مدة التحديثات مطلوبة';
     if (formData.technologies.length === 0) errors.technologies = 'أضف تقنية واحدة على الأقل';
     if (formData.mainFeatures.length === 0) errors.mainFeatures = 'أضف ميزة واحدة على الأقل';
     if (formData.images.length === 0) errors.images = 'أضف صورة واحدة على الأقل';
+    if (!formData.videoFile) errors.videoFile = 'الفيديو التوضيحي مطلوب';
+    if (!formData.downloadFile) errors.downloadFile = 'ملف المشروع مطلوب';
     if (!formData.basic.price || formData.basic.price <= 0) errors.basicPrice = 'سعر باقة Basic مطلوب';
     if (!formData.pro.price || formData.pro.price <= 0) errors.proPrice = 'سعر باقة Pro مطلوب';
     if (!formData.enterprise.price || formData.enterprise.price <= 0) errors.enterprisePrice = 'سعر باقة Enterprise مطلوب';
@@ -121,6 +131,59 @@ export default function AddProject() {
       ...prev,
       images: prev.images.filter((_, i) => i !== index)
     }));
+  };
+
+  // Handle video upload
+  const handleVideoUpload = (e) => {
+    const file = e.target.files[0];
+    
+    if (file) {
+      if (file.size > 250 * 1024 * 1024) {
+        setValidationErrors({ ...validationErrors, videoFile: 'حجم الفيديو يجب ألا يزيد عن 250 ميجابايت' });
+        return;
+      }
+      
+      const allowedTypes = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'];
+      if (!allowedTypes.includes(file.type)) {
+        setValidationErrors({ ...validationErrors, videoFile: 'صيغة الفيديو غير مدعومة. الصيغ المدعومة: MP4, WebM, OGG, MOV' });
+        return;
+      }
+      
+      setFormData(prev => ({
+        ...prev,
+        videoFile: file
+      }));
+      setValidationErrors({ ...validationErrors, videoFile: '' });
+    }
+  };
+
+  const removeVideo = () => {
+    setFormData(prev => ({
+      ...prev,
+      videoFile: null
+    }));
+  };
+
+  // ✅ Handle download file upload
+  const handleDownloadUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 500 * 1024 * 1024) {
+        setValidationErrors({ ...validationErrors, downloadFile: 'حجم الملف يجب ألا يزيد عن 500 ميجابايت' });
+        return;
+      }
+      const ext = file.name.split('.').pop().toLowerCase();
+      if (!['zip', 'rar', '7z'].includes(ext)) {
+        setValidationErrors({ ...validationErrors, downloadFile: 'صيغة الملف غير مدعومة. الصيغ المدعومة: ZIP, RAR, 7Z' });
+        return;
+      }
+      setFormData(prev => ({ ...prev, downloadFile: file }));
+      setValidationErrors({ ...validationErrors, downloadFile: '' });
+    }
+  };
+
+  const removeDownload = () => {
+    setFormData(prev => ({ ...prev, downloadFile: null }));
   };
 
   // Tech Stack Functions
@@ -243,7 +306,6 @@ export default function AddProject() {
       submitData.append('demoUrl', formData.demoUrl || '');
       submitData.append('githubUrl', formData.githubUrl || '');
       submitData.append('license', formData.license);
-      submitData.append('videoUrl', formData.videoUrl || '');
       submitData.append('supportPeriod', formData.supportPeriod || '');
       submitData.append('updatesPeriod', formData.updatesPeriod || '');
       
@@ -277,6 +339,16 @@ export default function AddProject() {
         submitData.append('images', image);
       });
       
+      // ✅ الفيديو
+      if (formData.videoFile) {
+        submitData.append('video', formData.videoFile);
+      }
+      
+      // ✅ ملف المشروع
+      if (formData.downloadFile) {
+        submitData.append('downloadurl', formData.downloadFile);
+      }
+      
       // ✅ استخدم createProject من developerService
       const response = await createProject(submitData, (progressEvent) => {
         const percentCompleted = Math.round(
@@ -286,6 +358,9 @@ export default function AddProject() {
       });
       
       console.log('✅ Project created:', response);
+      
+      // ✅ تشغيل صوت الإشعار عند نجاح إنشاء المشروع
+      playSound();
       
       // ✅ تحديث بيانات المستخدم
       await fetchUser();
@@ -548,18 +623,47 @@ export default function AddProject() {
                           ))}
                         </select>
                       </div>
+                      {/* ✅ فيديو توضيحي - رفع */}
                       <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-2">
-                          رابط فيديو توضيحي
+                          فيديو توضيحي (اختياري - أقصى حجم 250 ميجا)
                         </label>
-                        <input
-                          type="url"
-                          name="videoUrl"
-                          value={formData.videoUrl}
-                          onChange={handleChange}
-                          className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:outline-none"
-                          placeholder="https://youtube.com/watch?v=..."
-                        />
+                        {formData.videoFile ? (
+                          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border-2 border-gray-200">
+                            <div className="flex items-center gap-2">
+                              <span className="text-2xl">🎬</span>
+                              <div>
+                                <p className="text-sm font-medium text-gray-700 truncate max-w-[200px]">
+                                  {formData.videoFile.name}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  {(formData.videoFile.size / (1024 * 1024)).toFixed(2)} ميجابايت
+                                </p>
+                              </div>
+                            </div>
+                            <button type="button" onClick={removeVideo} className="text-red-500 hover:text-red-700">✕</button>
+                          </div>
+                        ) : (
+                          <div className={`border-2 border-dashed rounded-xl p-4 text-center transition-all ${
+                            validationErrors.videoFile ? 'border-red-500' : 'border-gray-300 hover:border-indigo-500'
+                          }`}>
+                            <input
+                              type="file"
+                              accept="video/mp4,video/webm,video/ogg,video/quicktime"
+                              onChange={handleVideoUpload}
+                              className="hidden"
+                              id="videoUpload"
+                            />
+                            <label htmlFor="videoUpload" className="cursor-pointer">
+                              <div className="text-2xl mb-1">🎥</div>
+                              <p className="text-sm text-gray-500">اضغط لرفع فيديو</p>
+                              <p className="text-xs text-gray-400 mt-1">MP4, WebM, OGG, MOV - أقصى حجم 250 ميجا</p>
+                            </label>
+                          </div>
+                        )}
+                        {validationErrors.videoFile && (
+                          <p className="text-red-500 text-xs mt-1">{validationErrors.videoFile}</p>
+                        )}
                       </div>
                     </div>
                   </motion.div>
@@ -942,7 +1046,7 @@ export default function AddProject() {
                   </motion.div>
                 )}
 
-                {/* Step 4: Images & Publish */}
+                {/* Step 4: Images & Video & Download & Publish */}
                 {step === 4 && (
                   <motion.div
                     key="step4"
@@ -998,8 +1102,87 @@ export default function AddProject() {
                       </div>
                     </div>
 
-                    {/* Preview Card */}
-                   
+                    {/* ✅ رفع الفيديو */}
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        فيديو توضيحي (اختياري - أقصى حجم 250 ميجا)
+                      </label>
+                      {formData.videoFile ? (
+                        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border-2 border-gray-200">
+                          <div className="flex items-center gap-3">
+                            <span className="text-3xl">🎬</span>
+                            <div>
+                              <p className="font-medium text-gray-700">{formData.videoFile.name}</p>
+                              <p className="text-sm text-gray-500">
+                                {(formData.videoFile.size / (1024 * 1024)).toFixed(2)} ميجابايت
+                              </p>
+                            </div>
+                          </div>
+                          <button type="button" onClick={removeVideo} className="text-red-500 hover:text-red-700 text-xl">✕</button>
+                        </div>
+                      ) : (
+                        <div className={`border-2 border-dashed rounded-2xl p-6 text-center transition-all ${
+                          validationErrors.videoFile ? 'border-red-500' : 'border-gray-300 hover:border-indigo-500'
+                        }`}>
+                          <input
+                            type="file"
+                            accept="video/mp4,video/webm,video/ogg,video/quicktime"
+                            onChange={handleVideoUpload}
+                            className="hidden"
+                            id="videoUploadStep4"
+                          />
+                          <label htmlFor="videoUploadStep4" className="cursor-pointer">
+                            <div className="text-4xl mb-2">🎥</div>
+                            <p className="text-gray-500">اضغط لرفع فيديو توضيحي</p>
+                            <p className="text-xs text-gray-400 mt-1">MP4, WebM, OGG, MOV - أقصى حجم 250 ميجا</p>
+                          </label>
+                        </div>
+                      )}
+                      {validationErrors.videoFile && (
+                        <p className="text-red-500 text-xs mt-1">{validationErrors.videoFile}</p>
+                      )}
+                    </div>
+
+                    {/* ✅ رفع ملف المشروع */}
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        ملف المشروع <span className="text-red-500">*</span>
+                      </label>
+                      {formData.downloadFile ? (
+                        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border-2 border-gray-200">
+                          <div className="flex items-center gap-3">
+                            <span className="text-3xl">📦</span>
+                            <div>
+                              <p className="font-medium text-gray-700">{formData.downloadFile.name}</p>
+                              <p className="text-sm text-gray-500">
+                                {(formData.downloadFile.size / (1024 * 1024)).toFixed(2)} ميجابايت
+                              </p>
+                            </div>
+                          </div>
+                          <button type="button" onClick={removeDownload} className="text-red-500 hover:text-red-700 text-xl">✕</button>
+                        </div>
+                      ) : (
+                        <div className={`border-2 border-dashed rounded-2xl p-6 text-center transition-all ${
+                          validationErrors.downloadFile ? 'border-red-500' : 'border-gray-300 hover:border-indigo-500'
+                        }`}>
+                          <input
+                            type="file"
+                            accept=".zip,.rar,.7z"
+                            onChange={handleDownloadUpload}
+                            className="hidden"
+                            id="downloadUpload"
+                          />
+                          <label htmlFor="downloadUpload" className="cursor-pointer">
+                            <div className="text-4xl mb-2">📦</div>
+                            <p className="text-gray-500">اضغط لرفع ملف المشروع</p>
+                            <p className="text-xs text-gray-400 mt-1">ZIP, RAR, 7Z - أقصى حجم 500 ميجا</p>
+                          </label>
+                        </div>
+                      )}
+                      {validationErrors.downloadFile && (
+                        <p className="text-red-500 text-xs mt-1">{validationErrors.downloadFile}</p>
+                      )}
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>

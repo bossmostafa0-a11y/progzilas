@@ -204,7 +204,7 @@ export default function Marketplace() {
               transition={{ duration: 0.5, delay: 0.2 }}
               className="text-sm text-white/90 max-w-2xl mx-auto"
             >
-              اشتري مشاريع برمجية جاهزة ووفر وقت التطوير، أو اربح من خلال بيع نسخ متعددة من مشروعك
+             اشتري مشاريع برمجية جاهزة ووفر وقت التطوير، أو اربح من خلال بيع نسخ متعددة من مشروعك
             </motion.p>
           </div>
         </div>
@@ -503,7 +503,7 @@ export default function Marketplace() {
                     </div>
 
                     <Link
-                      to={`/marketplace/${project.id}`}
+                      to={`/marketplaceitem/${project.id}`}
                       className="block w-full text-center py-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:shadow-lg transition-all duration-300 text-xs font-medium"
                     >
                       تفاصيل المشروع
@@ -553,7 +553,7 @@ export default function Marketplace() {
                         <span className="text-[10px] text-gray-400">🏆 {project.salesCount} بيع</span>
                       </div>
                     </div>
-                    <Link to={`/marketplace/${project.id}`} className="px-4 py-1.5 bg-indigo-600 text-white text-sm rounded-xl hover:bg-indigo-700 transition whitespace-nowrap shrink-0">
+                    <Link to={`/marketplaceitem/${project.id}`} className="px-4 py-1.5 bg-indigo-600 text-white text-sm rounded-xl hover:bg-indigo-700 transition whitespace-nowrap shrink-0">
                       تفاصيل
                     </Link>
                   </div>

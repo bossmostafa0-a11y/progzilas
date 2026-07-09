@@ -182,7 +182,7 @@ export const deleteStoreProject = async (projectId) => {
 // جلب أرباح المبرمج
 export const getDeveloperEarnings = async () => {
   try {
-    const response = await api.get('/developer/earnings');
+    const response = await api.get('/dev/getDeveloperEarnings');
     return response.data;
   } catch (error) {
     throw handleApiError(error);
@@ -229,5 +229,35 @@ export const getDevelopers = async () => {
 };
 export const getMarketplaceProjects = async () => {
   const response = await api.get('/client/getstore');
+  return response.data;
+};
+
+
+export const updateAccountSettings = async (data) => {
+  const response = await api.put('/dev/updateAccountSettings', data);
+  return response.data;
+};
+
+export const updateNotificationSettings = async (data) => {
+  const response = await api.put('/dev/updateNotificationSettings', data);
+  return response.data;
+};
+
+export const changePassword = async (data) => {
+  const response = await api.put('/auth/changePassword', data);
+  return response.data;
+};
+
+export const deleteAccount = async () => {
+  const response = await api.delete('/dev/deleteAccount');
+  return response.data;
+};
+
+export const getDeveloperDashboard = async () => {
+  const response = await api.get('/dev/getDeveloperDashboard');
+  return response.data;
+};
+export const requestWithdraw = async (data) => {
+  const response = await api.post('/dev/requestwithdraw', data);
   return response.data;
 };
