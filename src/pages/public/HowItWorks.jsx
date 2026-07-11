@@ -32,7 +32,7 @@ export default function HowItWorks() {
       description: 'أنشئ حسابك كمبرمج أو عميل في دقيقة واحدة فقط',
       icon: '📝',
       color: 'from-blue-500 to-cyan-500',
-      details: 'اختر نوع حسابك (مبرمج أو عميل)، املأ بياناتك الأساسية، وابدأ رحلتك مع DevHire.'
+      details: 'اختر نوع حسابك (مبرمج أو عميل)، املأ بياناتك الأساسية، وابدأ رحلتك مع Progzila.'
     },
     {
       number: '02',
@@ -88,7 +88,7 @@ export default function HowItWorks() {
             className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center"
           >
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4">
-              كيف يعمل <span className="text-yellow-400">DevHire</span>؟
+              كيف يعمل <span className="text-yellow-400">Progzila</span>؟
             </h1>
             <p className="text-xl text-white/90 max-w-2xl mx-auto">
               منصة متكاملة تجمع بين المبرمجين والعملاء في مكان واحد
@@ -110,7 +110,7 @@ export default function HowItWorks() {
                 ثلاث خطوات بسيطة <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">للبدء</span>
               </motion.h2>
               <motion.p variants={fadeInUp} className="text-xl text-gray-600">
-                ابدأ رحلتك مع DevHire في 3 خطوات فقط
+                ابدأ رحلتك مع Progzila في 3 خطوات فقط
               </motion.p>
             </motion.div>
 
@@ -161,7 +161,7 @@ export default function HowItWorks() {
               <h2 className="text-3xl md:text-4xl font-bold mb-4">
                 <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">للمبرمجين</span>
               </h2>
-              <p className="text-xl text-gray-600">كيف تستفيد من DevHire كمبرمج؟</p>
+              <p className="text-xl text-gray-600">كيف تستفيد من Progzila كمبرمج؟</p>
             </motion.div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -209,7 +209,7 @@ export default function HowItWorks() {
               <h2 className="text-3xl md:text-4xl font-bold mb-4">
                 <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">لأصحاب المشاريع</span>
               </h2>
-              <p className="text-xl text-gray-600">كيف تستفيد من DevHire كعميل؟</p>
+              <p className="text-xl text-gray-600">كيف تستفيد من Progzila كعميل؟</p>
             </motion.div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -255,9 +255,9 @@ export default function HowItWorks() {
               className="text-center mb-12"
             >
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-                مميزات <span className="text-yellow-400">DevHire</span>
+                مميزات <span className="text-yellow-400">Progzila</span>
               </h2>
-              <p className="text-xl text-white/90">لماذا تختار DevHire؟</p>
+              <p className="text-xl text-white/90">لماذا تختار Progzila؟</p>
             </motion.div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -292,7 +292,7 @@ export default function HowItWorks() {
                 جاهز تبدأ رحلتك؟
               </h3>
               <p className="text-lg opacity-90 mb-8">
-                انضم إلى آلاف المبرمجين والعملاء الذين يثقون في DevHire
+                انضم إلى آلاف المبرمجين والعملاء الذين يثقون في Progzila
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link to="/login" className="bg-white text-indigo-600 hover:bg-gray-100 font-bold py-3 px-8 rounded-xl transition-all duration-300 hover:scale-105 inline-block">

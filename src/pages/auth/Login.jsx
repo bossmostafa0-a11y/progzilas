@@ -7,7 +7,7 @@ import Footer from '../../components/layout/Footer';
 
 // ✅ المصفوفات الثابتة خارج الكامبوننت
 const ELEGANT_CODE = [
-  'DevHire', '✨', '</>', '{}', '()', '=>', 'const', 'let',
+  'Progzila', '✨', '</>', '{}', '()', '=>', 'const', 'let',
   'مبرمج', 'ابتكار', 'تقنية', 'ريادة', 'نجاح', 'تطوير',
   'React', 'Node', 'AI', 'Cloud', 'Future', 'Code',
   '🌟', '🚀', '💡', '⚡', '🎯', '🏆'
@@ -326,7 +326,7 @@ export default function Login() {
                   ✨
                 </motion.div>
                 <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-                  {isLogin ? 'مرحباً بعودتك' : 'انضم إلى DevHire'}
+                  {isLogin ? 'مرحباً بعودتك' : 'انضم إلى Progzila'}
                 </h1>
                 <p className="text-white/50">
                   {isLogin 

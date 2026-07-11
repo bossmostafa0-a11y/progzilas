@@ -207,7 +207,7 @@ export default function Pricing() {
               خطط <span className="text-yellow-400">تناسب احتياجاتك</span>
             </h1>
             <p className="text-xl text-white/90 max-w-2xl mx-auto">
-              اختر الخطة المناسبة لك وابدأ رحلتك مع DevHire
+              اختر الخطة المناسبة لك وابدأ رحلتك مع Progzila
             </p>
           </motion.div>
         </div>

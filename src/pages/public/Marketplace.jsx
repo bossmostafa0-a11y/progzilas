@@ -1,11 +1,14 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import {  useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '../../context/AuthContext';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import { getMarketplaceProjects } from '../../services/develper.service.js';
 
 export default function Marketplace() {
+  const { user } = useAuth(); // ✅ جلب المستخدم
+  const navigate = useNavigate(); // ✅ للتنقل
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -15,6 +18,17 @@ export default function Marketplace() {
   const [viewMode, setViewMode] = useState('grid');
 
   const containerRef = useRef(null);
+
+  // ✅ دالة التعامل مع الضغط على تفاصيل المشروع
+  const handleProjectClick = (projectId) => {
+    if (!user) {
+      // ✅ لو مش مسجل، اتنقل على صفحة تسجيل الدخول
+      navigate('/login', { state: { from: `/marketplaceitem/${projectId}` } });
+    } else {
+      // ✅ لو مسجل، روح على صفحة المشروع
+      navigate(`/marketplaceitem/${projectId}`);
+    }
+  };
 
   // ✅ جلب البيانات من الباك إند
   useEffect(() => {
@@ -450,6 +464,7 @@ export default function Marketplace() {
                   variants={scrollRevealVariants}
                   whileHover={{ y: -8 }}
                   className="group bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer"
+                  onClick={() => handleProjectClick(project.id)} // ✅ الضغط على الكارد كله
                 >
                   <div className="relative h-40 overflow-hidden">
                     <motion.img src={project.image} alt={project.name} className="w-full h-full object-cover" whileHover={{ scale: 1.1 }} transition={{ duration: 0.5 }} onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=600'; }} />
@@ -502,12 +517,16 @@ export default function Marketplace() {
                       <span>🏆 {project.salesCount} عملية بيع</span>
                     </div>
 
-                    <Link
-                      to={`/marketplaceitem/${project.id}`}
+                    {/* ✅ زرار تفاصيل المشروع */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation(); // منع تضارب الـ onClick
+                        handleProjectClick(project.id);
+                      }}
                       className="block w-full text-center py-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:shadow-lg transition-all duration-300 text-xs font-medium"
                     >
                       تفاصيل المشروع
-                    </Link>
+                    </button>
                   </div>
                 </motion.div>
               ))}
@@ -527,6 +546,7 @@ export default function Marketplace() {
                   variants={scrollRevealVariants}
                   whileHover={{ x: 10, scale: 1.01 }}
                   className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-4 cursor-pointer"
+                  onClick={() => handleProjectClick(project.id)} // ✅ الضغط على الكارد كله
                 >
                   <div className="flex gap-4">
                     <img src={project.image} alt={project.name} className="w-24 h-24 rounded-xl object-cover shrink-0" onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=600'; }} />
@@ -553,9 +573,15 @@ export default function Marketplace() {
                         <span className="text-[10px] text-gray-400">🏆 {project.salesCount} بيع</span>
                       </div>
                     </div>
-                    <Link to={`/marketplaceitem/${project.id}`} className="px-4 py-1.5 bg-indigo-600 text-white text-sm rounded-xl hover:bg-indigo-700 transition whitespace-nowrap shrink-0">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation(); // منع تضارب الـ onClick
+                        handleProjectClick(project.id);
+                      }}
+                      className="px-4 py-1.5 bg-indigo-600 text-white text-sm rounded-xl hover:bg-indigo-700 transition whitespace-nowrap shrink-0"
+                    >
                       تفاصيل
-                    </Link>
+                    </button>
                   </div>
                 </motion.div>
               ))}

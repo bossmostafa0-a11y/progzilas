@@ -95,7 +95,7 @@ export default function TermsPrivacy() {
               {/* Intro */}
               <div className="p-8 bg-gradient-to-r from-indigo-50 to-purple-50 border-b border-gray-200">
                 <p className="text-gray-700 leading-relaxed">
-                  في DevHire، نحن نأخذ خصوصيتك على محمل الجد. تصف هذه السياسة كيفية جمع واستخدام وحماية معلوماتك الشخصية.
+                  في Progzila، نحن نأخذ خصوصيتك على محمل الجد. تصف هذه السياسة كيفية جمع واستخدام وحماية معلوماتك الشخصية.
                 </p>
                 <p className="text-sm text-gray-400 mt-4">
                   آخر تحديث: {privacyContent.lastUpdated}

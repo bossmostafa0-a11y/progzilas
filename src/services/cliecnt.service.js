@@ -69,22 +69,14 @@ export const rejectProposal = async (proposalId) => {
 
 // جلب مشتريات العميل
 export const getClientPurchases = async () => {
-  try {
-    const response = await api.get('/client/purchases');
-    return response.data;
-  } catch (error) {
-    throw handleApiError(error);
-  }
+  const response = await api.get('/client/getmyprojectbuyed');
+  return response.data;
 };
 
 // شراء مشروع من المتجر
-export const purchaseProject = async (projectId, packageId) => {
-  try {
-    const response = await api.post('/client/purchase', { projectId, packageId });
-    return response.data;
-  } catch (error) {
-    throw handleApiError(error);
-  }
+export const purchaseProject = async (data) => {
+  const response = await api.post('/client/buyproject', data);
+  return response.data;
 };
 //جلب بيانات الداش بورد للعميل
 export const getClientDashboard = async () => {
@@ -116,7 +108,15 @@ export const deleteAccount = async () => {
   const response = await api.delete('/client/deleteAccount');
   return response.data;
 };
+//جلب مشروع معين في التجر
 export const getMarketplaceProjectById = async (id) => {
   const response = await api.get(`/client/getdetilsproject/${id}`);
   return response.data;
 };
+//جلب المبرمجين و المشاريع 
+export const getHomeDetails = async () => {
+  const response = await api.get('/client/gethomedetails');
+  return response.data;
+};
+
+
