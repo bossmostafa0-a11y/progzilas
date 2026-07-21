@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { getClientProposals, acceptProposal, rejectProposal } from '../../services/cliecnt.service.js';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
@@ -41,6 +42,7 @@ const getStatusBadge = (status) => {
 };
 
 export default function Proposals() {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [proposals, setProposals] = useState([]);
@@ -152,6 +154,13 @@ export default function Proposals() {
     });
   };
 
+  // ✅ الانتقال لصفحة بروفيل المبرمج
+  const handleDeveloperProfile = (developerId) => {
+    if (developerId) {
+      navigate(`/dev/${developerId}`);
+    }
+  };
+
   // ✅ Early returns بعد كل الـ Hooks
   if (loading) {
     return (
@@ -241,21 +250,34 @@ export default function Proposals() {
                       <div className="p-6">
                         <div className="flex flex-wrap justify-between items-start gap-4">
                           <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <img 
-                                src={developer.profileImage || 'https://randomuser.me/api/portraits/men/32.jpg'} 
-                                alt={developer.username || 'مبرمج'} 
-                                className="w-12 h-12 rounded-full object-cover" 
-                              />
+                            <div className="flex items-center gap-3 mb-2">W
+                              {/* ✅ صورة البروفيل - قابلة للنقر */}
+                              <button
+                                onClick={() => handleDeveloperProfile(developer._id)}
+                                className="focus:outline-none hover:ring-2 hover:ring-indigo-400 rounded-full transition-all"
+                                title="عرض بروفيل المبرمج"
+                              >
+                                <img 
+                                  src={developer.profileImage || 'https://randomuser.me/api/portraits/men/32.jpg'} 
+                                  alt={developer.username || 'مبرمج'} 
+                                  className="w-12 h-12 rounded-full object-cover hover:scale-105 transition-transform" 
+                                />
+                              </button>
                               <div>
                                 <div className="flex items-center gap-2">
-                                  <h3 className="text-lg font-bold text-gray-800">{developer.username || 'مبرمج'}</h3>
+                                  {/* ✅ اسم المبرمج - قابل للنقر */}
+                                  <button
+                                    onClick={() => handleDeveloperProfile(developer._id)}
+                                    className="text-lg font-bold text-gray-800 hover:text-indigo-600 hover:underline transition-colors focus:outline-none"
+                                  >
+                                    {developer.username || 'مبرمج'}
+                                  </button>
                                   <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusBadge.color}`}>
                                     {statusBadge.label}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-2 text-sm">
-                                  <span className="text-yellow-500">★ {developer.rating || proposal.rating || 4.5}</span>
+                                  <span className="text-yellow-500">★ {developer.rating || proposal.rating || 0}</span>
                                   <span className="text-gray-400">|</span>
                                   <span className="text-gray-500">{developer.completedProjects || proposal.completedProjects || 0} مشروع مكتمل</span>
                                 </div>
@@ -366,13 +388,26 @@ export default function Proposals() {
               
               <div className="space-y-4">
                 <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                  <img 
-                    src={selectedProposal.developer?.profileImage || 'https://randomuser.me/api/portraits/men/32.jpg'} 
-                    alt={selectedProposal.developer?.username || 'مبرمج'} 
-                    className="w-12 h-12 rounded-full object-cover" 
-                  />
+                  {/* ✅ صورة البروفيل في المودال - قابلة للنقر */}
+                  <button
+                    onClick={() => handleDeveloperProfile(selectedProposal.developer?._id)}
+                    className="focus:outline-none hover:ring-2 hover:ring-indigo-400 rounded-full transition-all"
+                    title="عرض بروفيل المبرمج"
+                  >
+                    <img 
+                      src={selectedProposal.developer?.profileImage || 'https://randomuser.me/api/portraits/men/32.jpg'} 
+                      alt={selectedProposal.developer?.username || 'مبرمج'} 
+                      className="w-12 h-12 rounded-full object-cover hover:scale-105 transition-transform" 
+                    />
+                  </button>
                   <div>
-                    <div className="font-semibold">{selectedProposal.developer?.username || 'مبرمج'}</div>
+                    {/* ✅ اسم المبرمج في المودال - قابل للنقر */}
+                    <button
+                      onClick={() => handleDeveloperProfile(selectedProposal.developer?._id)}
+                      className="font-semibold hover:text-indigo-600 hover:underline transition-colors focus:outline-none"
+                    >
+                      {selectedProposal.developer?.username || 'مبرمج'}
+                    </button>
                     <div className="text-sm text-gray-500">
                       ⭐ {selectedProposal.developer?.rating || selectedProposal.rating || 4.5} | {selectedProposal.developer?.completedProjects || selectedProposal.completedProjects || 0} مشروع
                     </div>

@@ -77,10 +77,10 @@ export default function ClientSidebar({ activePage }) {
 
         {/* Footer Menu */}
         <div className="mt-8 pt-6 border-t border-gray-200">
-          <Link to="/">
+          <Link to="/ReportProblem">
             <div className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-100 transition-all duration-300">
-              <span className="text-xl">🏠</span>
-              <span className="font-medium">الرئيسية</span>
+              <span className="text-xl">⚠️</span>
+              <span className="font-medium">إبلاغ عن مشكلة </span>
             </div>
           </Link>
           <button

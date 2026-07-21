@@ -22,6 +22,7 @@ export default function NewProject() {
     skills: [],
     time: '',
     budget: '',
+    currency: 'USD',
     deadline: ''
   });
 
@@ -30,11 +31,32 @@ export default function NewProject() {
   const categories = [
     { value: 'web', label: 'تطوير ويب', icon: '🌐' },
     { value: 'mobile', label: 'تطبيق موبايل', icon: '📱' },
-    { value: 'desktop', label: 'تطبيق كمبيوتر', icon: '💻' }, // ✅ جديد
-    { value: 'cross-platform', label: 'كمبيوتر وموبيل معاً', icon: '🔄' }, // ✅ جديد
+    { value: 'desktop', label: 'تطبيق كمبيوتر', icon: '💻' },
+    { value: 'cross-platform', label: 'كمبيوتر وموبيل معاً', icon: '🔄' },
     { value: 'design', label: 'تصميم واجهات', icon: '🎨' },
     { value: 'ai', label: 'الذكاء الاصطناعي', icon: '🧠' },
     { value: 'cloud', label: 'الحوسبة السحابية', icon: '☁️' }
+  ];
+
+  // ✅ العملات المتاحة - دولار أمريكي أو جنيه مصري فقط
+  const currencies = [
+    { value: 'USD', label: '🇺🇸 دولار أمريكي ($)' },
+    { value: 'EGP', label: '🇪🇬 جنيه مصري (E£)' },
+  ];
+
+  // ✅ اقتراحات المهارات
+  const skillSuggestions = [
+    'JavaScript', 'TypeScript', 'React', 'Next.js', 'Vue.js', 'Angular',
+    'Node.js', 'Express', 'Python', 'Django', 'Flask', 'Java', 'Spring Boot',
+    'C#', '.NET', 'PHP', 'Laravel', 'Ruby on Rails', 'Go', 'Rust',
+    'HTML', 'CSS', 'Tailwind CSS', 'Bootstrap', 'Sass',
+    'MongoDB', 'PostgreSQL', 'MySQL', 'SQL Server', 'Firebase', 'Redis',
+    'Docker', 'Kubernetes', 'AWS', 'Azure', 'GCP', 'Linux',
+    'Flutter', 'React Native', 'Swift', 'Kotlin', 'Android', 'iOS',
+    'Figma', 'Adobe XD', 'Photoshop', 'Illustrator', 'UI/UX',
+    'Machine Learning', 'Deep Learning', 'NLP', 'Computer Vision', 'PyTorch', 'TensorFlow',
+    'GraphQL', 'REST API', 'WebSocket', 'Socket.io',
+    'Git', 'GitHub', 'CI/CD', 'Jenkins', 'Agile', 'Scrum'
   ];
 
   const addSkill = () => {
@@ -44,6 +66,7 @@ export default function NewProject() {
         skills: [...formData.skills, tempSkill.trim()]
       });
       setTempSkill('');
+      setValidationErrors({ ...validationErrors, skills: '' });
     }
   };
 
@@ -63,14 +86,18 @@ export default function NewProject() {
     setValidationErrors({ ...validationErrors, [name]: '' });
   };
 
-  // ✅ التحقق من صحة النموذج
+  // ✅ التحقق من صحة النموذج - كل الحقول مطلوبة
   const validateForm = () => {
     const errors = {};
     
     if (!formData.name.trim()) errors.name = 'اسم المشروع مطلوب';
     if (!formData.type) errors.type = 'التصنيف مطلوب';
     if (!formData.description.trim()) errors.description = 'وصف المشروع مطلوب';
+    if (!formData.budget || parseFloat(formData.budget) <= 0) errors.budget = 'الميزانية مطلوبة وقيمة صحيحة';
+    if (!formData.time.trim()) errors.time = 'المدة المتوقعة مطلوبة';
+    if (!formData.currency) errors.currency = 'العملة مطلوبة';
     if (!formData.deadline) errors.deadline = 'آخر ميعاد للتقديم مطلوب';
+    if (formData.skills.length === 0) errors.skills = 'المهارات المطلوبة مطلوبة (اختر مهارة واحدة على الأقل)';
     
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
@@ -88,7 +115,6 @@ export default function NewProject() {
     setLoading(true);
     
     try {
-      // ✅ تجهيز البيانات للإرسال
       const submitData = {
         name: formData.name,
         desctption: formData.description,
@@ -96,16 +122,15 @@ export default function NewProject() {
         skills: formData.skills || [],
         time: formData.time || '',
         budget: formData.budget || '',
+        currency: formData.currency || 'USD',
         deadline: formData.deadline || ''
       };
       
       console.log('📤 Sending project data:', submitData);
       
-      // ✅ استدعاء الدالة من clientService
       const response = await createClientProject(submitData);
       console.log('📥 Project created:', response);
       
-      // ✅ تحديث بيانات المستخدم
       await fetchUser();
       
       alert('✅ تم نشر المشروع بنجاح');
@@ -120,18 +145,15 @@ export default function NewProject() {
   };
 
   const nextStep = () => {
-    // ✅ تحقق من الخطوة الأولى
+    // ✅ تحقق من الخطوة الأولى - كل الحقول مطلوبة
     if (step === 1) {
-      if (!formData.name.trim()) {
-        setValidationErrors({ name: 'اسم المشروع مطلوب' });
-        return;
-      }
-      if (!formData.type) {
-        setValidationErrors({ type: 'التصنيف مطلوب' });
-        return;
-      }
-      if (!formData.description.trim()) {
-        setValidationErrors({ description: 'وصف المشروع مطلوب' });
+      const errors = {};
+      if (!formData.name.trim()) errors.name = 'اسم المشروع مطلوب';
+      if (!formData.type) errors.type = 'التصنيف مطلوب';
+      if (!formData.description.trim()) errors.description = 'وصف المشروع مطلوب';
+      
+      if (Object.keys(errors).length > 0) {
+        setValidationErrors(errors);
         return;
       }
     }
@@ -159,6 +181,7 @@ export default function NewProject() {
                 مشروع جديد ➕
               </h1>
               <p className="text-gray-500 mt-1">انشر مشروعك الجديد واحصل على عروض من أفضل المبرمجين</p>
+              <p className="text-xs text-red-500 mt-1">* جميع الحقول مطلوبة</p>
             </div>
 
             <div className="bg-white rounded-3xl shadow-xl p-6 md:p-8">
@@ -239,57 +262,89 @@ export default function NewProject() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-2">
-                          الميزانية ($)
+                          الميزانية <span className="text-red-500">*</span>
                         </label>
                         <input
                           type="number"
                           name="budget"
                           value={formData.budget}
                           onChange={handleChange}
-                          className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:outline-none"
+                          className={`w-full px-4 py-3 rounded-xl border-2 transition-all ${
+                            validationErrors.budget ? 'border-red-500' : 'border-gray-200 focus:border-indigo-500'
+                          } focus:outline-none`}
                           placeholder="أدخل الميزانية المحددة"
                           min="0"
                           step="100"
                         />
+                        {validationErrors.budget && (
+                          <p className="text-red-500 text-xs mt-1">{validationErrors.budget}</p>
+                        )}
                       </div>
                       <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-2">
-                          المدة المتوقعة (بالأيام)
+                          العملة <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                          name="currency"
+                          value={formData.currency}
+                          onChange={handleChange}
+                          className={`w-full px-4 py-3 rounded-xl border-2 transition-all ${
+                            validationErrors.currency ? 'border-red-500' : 'border-gray-200 focus:border-indigo-500'
+                          } focus:outline-none bg-white`}
+                        >
+                          {currencies.map(curr => (
+                            <option key={curr.value} value={curr.value}>{curr.label}</option>
+                          ))}
+                        </select>
+                        {validationErrors.currency && (
+                          <p className="text-red-500 text-xs mt-1">{validationErrors.currency}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          المدة المتوقعة (بالأيام) <span className="text-red-500">*</span>
                         </label>
                         <input
                           type="text"
                           name="time"
                           value={formData.time}
                           onChange={handleChange}
-                          className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:outline-none"
+                          className={`w-full px-4 py-3 rounded-xl border-2 transition-all ${
+                            validationErrors.time ? 'border-red-500' : 'border-gray-200 focus:border-indigo-500'
+                          } focus:outline-none`}
                           placeholder="مثال: 30 يوم"
                         />
+                        {validationErrors.time && (
+                          <p className="text-red-500 text-xs mt-1">{validationErrors.time}</p>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          آخر ميعاد للتقديم <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="date"
+                          name="deadline"
+                          value={formData.deadline}
+                          onChange={handleChange}
+                          className={`w-full px-4 py-3 rounded-xl border-2 transition-all ${
+                            validationErrors.deadline ? 'border-red-500' : 'border-gray-200 focus:border-indigo-500'
+                          } focus:outline-none`}
+                          min={new Date().toISOString().split('T')[0]}
+                        />
+                        {validationErrors.deadline && (
+                          <p className="text-red-500 text-xs mt-1">{validationErrors.deadline}</p>
+                        )}
+                        <p className="text-xs text-gray-400 mt-1">📅 اختر آخر تاريخ لتلقي العروض</p>
                       </div>
                     </div>
 
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        آخر ميعاد للتقديم <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="date"
-                        name="deadline"
-                        value={formData.deadline}
-                        onChange={handleChange}
-                        className={`w-full px-4 py-3 rounded-xl border-2 transition-all ${
-                          validationErrors.deadline ? 'border-red-500' : 'border-gray-200 focus:border-indigo-500'
-                        } focus:outline-none`}
-                        min={new Date().toISOString().split('T')[0]}
-                      />
-                      {validationErrors.deadline && (
-                        <p className="text-red-500 text-xs mt-1">{validationErrors.deadline}</p>
-                      )}
-                      <p className="text-xs text-gray-400 mt-1">📅 اختر آخر تاريخ لتلقي العروض</p>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        المهارات المطلوبة
+                        المهارات المطلوبة <span className="text-red-500">*</span>
                       </label>
                       <div className="flex gap-2 mb-3">
                         <input
@@ -297,9 +352,17 @@ export default function NewProject() {
                           value={tempSkill}
                           onChange={(e) => setTempSkill(e.target.value)}
                           onKeyPress={(e) => e.key === 'Enter' && addSkill()}
-                          className="flex-1 px-4 py-2 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:outline-none"
-                          placeholder="اكتب المهارة ثم اضغط Enter"
+                          className={`flex-1 px-4 py-2 rounded-xl border-2 transition-all ${
+                            validationErrors.skills ? 'border-red-500' : 'border-gray-200 focus:border-indigo-500'
+                          } focus:outline-none`}
+                          placeholder="اكتب المهارة ثم اضغط Enter أو اختر من الاقتراحات"
+                          list="skill-suggestions"
                         />
+                        <datalist id="skill-suggestions">
+                          {skillSuggestions.map((skill, index) => (
+                            <option key={index} value={skill} />
+                          ))}
+                        </datalist>
                         <button
                           type="button"
                           onClick={addSkill}
@@ -308,6 +371,32 @@ export default function NewProject() {
                           إضافة
                         </button>
                       </div>
+                      
+                      {/* ✅ اقتراحات المهارات */}
+                      <div className="mb-3">
+                        <p className="text-xs text-gray-500 mb-2">💡 اقتراحات المهارات الشائعة:</p>
+                        <div className="flex flex-wrap gap-2">
+                          {skillSuggestions.slice(0, 12).map((skill, index) => (
+                            <button
+                              key={index}
+                              type="button"
+                              onClick={() => {
+                                if (!formData.skills.includes(skill)) {
+                                  setFormData({
+                                    ...formData,
+                                    skills: [...formData.skills, skill]
+                                  });
+                                  setValidationErrors({ ...validationErrors, skills: '' });
+                                }
+                              }}
+                              className="px-2 py-1 text-xs bg-gray-100 hover:bg-indigo-100 text-gray-600 hover:text-indigo-700 rounded-full transition-colors border border-gray-200 hover:border-indigo-300"
+                            >
+                              {skill}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
                       <div className="flex flex-wrap gap-2">
                         {formData.skills.map((skill, idx) => (
                           <span key={idx} className="inline-flex items-center gap-1 px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm">
@@ -316,6 +405,9 @@ export default function NewProject() {
                           </span>
                         ))}
                       </div>
+                      {validationErrors.skills && (
+                        <p className="text-red-500 text-xs mt-1">{validationErrors.skills}</p>
+                      )}
                     </div>
                   </div>
                 )}

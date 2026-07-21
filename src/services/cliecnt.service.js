@@ -120,3 +120,31 @@ export const getHomeDetails = async () => {
 };
 
 
+export const submitReview = async (data) => {
+  const response = await api.post('/client/submitProjectReview', data);
+  return response.data;
+};
+//جلب تقيمات مشروع معبن
+export const getProjectReviews = async (projectId) => {
+  const response = await api.get(`/client/getProjectReviews/${projectId}`);
+  return response.data;
+};
+//انشاء دعم فني
+export const createSupportChat = async (projectId) => {
+  const response = await api.post('/client/createsupport', { storeproject: projectId });
+  return response.data;
+};
+
+// ✅ إرسال بلاغ عن مشكلة مع الصور
+export const submitReport = async (formData) => {
+  try {
+    const response = await api.post('/client/addreport', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error);
+  }
+};

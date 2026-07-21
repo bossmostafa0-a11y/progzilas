@@ -224,7 +224,6 @@ export default function DevSettings() {
 
   const profileVisibility = [
     { value: 'public', label: 'عام - يظهر للجميع' },
-    { value: 'private', label: 'خاص - يظهر فقط للمسجلين' },
     { value: 'hidden', label: 'مخفي - لا يظهر في البحث' }
   ];
 

@@ -261,3 +261,60 @@ export const requestWithdraw = async (data) => {
   const response = await api.post('/dev/requestwithdraw', data);
   return response.data;
 };
+
+//اضافة عمال سابقة
+export const addpreviousprojects = async (projectData, onUploadProgress) => {
+  try {
+    const response = await api.post('/dev/addpreviousprojects', projectData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      onUploadProgress, // ✅ عشان تتبع التحميل
+    });
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error);
+  }
+};
+
+//جلب الاعمال السابقة
+export const getPreviousProjects = async (userId) => {
+  try {
+    // ✅ التأكد من وجود userId
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
+    
+    console.log('📤 Fetching projects for user:', userId);
+    
+    const response = await api.post('/dev/getpreviousprojects', {
+      id: userId
+    });
+    return response.data;
+  } catch (error) {
+    console.error('❌ Error in getPreviousProjects:', error);
+    throw handleApiError(error);
+  }
+};
+
+
+//حذف عمل سابق لدي المبرمج
+export const deletePreviousProject = async (projectId) => {
+  try {
+    if (!projectId) {
+      throw new Error('Project ID is required');
+    }
+    
+    console.log('📤 Deleting project with ID:', projectId);
+    
+    // ✅ DELETE request مع إرسال projectId في الـ body
+    const response = await api.delete('/dev/deletepreviousprojects', {
+      data: { projectId: projectId }  // ✅ إرسال projectId في الـ body
+    });
+    
+    return response.data;
+  } catch (error) {
+    console.error('❌ Error in deletePreviousProject:', error);
+    throw handleApiError(error);
+  }
+};

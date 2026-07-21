@@ -1,17 +1,33 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import { getDeveloperProfile } from '../../services/develper.service.js';
+import { FiX, FiExternalLink, FiGithub } from 'react-icons/fi';
 
 export default function DevProfile() {
   const { id, username } = useParams();
   const [developer, setDeveloper] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('about');
+  const [selectedProject, setSelectedProject] = useState(null);
+  const [showProjectModal, setShowProjectModal] = useState(false);
 
   const devIdentifier = id || username;
+
+  // ✅ منع التمرير عند فتح البوب
+  useEffect(() => {
+    if (showProjectModal) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'auto';
+    }
+    
+    return () => {
+      document.body.style.overflow = 'auto';
+    };
+  }, [showProjectModal]);
 
   useEffect(() => {
     const loadDeveloperProfile = async () => {
@@ -45,7 +61,6 @@ export default function DevProfile() {
           avatar: userData.profileImage || 'https://randomuser.me/api/portraits/men/32.jpg',
           coverImage: userData.coverImage || 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=1200',
           rating: userData.rating || 0,
-          // ✅ استخدام القيم من data مباشرة
           totalProjects: data?.data?.countallproject || 0,
           completedProjects: data?.data?.completproject || 0,
           ongoingProjects: data?.data?.crunetprojects || 0,
@@ -57,13 +72,21 @@ export default function DevProfile() {
           memberSince: userData.createdAt || new Date().toISOString(),
           techStack: userData.techStack || [],
           skills: userData.skills || [],
-          portfolio: (userData.portfolio || []).map(item => ({
+          portfolio: (data?.data?.previousprojectss || []).map(item => ({
             id: item._id || item.id,
-            title: item.projectName || item.title || '',
-            description: item.description || '',
-            image: item.images?.[0] || item.image || 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=400',
-            link: `/marketplace/${item._id || item.id}`,
-            tech: item.technologies || []
+            title: item.projectName || item.name || 'مشروع بدون اسم',
+            description: item.shortDescription || item.fullDescription || '',
+            fullDescription: item.fullDescription || item.shortDescription || '',
+            image: item.images?.[0] || 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=400',
+            images: item.images || [],
+            videoUrl: item.videoUrl || '',
+            demoUrl: item.demoUrl || '',
+            githubUrl: item.githubUrl || '',
+            tech: item.technologies || [],
+            mainFeatures: item.mainFeatures || [],
+            category: item.category || 'web',
+            createdAt: item.createdAt || '',
+            link: `/portfolio/${item._id}`,
           })),
           projectsForSale: projects.map(project => ({
             id: project._id,
@@ -93,12 +116,14 @@ export default function DevProfile() {
             date: cert.date || '',
             credentialId: cert.credentialId || ''
           })),
-          reviews: (userData.reviews || []).map(review => ({
-            user: review.user?.username || review.username || '',
+          // ✅ ✅ ✅ التعديل النهائي هنا ✅ ✅ ✅
+          reviews: (data?.data?.projectreviwess || []).map(review => ({
+            user: review.client?.username || 'مستخدم',
+            username: review.client?.username || 'مستخدم',
             rating: review.rating || 5,
             comment: review.comment || '',
-            date: review.date || review.createdAt || '',
-            avatar: review.user?.profileImage || review.avatar || 'https://randomuser.me/api/portraits/men/45.jpg'
+            date: review.createdAt || review.date || '',
+            avatar: review.client?.profileImage || 'https://randomuser.me/api/portraits/men/45.jpg'
           }))
         });
       } catch (error) {
@@ -121,6 +146,18 @@ export default function DevProfile() {
       '8+': 'أسطورة (8+ سنوات)'
     };
     return levels[exp] || exp;
+  };
+
+  // ✅ دالة فتح البوب
+  const openProjectModal = (project) => {
+    setSelectedProject(project);
+    setShowProjectModal(true);
+  };
+
+  // ✅ دالة إغلاق البوب
+  const closeProjectModal = () => {
+    setShowProjectModal(false);
+    setSelectedProject(null);
   };
 
   if (loading) {
@@ -229,17 +266,7 @@ export default function DevProfile() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Left Column */}
             <div className="lg:col-span-1 space-y-6">
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <h3 className="font-bold text-lg text-gray-800 mb-4">📞 تواصل معي</h3>
-                <div className="space-y-3">
-                  <button className="w-full py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium hover:shadow-lg transition">
-                    📩 إرسال رسالة
-                  </button>
-                  <button className="w-full py-2 border-2 border-indigo-600 text-indigo-600 rounded-xl font-medium hover:bg-indigo-600 hover:text-white transition">
-                    📋 طلب عرض سعر
-                  </button>
-                </div>
-              </div>
+             
 
               <div className="bg-white rounded-2xl shadow-lg p-6">
                 <h3 className="font-bold text-lg text-gray-800 mb-4">📊 إحصائيات</h3>
@@ -383,8 +410,8 @@ export default function DevProfile() {
                             <div className="flex justify-between items-center mt-2">
                               <span className="text-xl font-bold text-indigo-600">${project.price}</span>
                             </div>
-                            <Link to={`/marketplace/${project.id}`} className="block w-full text-center mt-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
-                              شراء المشروع
+                            <Link to={`/marketplaceitem/${project.id}`} className="block w-full text-center mt-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
+                              عرض المشروع
                             </Link>
                           </div>
                         </div>
@@ -400,19 +427,35 @@ export default function DevProfile() {
                   {activeTab === 'portfolio' && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {developer.portfolio.length > 0 ? developer.portfolio.map((project, idx) => (
-                        <div key={idx} className="bg-gray-50 rounded-xl overflow-hidden hover:shadow-lg transition">
-                          <img src={project.image} alt={project.title} className="w-full h-40 object-cover" onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=400'; }} />
+                        <div key={idx} className="bg-gray-50 rounded-xl overflow-hidden hover:shadow-lg transition group">
+                          <div className="relative">
+                            <img src={project.image} alt={project.title} className="w-full h-48 object-cover" onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=400'; }} />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <button 
+                                onClick={() => openProjectModal(project)}
+                                className="px-4 py-2 bg-white text-gray-800 rounded-lg font-medium hover:bg-gray-100 transition"
+                              >
+                                عرض التفاصيل
+                              </button>
+                            </div>
+                          </div>
                           <div className="p-4">
                             <h3 className="font-bold text-gray-800">{project.title}</h3>
-                            <p className="text-sm text-gray-500 mt-1">{project.description}</p>
+                            <p className="text-sm text-gray-500 mt-1 line-clamp-2">{project.description}</p>
                             <div className="flex flex-wrap gap-1 mt-2">
-                              {project.tech.map((tech, i) => (
+                              {project.tech.slice(0, 3).map((tech, i) => (
                                 <span key={i} className="px-2 py-0.5 bg-gray-200 text-gray-600 text-xs rounded-lg">{tech}</span>
                               ))}
+                              {project.tech.length > 3 && (
+                                <span className="px-2 py-0.5 bg-gray-200 text-gray-600 text-xs rounded-lg">+{project.tech.length - 3}</span>
+                              )}
                             </div>
-                            <Link to={project.link} className="inline-block mt-3 text-indigo-600 text-sm hover:underline">
-                              عرض المشروع →
-                            </Link>
+                            <button 
+                              onClick={() => openProjectModal(project)}
+                              className="mt-3 text-indigo-600 text-sm hover:underline font-medium"
+                            >
+                              عرض التفاصيل كاملة ←
+                            </button>
                           </div>
                         </div>
                       )) : (
@@ -429,14 +472,21 @@ export default function DevProfile() {
                       {developer.reviews.length > 0 ? developer.reviews.map((review, idx) => (
                         <div key={idx} className="border-b border-gray-100 pb-4 last:border-0">
                           <div className="flex items-center gap-3 mb-2">
-                            <img src={review.avatar} alt={review.user} className="w-10 h-10 rounded-full object-cover" onError={(e) => { e.target.src = 'https://randomuser.me/api/portraits/men/45.jpg'; }} />
+                            <img 
+                              src={review.avatar} 
+                              alt={review.user} 
+                              className="w-10 h-10 rounded-full object-cover" 
+                              onError={(e) => { e.target.src = 'https://randomuser.me/api/portraits/men/45.jpg'; }} 
+                            />
                             <div>
                               <div className="font-semibold">{review.user}</div>
                               <div className="flex items-center gap-1">
                                 <span className="text-yellow-400">★</span>
                                 <span className="text-sm">{review.rating}</span>
                                 <span className="text-gray-400 text-xs mx-2">|</span>
-                                <span className="text-xs text-gray-400">{review.date}</span>
+                                <span className="text-xs text-gray-400">
+                                  {review.date ? new Date(review.date).toLocaleDateString('ar-EG') : ''}
+                                </span>
                               </div>
                             </div>
                           </div>
@@ -503,6 +553,172 @@ export default function DevProfile() {
           </div>
         </div>
       </main>
+
+      {/* ✅ Project Details Modal */}
+      <AnimatePresence>
+        {showProjectModal && selectedProject && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto"
+            onClick={closeProjectModal}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 50 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 50 }}
+              transition={{ type: "spring", damping: 25 }}
+              className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="sticky top-0 bg-white z-10 border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+                <h2 className="text-xl font-bold text-gray-800">{selectedProject.title}</h2>
+                <button
+                  onClick={closeProjectModal}
+                  className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition"
+                >
+                  <FiX className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="p-6 space-y-6">
+                {/* Images Gallery */}
+                {selectedProject.images && selectedProject.images.length > 0 && (
+                  <div>
+                    <h3 className="font-bold text-gray-800 mb-3">🖼️ معرض الصور</h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {selectedProject.images.map((img, idx) => (
+                        <img 
+                          key={idx} 
+                          src={img} 
+                          alt={`${selectedProject.title} - ${idx + 1}`} 
+                          className="w-full h-32 sm:h-40 object-cover rounded-xl hover:scale-105 transition"
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Video */}
+                {selectedProject.videoUrl && (
+                  <div>
+                    <h3 className="font-bold text-gray-800 mb-2">🎬 فيديو توضيحي</h3>
+                    <div className="relative rounded-xl overflow-hidden bg-black">
+                      <video
+                        src={selectedProject.videoUrl}
+                        controls
+                        className="w-full max-h-[400px] object-contain"
+                      >
+                        متصفحك لا يدعم تشغيل الفيديو
+                      </video>
+                    </div>
+                  </div>
+                )}
+
+                {/* Info Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  {selectedProject.category && (
+                    <div className="p-3 bg-gray-50 rounded-xl text-center">
+                      <div className="text-sm text-gray-500">التصنيف</div>
+                      <div className="text-lg font-semibold text-indigo-600">
+                        {selectedProject.category}
+                      </div>
+                    </div>
+                  )}
+                  {selectedProject.createdAt && (
+                    <div className="p-3 bg-gray-50 rounded-xl text-center">
+                      <div className="text-sm text-gray-500">تاريخ الإضافة</div>
+                      <div className="text-lg font-semibold text-gray-800">
+                        {new Date(selectedProject.createdAt).toLocaleDateString('ar-EG')}
+                      </div>
+                    </div>
+                  )}
+                  <div className="p-3 bg-gray-50 rounded-xl text-center">
+                    <div className="text-sm text-gray-500">التقنيات المستخدمة</div>
+                    <div className="text-lg font-semibold text-purple-600">
+                      {selectedProject.tech.length} تقنية
+                    </div>
+                  </div>
+                </div>
+
+                {/* Full Description */}
+                <div>
+                  <h3 className="font-bold text-gray-800 mb-2">📝 الوصف الكامل</h3>
+                  <p className="text-gray-600 leading-relaxed">
+                    {selectedProject.fullDescription || selectedProject.description || 'لا يوجد وصف'}
+                  </p>
+                </div>
+
+                {/* Main Features */}
+                {selectedProject.mainFeatures && selectedProject.mainFeatures.length > 0 && (
+                  <div>
+                    <h3 className="font-bold text-gray-800 mb-2">✨ المميزات الرئيسية</h3>
+                    <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {selectedProject.mainFeatures.map((feature, idx) => (
+                        <li key={idx} className="flex items-center gap-2 text-gray-600">
+                          <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full"></span>
+                          {feature}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Tech Stack */}
+                {selectedProject.tech && selectedProject.tech.length > 0 && (
+                  <div>
+                    <h3 className="font-bold text-gray-800 mb-2">💻 التقنيات المستخدمة</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedProject.tech.map((tech, idx) => (
+                        <span key={idx} className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm">
+                          {tech}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Links */}
+                <div className="flex flex-wrap gap-3">
+                  {selectedProject.demoUrl && (
+                    <a
+                      href={selectedProject.demoUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition"
+                    >
+                      <FiExternalLink className="w-4 h-4" />
+                      عرض تجريبي
+                    </a>
+                  )}
+                  {selectedProject.githubUrl && (
+                    <a
+                      href={selectedProject.githubUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-xl hover:bg-gray-900 transition"
+                    >
+                      <FiGithub className="w-4 h-4" />
+                      GitHub
+                    </a>
+                  )}
+                </div>
+
+                {/* Close Button */}
+                <button
+                  onClick={closeProjectModal}
+                  className="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium hover:shadow-lg transition"
+                >
+                  إغلاق
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <Footer />
     </div>

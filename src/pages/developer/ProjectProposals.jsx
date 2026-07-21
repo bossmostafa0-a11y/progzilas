@@ -7,38 +7,98 @@ import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import DeveloperSidebar from '../../components/layout/DeveloperSidebar';
 
+// ✅ الحصول على رابط علم الدولة - جودة عالية
+const getCountryFlagUrl = (location) => {
+  if (!location) return '';
+  
+  const countryCodeMap = {
+    'Egypt': 'eg',
+    'Saudi Arabia': 'sa',
+    'UAE': 'ae',
+    'Kuwait': 'kw',
+    'Qatar': 'qa',
+    'Bahrain': 'bh',
+    'Oman': 'om',
+    'Jordan': 'jo',
+    'Lebanon': 'lb',
+    'Syria': 'sy',
+    'Iraq': 'iq',
+    'Palestine': 'ps',
+    'Yemen': 'ye',
+    'Sudan': 'sd',
+    'Libya': 'ly',
+    'Tunisia': 'tn',
+    'Algeria': 'dz',
+    'Morocco': 'ma',
+    'Mauritania': 'mr',
+    'Somalia': 'so',
+    'Djibouti': 'dj',
+    'Comoros': 'km',
+  };
+  
+  const code = countryCodeMap[location];
+  if (!code) return '';
+  
+  return `https://flagcdn.com/w80/${code}.png`;
+};
+
+// ✅ الحصول على اختصار الدولة
+const getCountryCode = (location) => {
+  if (!location) return '';
+  
+  const codeMap = {
+    'Egypt': 'EG',
+    'Saudi Arabia': 'SA',
+    'UAE': 'AE',
+    'Kuwait': 'KW',
+    'Qatar': 'QA',
+    'Bahrain': 'BH',
+    'Oman': 'OM',
+    'Jordan': 'JO',
+    'Lebanon': 'LB',
+    'Syria': 'SY',
+    'Iraq': 'IQ',
+    'Palestine': 'PS',
+    'Yemen': 'YE',
+    'Sudan': 'SD',
+    'Libya': 'LY',
+    'Tunisia': 'TN',
+    'Algeria': 'DZ',
+    'Morocco': 'MA',
+    'Mauritania': 'MR',
+    'Somalia': 'SO',
+    'Djibouti': 'DJ',
+    'Comoros': 'KM',
+  };
+  
+  return codeMap[location] || '';
+};
+
+// ✅ العملات المتاحة
+const currencies = [
+  { value: 'USD', label: '🇺🇸 $' },
+  { value: 'EGP', label: '🇪🇬 E£' },
+];
+
 // ✅ دوال مساعدة للميزانية
 const getBudgetValue = (budget) => {
   if (!budget) return 0;
   if (typeof budget === 'number') return budget;
-  
-  const budgetMap = {
-    'under1000': 500,
-    '1000-5000': 3000,
-    '5000-10000': 7500,
-    '10000-50000': 30000,
-    'above50000': 75000
-  };
-  
-  if (budgetMap[budget] !== undefined) return budgetMap[budget];
-  
   const parsed = parseFloat(budget);
   return isNaN(parsed) ? 0 : parsed;
 };
 
-const formatBudget = (budget) => {
+const formatBudget = (budget, currency = 'EGP') => {
   if (!budget) return 'غير محدد';
-  if (typeof budget === 'number') return `$${budget.toLocaleString()}`;
   
-  const budgetMap = {
-    'under1000': 'أقل من $1000',
-    '1000-5000': '$1,000 - $5,000',
-    '5000-10000': '$5,000 - $10,000',
-    '10000-50000': '$10,000 - $50,000',
-    'above50000': 'أكثر من $50,000'
-  };
+  const currencySymbol = currencies.find(c => c.value === currency)?.label || '🇪🇬 E£';
   
-  return budgetMap[budget] || budget;
+  const amount = typeof budget === 'number' ? budget : parseFloat(budget);
+  if (!isNaN(amount) && amount > 0) {
+    return `${currencySymbol} ${amount.toLocaleString()}`;
+  }
+  
+  return `${currencySymbol} ${budget}`;
 };
 
 // ✅ التحقق من انتهاء المدة
@@ -75,7 +135,8 @@ export default function ProjectProposals() {
   const [proposalData, setProposalData] = useState({
     coverLetter: '',
     budget: '',
-    duration: ''
+    duration: '',
+    currency: 'EGP'
   });
   const [submittedProjects, setSubmittedProjects] = useState([]);
   const [successMessage, setSuccessMessage] = useState('');
@@ -120,8 +181,6 @@ export default function ProjectProposals() {
     { value: 'cloud', label: 'الحوسبة السحابية', icon: '☁️' }
   ];
 
-  
-
   // ✅ فلترة المشاريع
   const filteredProjects = useMemo(() => {
     let result = projects.filter(project => {
@@ -154,7 +213,6 @@ export default function ProjectProposals() {
     setSubmitting(true);
     setErrorMessage('');
     
-    // ✅ التحقق من انتهاء المدة
     if (isDeadlinePassed(selectedProject.deadline)) {
       setErrorMessage('⛔ عذراً، انتهت مدة التقديم على هذا المشروع');
       setSubmitting(false);
@@ -166,7 +224,8 @@ export default function ProjectProposals() {
         projectId: selectedProject._id,
         coverLetter: proposalData.coverLetter,
         budget: proposalData.budget,
-        duration: proposalData.duration
+        duration: proposalData.duration,
+        currency: proposalData.currency || 'EGP'
       };
       
       console.log('📤 Sending proposal:', submitData);
@@ -184,20 +243,17 @@ export default function ProjectProposals() {
       
       setTimeout(() => {
         setShowProposalModal(false);
-        setProposalData({ coverLetter: '', budget: '', duration: '' });
+        setProposalData({ coverLetter: '', budget: '', duration: '', currency: 'EGP' });
         setSuccessMessage('');
       }, 1500);
       
     } catch (error) {
       console.error('❌ Error submitting proposal:', error);
       
-      // ✅ التحقق من رسالة الخطأ من الباك اند
       const errorMsg = error.response?.data?.message || error.message || 'حدث خطأ أثناء تقديم العرض';
       
-      // ✅ إذا كانت رسالة "تم التقديم بالفعل"
       if (errorMsg.includes('already') || errorMsg.includes('سبق') || errorMsg.includes('مسبقاً') || errorMsg.includes('قمت بالتقديم')) {
         setErrorMessage('⚠️ لقد قمت بالتقديم على هذا المشروع بالفعل');
-        // إضافة المشروع لقائمة المقدم عليها
         setSubmittedProjects(prev => [...prev, selectedProject._id]);
       } else {
         setErrorMessage(errorMsg);
@@ -358,7 +414,7 @@ export default function ProjectProposals() {
               <motion.div variants={cardVariants} className="bg-gradient-to-br from-purple-50 to-purple-100/50 rounded-2xl shadow-md p-4 text-center border border-purple-200/50 hover:shadow-lg transition-all">
                 <div className="text-3xl mb-1">💼</div>
                 <div className="text-2xl font-bold text-purple-600">
-                  ${projects.reduce((sum, p) => sum + getBudgetValue(p.budget), 0).toLocaleString()}
+                  {projects.reduce((sum, p) => sum + getBudgetValue(p.budget), 0).toLocaleString()}
                 </div>
                 <div className="text-xs text-gray-500 font-medium">إجمالي الميزانيات</div>
               </motion.div>
@@ -461,16 +517,22 @@ export default function ProjectProposals() {
                 )}
               </motion.div>
             ) : (
-              <motion.div
-                variants={containerVariants}
-                initial="hidden"
-                animate="visible"
-                className="grid grid-cols-1 lg:grid-cols-2 gap-6"
-              >
-                <AnimatePresence mode="wait">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={`projects-${activeFilter}-${searchTerm}`}
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit={{ opacity: 0, y: 20 }}
+                  className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+                >
                   {filteredProjects.map((project) => {
                     const alreadySubmitted = hasSubmitted(project._id);
                     const expired = isDeadlinePassed(project.deadline);
+                    const currency = project.currency || 'EGP';
+                    const clientLocation = project.client?.location || '';
+                    const flagUrl = getCountryFlagUrl(clientLocation);
+                    const countryCode = getCountryCode(clientLocation);
                     
                     return (
                       <motion.div
@@ -495,11 +557,27 @@ export default function ProjectProposals() {
                                 className="w-10 h-10 rounded-full object-cover" 
                               />
                               <div>
-                                <h3 className="font-semibold text-gray-800">{project.client?.username || 'عميل'}</h3>
+                                <div className="flex items-center gap-2">
+                                  <h3 className="font-semibold text-gray-800">{project.client?.username || 'عميل'}</h3>
+                                  <div className="flex items-center gap-1 ml-1">
+                                    {flagUrl ? (
+                                      <img 
+                                        src={flagUrl} 
+                                        alt={clientLocation} 
+                                        className="w-6 h-6 rounded-full object-cover border border-gray-300 shadow-sm"
+                                      />
+                                    ) : (
+                                      <span className="text-base">🌍</span>
+                                    )}
+                                    {countryCode && (
+                                      <span className="text-xs font-bold text-gray-600">{countryCode}</span>
+                                    )}
+                                  </div>
+                                </div>
                                 <span className="text-xs text-gray-400">{project.createdAt ? new Date(project.createdAt).toLocaleDateString('ar-EG') : ''}</span>
                               </div>
                             </div>
-                            <div className="flex gap-1">
+                            <div className="flex gap-1 flex-wrap">
                               {project.featured && (
                                 <span className="px-2 py-1 bg-yellow-100 text-yellow-700 text-xs rounded-full">⭐ مميز</span>
                               )}
@@ -529,7 +607,7 @@ export default function ProjectProposals() {
                           <div className="flex flex-wrap gap-4 text-sm mb-4">
                             <div className="flex items-center gap-1">
                               <span className="text-gray-400">💰</span>
-                              <span className="font-semibold">{formatBudget(project.budget)}</span>
+                              <span className="font-semibold">{formatBudget(project.budget, currency)}</span>
                             </div>
                             <div className="flex items-center gap-1">
                               <span className="text-gray-400">⏱️</span>
@@ -589,8 +667,8 @@ export default function ProjectProposals() {
                       </motion.div>
                     );
                   })}
-                </AnimatePresence>
-              </motion.div>
+                </motion.div>
+              </AnimatePresence>
             )}
           </div>
         </div>
@@ -632,7 +710,25 @@ export default function ProjectProposals() {
                     className="w-12 h-12 rounded-full object-cover" 
                   />
                   <div>
-                    <h3 className="font-semibold">{selectedProject.client?.username || 'عميل'}</h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold">{selectedProject.client?.username || 'عميل'}</h3>
+                      <div className="flex items-center gap-1 ml-1">
+                        {getCountryFlagUrl(selectedProject.client?.location || '') ? (
+                          <img 
+                            src={getCountryFlagUrl(selectedProject.client?.location || '')} 
+                            alt={selectedProject.client?.location || ''} 
+                            className="w-6 h-6 rounded-full object-cover border border-gray-300 shadow-sm"
+                          />
+                        ) : (
+                          <span className="text-base">🌍</span>
+                        )}
+                        {getCountryCode(selectedProject.client?.location || '') && (
+                          <span className="text-xs font-bold text-gray-600">
+                            {getCountryCode(selectedProject.client?.location || '')}
+                          </span>
+                        )}
+                      </div>
+                    </div>
                     <p className="text-sm text-gray-500">نشر في: {selectedProject.createdAt ? new Date(selectedProject.createdAt).toLocaleDateString('ar-EG') : ''}</p>
                   </div>
                   {selectedProject.featured && (
@@ -652,7 +748,7 @@ export default function ProjectProposals() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="p-3 bg-gray-50 rounded-xl">
                     <div className="text-sm text-gray-500">الميزانية</div>
-                    <div className="text-xl font-bold text-indigo-600">{formatBudget(selectedProject.budget)}</div>
+                    <div className="text-xl font-bold text-indigo-600">{formatBudget(selectedProject.budget, selectedProject.currency || 'EGP')}</div>
                   </div>
                   <div className="p-3 bg-gray-50 rounded-xl">
                     <div className="text-sm text-gray-500">المدة</div>
@@ -682,7 +778,6 @@ export default function ProjectProposals() {
                   </div>
                 </div>
 
-                {/* ✅ رسالة الخطأ داخل المودال */}
                 {errorMessage && (
                   <div className={`p-3 rounded-xl text-center font-medium ${
                     errorMessage.includes('⚠️') ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
@@ -762,14 +857,12 @@ export default function ProjectProposals() {
               </div>
 
               <form onSubmit={handleProposalSubmit} className="p-6 space-y-4">
-                {/* ✅ رسالة النجاح */}
                 {successMessage && (
                   <div className="p-3 bg-green-100 text-green-700 rounded-xl text-center font-medium">
                     {successMessage}
                   </div>
                 )}
 
-                {/* ✅ رسالة الخطأ */}
                 {errorMessage && (
                   <div className={`p-3 rounded-xl text-center font-medium ${
                     errorMessage.includes('⚠️') ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
@@ -780,8 +873,26 @@ export default function ProjectProposals() {
 
                 <div>
                   <h3 className="font-bold text-gray-800">{selectedProject.title}</h3>
-                  <p className="text-sm text-gray-500">عميل: {selectedProject.client?.username || 'عميل'}</p>
-                  <p className="text-sm text-gray-500">الميزانية المقترحة: {formatBudget(selectedProject.budget)}</p>
+                  <p className="text-sm text-gray-500 flex items-center gap-2">
+                    عميل: {selectedProject.client?.username || 'عميل'}
+                    <div className="flex items-center gap-1 ml-1">
+                      {getCountryFlagUrl(selectedProject.client?.location || '') ? (
+                        <img 
+                          src={getCountryFlagUrl(selectedProject.client?.location || '')} 
+                          alt={selectedProject.client?.location || ''} 
+                          className="w-6 h-6 rounded-full object-cover border border-gray-300 shadow-sm"
+                        />
+                      ) : (
+                        <span className="text-base">🌍</span>
+                      )}
+                      {getCountryCode(selectedProject.client?.location || '') && (
+                        <span className="text-xs font-bold text-gray-600">
+                          {getCountryCode(selectedProject.client?.location || '')}
+                        </span>
+                      )}
+                    </div>
+                  </p>
+                  <p className="text-sm text-gray-500">الميزانية المقترحة: {formatBudget(selectedProject.budget, selectedProject.currency || 'EGP')}</p>
                   <div className="mt-2 p-2 rounded-lg bg-gray-50">
                     <p className="text-sm text-gray-600">📅 آخر موعد للتقديم: <span className="font-bold">{formatDeadline(selectedProject.deadline)}</span></p>
                     {isDeadlinePassed(selectedProject.deadline) && (
@@ -805,10 +916,10 @@ export default function ProjectProposals() {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      الميزانية المطلوبة ($) <span className="text-red-500">*</span>
+                      الميزانية المطلوبة <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="number"
@@ -822,6 +933,7 @@ export default function ProjectProposals() {
                       step="1"
                     />
                   </div>
+                  
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
                       المدة المتوقعة <span className="text-red-500">*</span>

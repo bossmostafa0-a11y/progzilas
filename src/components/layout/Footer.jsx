@@ -1,4 +1,4 @@
-import React from 'react'
+import   'react'
 
 export default function Footer() {
   return (
@@ -6,7 +6,7 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
-            <h3 className="text-xl font-bold mb-4">DevHire</h3>
+            <h3 className="text-xl font-bold mb-4">Progzila</h3>
             <p className="text-gray-400">أول منصة عربية متخصصة في توظيف المبرمجين</p>
           </div>
           <div>
@@ -28,14 +28,12 @@ export default function Footer() {
           <div>
             <h4 className="font-semibold mb-4">تابعنا</h4>
             <div className="flex space-x-4 space-x-reverse">
-              <span className="text-gray-400">Twitter</span>
-              <span className="text-gray-400">LinkedIn</span>
-              <span className="text-gray-400">GitHub</span>
+              <span className="text-gray-400"><a href="https://www.facebook.com/people/Progzila/61575326354571/" className="hover:text-white">Facebook</a></span>
             </div>
           </div>
         </div>
         <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-          <p>&copy; 2024 DevHire. جميع الحقوق محفوظة</p>
+          <p>&copy; 2026 Progzila. جميع الحقوق محفوظة</p>
         </div>
       </div>
     </footer>

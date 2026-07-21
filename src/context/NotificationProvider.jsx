@@ -3,7 +3,6 @@ import { useEffect, useRef, useCallback, useState } from 'react';
 import { useSocket } from '../hooks/useSocket';
 import NotificationContext from './NotificationContext';
 
-const NOTIFICATION_SOUND = '/notification.mp3';
 
 export default function NotificationProvider({ children }) {
   const { socket } = useSocket();
@@ -12,40 +11,34 @@ export default function NotificationProvider({ children }) {
   const [isSoundReady, setIsSoundReady] = useState(false);
 
   // ✅ تشغيل الصوت
-  const playSound = useCallback(() => {
-    try {
-      if (!audioRef.current) {
-        audioRef.current = new Audio(NOTIFICATION_SOUND);
-        audioRef.current.volume = 0.5;
-      }
-      
-      audioRef.current.currentTime = 0;
-      audioRef.current.play().catch(err => {
-        console.log('🔇 Sound failed:', err);
-      });
-    } catch (error) {
-      console.log('🔇 Audio error:', error);
-    }
-  }, []);
+const playSound = useCallback(() => {
+  if (!audioRef.current) return;
+
+  audioRef.current.currentTime = 0;
+
+  audioRef.current.play().catch((err) => {
+    console.log("🔇 Sound failed:", err);
+  });
+}, []);
 
   // ✅ تفعيل الصوت عند أول نقرة
-  useEffect(() => {
-    const enableSound = () => {
-      if (audioRef.current) {
-        audioRef.current.play().then(() => {
-          audioRef.current.pause();
-          audioRef.current.currentTime = 0;
-          setIsSoundReady(true);
-        }).catch(() => {});
-      }
-    };
+useEffect(() => {
+  const enableSound = () => {
+    if (audioRef.current) {
+      audioRef.current.play().then(() => {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+        setIsSoundReady(true);
+      }).catch(() => {});
+    }
+  };
 
-    document.addEventListener('click', enableSound, { once: true });
-    
-    return () => {
-      document.removeEventListener('click', enableSound);
-    };
-  }, []);
+  document.addEventListener('click', enableSound, { once: true });
+
+  return () => {
+    document.removeEventListener('click', enableSound);
+  };
+}, []);
 
   // ✅ استقبال الإشعارات من السوكت وتشغيل الصوت
   useEffect(() => {

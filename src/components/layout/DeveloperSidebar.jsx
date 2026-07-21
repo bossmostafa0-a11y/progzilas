@@ -14,6 +14,8 @@ export default function DeveloperSidebar({ activePage }) {
     { id: 'earnings', label: 'أرباحي', icon: '💰', path: '/dashboard/developer/earnings' },
     { id: 'profile', label: 'بروفايلي', icon: '👤', path: '/dashboard/developer/profile' },
     { id: 'add-project', label: 'إضافة مشروع', icon: '➕', path: '/dashboard/developer/add-project' },
+        { id: 'PreviousProjects', label: 'الأعمال السايقة', icon: '💼', path: '/dashboard/developer/PreviousProjects' },
+
     { id: 'settings', label: 'الإعدادات', icon: '⚙️', path: '/dashboard/developer/settings' }
   ];
 
@@ -78,10 +80,10 @@ export default function DeveloperSidebar({ activePage }) {
 
         {/* Footer Menu */}
         <div className="mt-8 pt-6 border-t border-gray-200">
-          <Link to="/">
+          <Link to="/ReportProblem">
             <div className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-100 transition-all duration-300">
-              <span className="text-xl">🏠</span>
-              <span className="font-medium">الرئيسية</span>
+              <span className="text-xl">⚠️</span>
+              <span className="font-medium">إبلاغ عن مشكلة </span>
             </div>
           </Link>
           <button

@@ -223,3 +223,29 @@ export const approveProject = async (projectId) => {
     throw handleApiError(error);
   }
 };
+// ✅ إضافة دالة submitReview في نهاية الملف
+
+// ============ إرسال تقييم للمشروع ============
+export const submitReview = async (data) => {
+  try {
+    const { projectId, rating, comment } = data;
+    
+    if (!projectId) {
+      throw new Error('معرف المشروع مطلوب');
+    }
+    
+    if (!rating || rating < 1 || rating > 5) {
+      throw new Error('يرجى اختيار تقييم من 1 إلى 5 نجوم');
+    }
+
+    const response = await api.post(`/client/submitReview/${projectId}`, {
+      rating,
+      comment: comment || ''
+    });
+    
+    return response.data;
+  } catch (error) {
+    console.error('❌ Error submitting review:', error);
+    throw handleApiError(error);
+  }
+};

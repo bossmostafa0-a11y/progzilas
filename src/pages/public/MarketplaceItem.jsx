@@ -4,9 +4,8 @@ import { Link, useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
-import { getMarketplaceProjectById, purchaseProject } from '../../services/cliecnt.service.js';
+import { getMarketplaceProjectById, getProjectReviews, purchaseProject } from '../../services/cliecnt.service.js';
 
-// ✅ الأرقام الثابتة بتاعتنا
 const ourWalletNumbers = {
   vodafone_cash: '01012345678',
   etisalat_cash: '01112345678',
@@ -15,10 +14,10 @@ const ourWalletNumbers = {
 };
 
 const ourWalletNames = {
-  vodafone_cash: 'شركة ديف هاير',
-  etisalat_cash: 'شركة ديف هاير',
-  orange_cash: 'شركة ديف هاير',
-  instapay: 'شركة ديف هاير'
+  vodafone_cash: 'Progzila',
+  etisalat_cash: 'Progzila',
+  orange_cash: 'Progzila',
+  instapay: 'Progzila'
 };
 
 export default function MarketplaceItem() {
@@ -35,7 +34,6 @@ export default function MarketplaceItem() {
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [videoPreview, setVideoPreview] = useState(true);
 
-  // Purchase Form Data
   const [purchaseData, setPurchaseData] = useState({
     accountName: '',
     paymentMethod: 'vodafone_cash',
@@ -72,6 +70,19 @@ export default function MarketplaceItem() {
         if (!projectData) {
           setError('المشروع غير موجود');
           return;
+        }
+        
+        // ✅ جلب التقييمات
+        let reviewsData = [];
+        try {
+          const reviewsResponse = await getProjectReviews(id);
+          if (reviewsResponse?.data?.reviews) {
+            reviewsData = reviewsResponse.data.reviews;
+          } else if (reviewsResponse?.reviews) {
+            reviewsData = reviewsResponse.reviews;
+          }
+        } catch (err) {
+          console.log('No reviews found');
         }
         
         const packages = [];
@@ -129,7 +140,7 @@ export default function MarketplaceItem() {
           price: packages[selectedPackage]?.price || packages[0]?.price || 0,
           salesCount: projectData.salesCount || 0,
           rating: projectData.rating || 0,
-          reviews: [],
+          reviews: reviewsData,
           images: projectData.images || [],
           videoUrl: projectData.videoUrl || '',
           demoUrl: projectData.demoUrl || '',
@@ -144,7 +155,7 @@ export default function MarketplaceItem() {
         
         setProject(mappedProject);
       } catch (err) {
-        console.error('❌ Error loading project:', err);
+        console.error('❌ Error:', err);
         setError('حدث خطأ في تحميل المشروع');
       } finally {
         setLoading(false);
@@ -351,6 +362,7 @@ export default function MarketplaceItem() {
                 <div className="p-6">
                   <AnimatePresence mode="wait">
                     {activeTab === 'details' && <motion.div key="details" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="prose prose-lg max-w-none"><div className="whitespace-pre-line text-gray-600 leading-relaxed">{project.fullDescription}</div></motion.div>}
+                    
                     {activeTab === 'features' && (
                       <motion.div key="features" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {project.features.length > 0 ? project.features.map((f, i) => (
@@ -360,6 +372,7 @@ export default function MarketplaceItem() {
                         )) : <p className="text-gray-500 text-center py-8 col-span-2">لا توجد مميزات مضافة بعد</p>}
                       </motion.div>
                     )}
+                    
                     {activeTab === 'packages' && (
                       <motion.div key="packages" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -375,7 +388,56 @@ export default function MarketplaceItem() {
                         </div>
                       </motion.div>
                     )}
-                    {activeTab === 'reviews' && <motion.div key="reviews" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-4"><p className="text-gray-500 text-center py-8">لا توجد تقييمات بعد. كن أول من يقيم!</p></motion.div>}
+                    
+                    {/* ✅ Reviews Tab */}
+                    {activeTab === 'reviews' && (
+                      <motion.div key="reviews" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-4">
+                        {project.reviews && project.reviews.length > 0 ? (
+                          project.reviews.map((review, idx) => (
+                            <div key={review._id || idx} className="bg-gray-50 rounded-xl p-4">
+                              <div className="flex items-center gap-3 mb-2">
+                                {/* ✅ صورة المستخدم */}
+                                {review.client?.profileImage ? (
+                                  <img 
+                                    src={review.client.profileImage} 
+                                    alt={review.client.username} 
+                                    className="w-10 h-10 rounded-full object-cover"
+                                    onError={(e) => {
+                                      e.target.style.display = 'none';
+                                      e.target.nextSibling.style.display = 'flex';
+                                    }}
+                                  />
+                                ) : null}
+                                {/* ✅ Fallback - أول حرف */}
+                                <div 
+                                  className={`w-10 h-10 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold ${review.client?.profileImage ? 'hidden' : 'flex'}`}
+                                >
+                                  {review.client?.username?.charAt(0) || 'م'}
+                                </div>
+                                <div>
+                                  <div className="font-semibold text-gray-800">
+                                    {review.client?.username || 'مستخدم'}
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    {[1, 2, 3, 4, 5].map((star) => (
+                                      <span key={star} className={`text-sm ${star <= review.rating ? 'text-yellow-400' : 'text-gray-300'}`}>★</span>
+                                    ))}
+                                    <span className="text-xs text-gray-400 mr-2">
+                                      {new Date(review.createdAt).toLocaleDateString('ar-EG')}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                              {review.comment && (
+                                <p className="text-gray-600 text-sm">{review.comment}</p>
+                              )}
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-gray-500 text-center py-8">لا توجد تقييمات بعد. كن أول من يقيم!</p>
+                        )}
+                      </motion.div>
+                    )}
                   </AnimatePresence>
                 </div>
               </motion.div>
@@ -414,7 +476,6 @@ export default function MarketplaceItem() {
         </div>
       </main>
 
-      {/* ✅ Purchase Modal */}
       <AnimatePresence>
         {showPurchaseModal && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto" onClick={() => setShowPurchaseModal(false)}>
@@ -424,63 +485,38 @@ export default function MarketplaceItem() {
                 <h3 className="text-xl font-bold">تأكيد الشراء</h3>
                 <p className="text-gray-500 text-sm mt-1">أدخل بياناتك لإتمام عملية الشراء</p>
               </div>
-
               <div className="bg-gray-50 rounded-xl p-4 mb-4">
                 <div className="flex justify-between mb-2"><span className="text-gray-600">المشروع</span><span className="font-semibold">{project.name}</span></div>
                 <div className="flex justify-between mb-2"><span className="text-gray-600">الباقة</span><span className="font-semibold">{project.packages[selectedPackage]?.name}</span></div>
                 <div className="flex justify-between pt-2 border-t"><span className="text-gray-600">السعر الإجمالي</span><span className="text-xl font-bold text-indigo-600">${project.packages[selectedPackage]?.price}</span></div>
               </div>
-
               {purchaseError && <div className="p-3 bg-red-50 text-red-700 rounded-xl text-sm mb-4">{purchaseError}</div>}
-
-              {/* اسم صاحب المحفظة */}
               <div className="mb-4">
                 <label className="block text-sm font-semibold text-gray-700 mb-2">اسم صاحب المحفظة <span className="text-red-500">*</span></label>
                 <input type="text" name="accountName" value={purchaseData.accountName} onChange={handlePurchaseChange} className="w-full px-4 py-2 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:outline-none" placeholder="اسمك المسجل في المحفظة" />
               </div>
-
-              {/* طريقة التحويل */}
               <div className="mb-4">
                 <label className="block text-sm font-semibold text-gray-700 mb-2">طريقة التحويل <span className="text-red-500">*</span></label>
                 <select name="paymentMethod" value={purchaseData.paymentMethod} onChange={handleMethodChange} className="w-full px-4 py-2 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:outline-none">
                   {paymentMethods.map(m => (<option key={m.id} value={m.id}>{m.name}</option>))}
                 </select>
               </div>
-
-              {/* الرقم المحول منه */}
               <div className="mb-4">
                 <label className="block text-sm font-semibold text-gray-700 mb-2">الرقم المحول منه <span className="text-red-500">*</span></label>
-                <input 
-                  type="tel" 
-                  name="phoneNumber" 
-                  value={purchaseData.phoneNumber} 
-                  onChange={handlePhoneChange} 
-                  maxLength={11} 
-                  className={`w-full px-4 py-2 rounded-xl border-2 ${phoneError ? 'border-red-500' : 'border-gray-200'} focus:border-indigo-500 focus:outline-none`} 
-                  placeholder={getPlaceholder(purchaseData.paymentMethod)} 
-                />
+                <input type="tel" name="phoneNumber" value={purchaseData.phoneNumber} onChange={handlePhoneChange} maxLength={11} className={`w-full px-4 py-2 rounded-xl border-2 ${phoneError ? 'border-red-500' : 'border-gray-200'} focus:border-indigo-500 focus:outline-none`} placeholder={getPlaceholder(purchaseData.paymentMethod)} />
                 {phoneError && <p className="text-red-500 text-xs mt-1">{phoneError}</p>}
                 <p className="text-xs text-gray-400 mt-1">رقم هاتفك اللي حولت منه</p>
               </div>
-
-              {/* رقمنا الثابت */}
               <div className="mb-4 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl border-2 border-indigo-200">
                 <p className="text-sm text-gray-600 mb-2">قم بالتحويل إلى الرقم التالي:</p>
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-indigo-600 tracking-widest" dir="ltr">
-                    {ourWalletNumbers[purchaseData.paymentMethod]}
-                  </p>
-                  <p className="text-sm text-gray-500 mt-1">
-                    {ourWalletNames[purchaseData.paymentMethod]}
-                  </p>
+                  <p className="text-2xl font-bold text-indigo-600 tracking-widest" dir="ltr">{ourWalletNumbers[purchaseData.paymentMethod]}</p>
+                  <p className="text-sm text-gray-500 mt-1">{ourWalletNames[purchaseData.paymentMethod]}</p>
                 </div>
               </div>
-
-              {/* نوع الباقة */}
               <div className="mb-4 p-3 bg-green-50 rounded-xl">
                 <p className="text-sm text-green-700">نوع الباقة المختارة: <span className="font-bold">{purchaseData.packageType}</span></p>
               </div>
-
               <button onClick={handleConfirmPurchase} disabled={purchaseLoading} className="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-bold hover:shadow-lg transition-all duration-300 disabled:opacity-50">
                 {purchaseLoading ? (<div className="flex items-center justify-center gap-2"><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>جاري...</div>) : 'تأكيد الشراء ✓'}
               </button>

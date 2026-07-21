@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -5,7 +6,6 @@ import { useAuth } from '../../context/AuthContext';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 
-// ✅ المصفوفات الثابتة خارج الكامبوننت
 const ELEGANT_CODE = [
   'Progzila', '✨', '</>', '{}', '()', '=>', 'const', 'let',
   'مبرمج', 'ابتكار', 'تقنية', 'ريادة', 'نجاح', 'تطوير',
@@ -123,7 +123,6 @@ export default function Login() {
     };
   }, []);
 
-  
   const handleChange = (e) => {
     setFormData(prev => ({
       ...prev,
@@ -166,129 +165,108 @@ export default function Login() {
     return Object.keys(newErrors).length === 0;
   };
 
- const handleSubmit = async (e) => {
-  e.preventDefault();
-  
-  if (!validateForm()) return;
-  
-  setLoading(true);
-  setShowVerification(false);
-  
-  try {
-    if (isLogin) {
-      // ✅ تسجيل الدخول
-      await login(formData.email, formData.password);
-      
-      const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
-      console.log('✅ Stored user after login:', storedUser);
-      
-      if (storedUser.userType === 'developer') {
-        navigate('/dashboard/developer');
-      } else {
-        navigate('/dashboard/client');
-      }
-    } else {
-      // ============ تسجيل جديد ============
-      let response;
-      
-      if (userType === 'developer') {
-        // ✅ تسجيل مبرمج
-        response = await registerDeveloperUser({
-          name: formData.name,
-          email: formData.email,
-          password: formData.password,
-          track: formData.track,
-          experience: formData.experience
-        });
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!validateForm()) return;
+    
+    setLoading(true);
+    setShowVerification(false);
+    
+    try {
+      if (isLogin) {
+        // ✅ تسجيل الدخول
+        await login(formData.email, formData.password);
         
-        console.log('📥 Register developer response:', response);
+        const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
         
-        const message = response?.message || response?.data?.message || '';
-        
-        if (message.includes('تفعيل') || message.includes('verify') || message.includes('confirmed')) {
-          setTempEmail(formData.email);
-          setShowVerification(true);
-          setErrors({});
-        } else if (message.includes('استكمل الملف') || message.includes('complete') || message.includes('profile')) {
-          // ✅ مبرمج محتاج يكمل بروفايل
-          navigate(`/complete-profile?email=${encodeURIComponent(formData.email)}`);
-        } else {
-          // ✅ مبرمج → يروح لداشبورد المبرمج
+        if (storedUser.userType === 'developer') {
           navigate('/dashboard/developer');
-        }
-      } else {
-        // ✅ تسجيل عميل
-        response = await registerClientUser({
-          name: formData.name,
-          email: formData.email,
-          password: formData.password,
-          companyName: formData.companyName
-        });
-        
-        console.log('📥 Register client response:', response);
-        
-        const message = response?.message || response?.data?.message || '';
-        
-        if (message.includes('تفعيل') || message.includes('verify') || message.includes('confirmed')) {
-          setTempEmail(formData.email);
-          setShowVerification(true);
-          setErrors({});
-        } else if (message.includes('اكمل ملف العميل') || message.includes('complete') || message.includes('profile')) {
-          // ✅ عميل محتاج يكمل بروفايل العميل
-          navigate(`/complete-client-profile?email=${encodeURIComponent(formData.email)}`);
         } else {
-          // ✅ عميل → يروح لداشبورد العميل
           navigate('/dashboard/client');
         }
-      }
-    }
-  } catch (error) {
-    console.error('🔴 Error:', error);
-    
-    // ✅ استخرج رسالة الخطأ
-    const errorMessage = error?.response?.data?.message || 
-                        error?.message || 
-                        error?.data?.message || 
-                        '';
-    
-    console.log('📝 Error message:', errorMessage);
-    
-    // ✅ التوجيه بناءً على الرسالة فقط (بغض النظر عن userType)
-    if (errorMessage.includes('تفعيل') || errorMessage.includes('verify') || errorMessage.includes('confirmed')) {
-      setTempEmail(formData.email);
-      setShowVerification(true);
-      setErrors({});
-    } 
-    // ✅ لو الرسالة "اكمل ملف العميل" → روح لصفحة العميل
-    else if (errorMessage.includes('اكمل ملف العميل')) {
-      console.log('✅ Redirecting to CLIENT profile page (based on message)');
-      navigate(`/complete-client-profile?email=${encodeURIComponent(formData.email)}`);
-    } 
-    // ✅ لو الرسالة "استكمل الملف" → روح لصفحة المبرمج
-    else if (errorMessage.includes('استكمل الملف')) {
-      console.log('✅ Redirecting to DEVELOPER profile page (based on message)');
-      navigate(`/complete-profile?email=${encodeURIComponent(formData.email)}`);
-    } 
-    // ✅ لو الرسالة فيها complete profile → حسب السياق
-    else if (errorMessage.toLowerCase().includes('complete') && errorMessage.toLowerCase().includes('profile')) {
-      // لو الرسالة فيها "client" روح للعميل
-      if (errorMessage.toLowerCase().includes('client')) {
-        navigate(`/complete-client-profile?email=${encodeURIComponent(formData.email)}`);
-        console.log('✅ Redirecting to CLIENT profile page (complete client)');
       } else {
-        navigate(`/complete-profile?email=${encodeURIComponent(formData.email)}`);
-        console.log('✅ Redirecting to DEVELOPER profile page (complete profile)');
+        // ============ تسجيل جديد ============
+        let response;
+        
+        if (userType === 'developer') {
+          response = await registerDeveloperUser({
+            name: formData.name,
+            email: formData.email,
+            password: formData.password,
+            track: formData.track,
+            experience: formData.experience
+          });
+        } else {
+          response = await registerClientUser({
+            name: formData.name,
+            email: formData.email,
+            password: formData.password,
+            companyName: formData.companyName
+          });
+        }
+        
+        const message = response?.message || response?.data?.message || '';
+        
+        // ✅ لو رسالة التفعيل - ننقل على طول لصفحة التفعيل
+        if (message.includes('تفعيل') || message.includes('verify') || message.includes('confirmed') || message.includes('تم إنشاء')) {
+          navigate(`/verify-account?email=${encodeURIComponent(formData.email)}`);
+        } 
+        // ✅ لو رسالة استكمال الملف
+        else if (message.includes('استكمل الملف') || message.includes('complete') || message.includes('profile')) {
+          if (userType === 'developer') {
+            navigate(`/complete-profile?email=${encodeURIComponent(formData.email)}`);
+          } else {
+            navigate(`/complete-client-profile?email=${encodeURIComponent(formData.email)}`);
+          }
+        } 
+        // ✅ لو مفيش رسالة محددة - روح للداشبورد
+        else {
+          if (userType === 'developer') {
+            navigate('/dashboard/developer');
+          } else {
+            navigate('/dashboard/client');
+          }
+        }
       }
-    } 
-    else {
-      setErrors({
-        submit: errorMessage || 'حدث خطأ، يرجى المحاولة مرة أخرى'
-      });
+    } catch (error) {
+      console.error('🔴 Error:', error);
+      
+      const errorMessage = error?.response?.data?.message || 
+                          error?.message || 
+                          error?.data?.message || 
+                          '';
+      
+      // ✅ لو الخطأ فيه تفعيل - ننقل على طول لصفحة التفعيل
+      if (errorMessage.includes('تفعيل') || errorMessage.includes('verify') || errorMessage.includes('confirmed') || errorMessage.includes('تم إنشاء')) {
+        navigate(`/verify-account?email=${encodeURIComponent(formData.email)}`);
+      } 
+      // ✅ لو الخطأ فيه استكمال ملف
+      else if (errorMessage.includes('استكمل الملف') || errorMessage.includes('اكمل ملف')) {
+        if (errorMessage.includes('العميل') || errorMessage.includes('client')) {
+          navigate(`/complete-client-profile?email=${encodeURIComponent(formData.email)}`);
+        } else {
+          navigate(`/complete-profile?email=${encodeURIComponent(formData.email)}`);
+        }
+      } 
+      // ✅ لو فيه complete profile
+      else if (errorMessage.toLowerCase().includes('complete') && errorMessage.toLowerCase().includes('profile')) {
+        if (errorMessage.toLowerCase().includes('client')) {
+          navigate(`/complete-client-profile?email=${encodeURIComponent(formData.email)}`);
+        } else {
+          navigate(`/complete-profile?email=${encodeURIComponent(formData.email)}`);
+        }
+      } 
+      else {
+        setErrors({
+          submit: errorMessage || 'حدث خطأ، يرجى المحاولة مرة أخرى'
+        });
+      }
+    } finally {
+      setLoading(false);
     }
-  } finally {
-    setLoading(false);
-  }
-};
+  };
+
   const fadeInUp = {
     initial: { opacity: 0, y: 30 },
     animate: { opacity: 1, y: 0 },
@@ -336,29 +314,6 @@ export default function Login() {
                       : 'سجل كعميل وابحث عن أفضل المبرمجين'}
                 </p>
               </div>
-
-             
-
-             
-
-              {/* ✅ رسالة التفعيل */}
-              {showVerification && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="mb-4 p-4 bg-yellow-500/20 border border-yellow-500/50 rounded-xl text-center"
-                >
-                  <p className="text-yellow-300 text-sm mb-3">
-                    ⏳ تم إنشاء الحساب بنجاح! يرجى تفعيل حسابك من خلال البريد الإلكتروني
-                  </p>
-                  <Link 
-                    to={`/verify-account?email=${encodeURIComponent(tempEmail)}`}
-                    className="inline-block px-5 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg text-sm font-medium hover:shadow-lg transition-all"
-                  >
-                    🔐 الذهاب لتفعيل الحساب
-                  </Link>
-                </motion.div>
-              )}
 
               {/* Toggle Buttons */}
               <div className="flex gap-2 bg-white/5 rounded-xl p-1 mb-8 border border-white/10">

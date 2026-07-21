@@ -14,7 +14,7 @@ export default function VerifyAccount() {
   const queryParams = new URLSearchParams(location.search);
   const emailFromUrl = queryParams.get('email') || '';
   
-  const [code, setCode] = useState(['', '', '', '', '', '', '', '', '', '']);
+  const [code, setCode] = useState(['', '', '', '', '', '']); // ✅ 6 أرقام بدل 10
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
@@ -45,7 +45,7 @@ export default function VerifyAccount() {
     newCode[index] = value.slice(0, 1);
     setCode(newCode);
 
-    if (value && index < 9) {
+    if (value && index < 5) { // ✅ 5 بدل 9
       inputRefs.current[index + 1].focus();
     }
   };
@@ -58,22 +58,22 @@ export default function VerifyAccount() {
 
   const handlePaste = (e) => {
     e.preventDefault();
-    const pastedData = e.clipboardData.getData('text').slice(0, 10);
-    if (/^[0-9]{10}$/.test(pastedData)) {
+    const pastedData = e.clipboardData.getData('text').slice(0, 6); // ✅ 6 بدل 10
+    if (/^[0-9]{6}$/.test(pastedData)) { // ✅ 6 بدل 10
       const digits = pastedData.split('');
       setCode(digits);
-      if (inputRefs.current[9]) {
-        inputRefs.current[9].focus();
+      if (inputRefs.current[5]) { // ✅ 5 بدل 9
+        inputRefs.current[5].focus();
       }
     }
   };
 
-  const handleVerify = async (e) => {
+ const handleVerify = async (e) => {
     e.preventDefault();
     
     const fullCode = code.join('');
-    if (fullCode.length < 10) {
-      setError('يرجى إدخال رمز التحقق الكامل (10 أرقام)');
+    if (fullCode.length < 6) {
+      setError('يرجى إدخال رمز التحقق الكامل (6 أرقام)');
       return;
     }
 
@@ -84,22 +84,31 @@ export default function VerifyAccount() {
       const response = await verifyAccount(email, fullCode);
       console.log('✅ Verify response:', response);
       
-      if (response && response.success) {
+      // ✅ نجاح
+      setSuccess(true);
+      setTimeout(() => {
+        navigate('/login');
+      }, 2000);
+      
+    } catch (err) {
+      console.error('❌ Verify error:', err);
+      
+      // ✅ لو الخطأ "تم تفعيل الاكونت بنجاح" - نعتبره نجاح
+      const errorMessage = err?.message || err?.response?.data?.message || '';
+      
+      if (errorMessage.includes('تم تفعيل') || errorMessage.includes('تفعيل') || errorMessage.includes('نجاح')) {
         setSuccess(true);
+        setError('');
         setTimeout(() => {
           navigate('/login');
         }, 2000);
       } else {
-        setError(response?.message || 'حدث خطأ أثناء التفعيل');
+        setError(errorMessage || 'رمز التحقق غير صحيح أو منتهي الصلاحية');
       }
-    } catch (err) {
-      console.error('❌ Verify error:', err);
-      setError(err?.message || 'رمز التحقق غير صحيح أو منتهي الصلاحية');
     } finally {
       setLoading(false);
     }
   };
-
   const handleResendCode = async () => {
     if (resendTimer > 0) return;
     
@@ -161,7 +170,7 @@ export default function VerifyAccount() {
                 تفعيل الحساب
               </h1>
               <p className="text-gray-500 text-sm">
-                أدخل رمز التحقق المكون من 10 أرقام المرسل إلى بريدك الإلكتروني
+                أدخل رمز التحقق المكون من 6 أرقام المرسل إلى بريدك الإلكتروني
               </p>
             </div>
 
@@ -172,7 +181,7 @@ export default function VerifyAccount() {
                 className="mb-6 p-4 bg-green-100 text-green-700 rounded-xl text-center"
               >
                 <span className="text-2xl block mb-1">✅</span>
-                تم تفعيل حسابك بنجاح! جاري التحويل...
+                تم تفعيل حسابك بنجاح! جاري تحويلك لصفحة تسجيل الدخول...
               </motion.div>
             )}
 
@@ -191,11 +200,13 @@ export default function VerifyAccount() {
                 <label className="block text-sm font-semibold text-gray-700 mb-4 text-center">
                   أدخل رمز التفعيل
                 </label>
+                {/* ✅ بداية من الشمال - dir="ltr" */}
                 <motion.div
                   variants={staggerContainer}
                   initial="hidden"
                   animate="visible"
-                  className="flex justify-center gap-2 flex-wrap"
+                  className="flex justify-center gap-2"
+                  dir="ltr"
                   onPaste={handlePaste}
                 >
                   {code.map((digit, index) => (
@@ -208,7 +219,7 @@ export default function VerifyAccount() {
                       value={digit}
                       onChange={(e) => handleChange(index, e.target.value)}
                       onKeyDown={(e) => handleKeyDown(index, e)}
-                      className={`w-10 h-12 text-center text-xl font-bold rounded-xl border-2 focus:border-indigo-500 focus:outline-none transition-all duration-300 ${
+                      className={`w-12 h-14 text-center text-2xl font-bold rounded-xl border-2 focus:border-indigo-500 focus:outline-none transition-all duration-300 ${
                         error ? 'border-red-500' : 'border-gray-200'
                       } bg-white/50 backdrop-blur-sm`}
                       disabled={loading || success}
@@ -242,13 +253,25 @@ export default function VerifyAccount() {
               </motion.button>
             </form>
 
-           
-              <div className="mt-4">
-                <Link to="/login" className="text-sm text-gray-400 hover:text-gray-600 transition">
-                  ← العودة إلى تسجيل الدخول
-                </Link>
-              </div>
-            
+            {/* ✅ زر إعادة الإرسال */}
+            <div className="mt-4 text-center">
+              <button
+                type="button"
+                onClick={handleResendCode}
+                disabled={resendTimer > 0 || loading}
+                className="text-sm text-indigo-600 hover:text-indigo-700 disabled:opacity-50"
+              >
+                {resendTimer > 0 
+                  ? `إعادة إرسال الرمز بعد ${resendTimer} ثانية`
+                  : 'إعادة إرسال الرمز 🔄'}
+              </button>
+            </div>
+
+            <div className="mt-4 text-center">
+              <Link to="/login" className="text-sm text-gray-400 hover:text-gray-600 transition">
+                ← العودة إلى تسجيل الدخول
+              </Link>
+            </div>
 
             {email && (
               <div className="mt-6 p-4 bg-gray-50 rounded-xl">

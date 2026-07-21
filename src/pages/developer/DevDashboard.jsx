@@ -83,9 +83,15 @@ export default function DevDashboard() {
     try {
       setLoading(true);
       setError(null);
-      const data = await getDeveloperDashboard();
-            console.log('📥 Full Dashboard Response:', data);
+      
+      const response = await getDeveloperDashboard();
+      console.log('📥 Full Dashboard Response:', response);
+      
+      // ✅ استخراج البيانات من الـ response بشكل صحيح
+      const data = response?.data || response || {};
+      console.log('📥 Extracted Data:', data);
 
+      // ✅ تحديث الإحصائيات
       if (data?.statistics) {
         setStats({
           totalProjects: data.statistics.totalProjects ?? 0,
@@ -98,11 +104,14 @@ export default function DevDashboard() {
           totalSales: data.statistics.totalOrders ?? 0,
           storeSales: data.statistics.marketplaceRevenue ?? 0,
           customProjects: data.statistics.freelanceRevenue ?? 0,
-          rating: 0, responseRate: 0,
+          rating: data.statistics.averageRating ?? 0,
+          responseRate: data.statistics.totalReviews ?? 0,
           pendingAmount: data.statistics.pendingBalance ?? 0,
           availableBalance: data.statistics.availableBalance ?? 0
         });
       }
+
+      // ✅ تحديث إحصائيات المتجر
       if (data?.statistics) {
         setStoreStats({
           totalProducts: data.statistics.totalProducts ?? 0,
@@ -110,63 +119,107 @@ export default function DevDashboard() {
           conversionRate: data.statistics.conversionRate ?? 0
         });
       }
+
+      // ✅ تحديث بيانات الرسم البياني
       if (data?.charts?.monthlyChart?.length) {
         const arabicMonths = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
         setChartData(data.charts.monthlyChart.map(item => ({
           month: arabicMonths[(item._id?.month ?? 1) - 1],
           earnings: item.earnings ?? 0
         })));
-      } else setChartData([]);
+      } else {
+        setChartData([]);
+      }
       
+      // ✅ تحديث المشاريع الأخيرة
       if (data?.recentProjects?.length) {
         setRecentProjects(data.recentProjects.map(p => ({
-          id: p._id ?? p.id, name: p.projectName ?? '', client: p.owner?.username ?? '',
-          clientAvatar: p.owner?.profileImage ?? 'https://randomuser.me/api/portraits/men/1.jpg',
-          status: p.status ?? 'pending', progress: p.progress ?? 0,
-          amount: p.amount ?? p.budget ?? 0, lastUpdate: p.updatedAt ? formatTime(p.updatedAt) : ''
+          id: p._id ?? p.id,
+          name: p.projectName ?? 'مشروع بدون اسم',
+          client: p.owner?.username ?? p.client?.username ?? 'عميل',
+          clientAvatar: p.owner?.profileImage ?? p.client?.profileImage ?? 'https://randomuser.me/api/portraits/men/1.jpg',
+          status: p.status ?? 'pending',
+          progress: p.progress ?? 0,
+          amount: p.amount ?? p.budget ?? 0,
+          lastUpdate: p.updatedAt ? formatTime(p.updatedAt) : ''
         })));
-      } else setRecentProjects([]);
+      } else {
+        setRecentProjects([]);
+      }
       
+      // ✅ تحديث المبيعات الأخيرة
       if (data?.recentSales?.length) {
         setRecentSales(data.recentSales.map(s => ({
-          id: s._id ?? s.id, project: s.project?.projectName ?? '', buyer: s.buyer?.username ?? '',
+          id: s._id ?? s.id,
+          project: s.project?.projectName ?? 'مشروع',
+          buyer: s.buyer?.username ?? 'مشتري',
           buyerAvatar: s.buyer?.profileImage ?? 'https://randomuser.me/api/portraits/men/1.jpg',
-          amount: s.amount ?? 0, date: s.date ?? s.createdAt ?? '', package: s.package ?? 'Basic'
+          amount: s.amount ?? 0,
+          date: s.date ?? s.createdAt ?? '',
+          package: s.package ?? 'Basic'
         })));
-      } else setRecentSales([]);
+      } else {
+        setRecentSales([]);
+      }
       
+      // ✅ تحديث الرسائل الأخيرة
       if (data?.recentMessages?.length) {
         setRecentMessages(data.recentMessages.map(m => ({
-          id: m._id ?? m.id, from: m.lastMessage?.sender?.username ?? '', avatar: m.lastMessage?.sender?.profileImage ?? 'https://randomuser.me/api/portraits/men/1.jpg',
-          message: m.lastMessage?.text ?? '', time: m.createdAt ? formatTime(m.createdAt) : '', unread: m.lastMessage.seen ?? !m.read
+          id: m._id ?? m.id,
+          from: m.client?.username ?? 'مستخدم',
+          avatar: m.client?.profileImage ?? 'https://randomuser.me/api/portraits/men/1.jpg',
+          message: m.lastMessage?.text ?? '',
+          time: m.createdAt ? formatTime(m.createdAt) : '',
+          unread: m.lastMessage?.seen ?? !m.read
         })));
-      } else setRecentMessages([]);
+      } else {
+        setRecentMessages([]);
+      }
       
+      // ✅ تحديث المشاريع الأكثر مبيعاً
       if (data?.topSellingProducts?.length) {
         setTopProjects(data.topSellingProducts.map(p => ({
-          id: p._id ?? p.id, name: p.projectName ?? '', sales: p.sales ?? 0,
-          revenue: p.revenue ?? (p.sales ?? 0) * (p.price ?? 0), rating: p.rating ?? 0
+          id: p._id ?? p.id,
+          name: p.projectName ?? 'مشروع',
+          sales: p.sales ?? 0,
+          revenue: p.revenue ?? (p.sales ?? 0) * (p.price ?? 0),
+          rating: p.rating ?? 0
         })));
-      } else setTopProjects([]);
+      } else {
+        setTopProjects([]);
+      }
       
+      // ✅ تحديث المواعيد القادمة
       if (data?.upcomingTasks?.length) {
         setUpcomingDeadlines(data.upcomingTasks.map(t => ({
-          id: t._id ?? t.id, project: t.project?.projectName ?? '', client: t.client?.username ?? '',
-          dueDate: t.dueDate ?? '', daysLeft: t.daysLeft ?? 0, priority: t.priority ?? 'medium'
+          id: t._id ?? t.id,
+          project: t.project?.projectName ?? 'مشروع',
+          client: t.client?.username ?? 'عميل',
+          dueDate: t.dueDate ?? '',
+          daysLeft: t.daysLeft ?? 0,
+          priority: t.priority ?? 'medium'
         })));
-      } else setUpcomingDeadlines([]);
+      } else {
+        setUpcomingDeadlines([]);
+      }
       
+      // ✅ تحديث سجل النشاط
       if (data?.latestNotifications?.length) {
         setActivityLog(data.latestNotifications.map(n => ({
-          id: n._id ?? n.id, action: n.message ?? '', type: n.type ?? 'system',
+          id: n._id ?? n.id,
+          action: n.message ?? n.title ?? '',
+          type: n.type ?? 'system',
           date: n.createdAt ? new Date(n.createdAt).toLocaleDateString('ar-EG') : '',
           time: n.createdAt ? new Date(n.createdAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : ''
         })));
-      } else setActivityLog([]);
+      } else {
+        setActivityLog([]);
+      }
       
       dashboardLoadedRef.current = true;
     } catch (err) {
-      setError(err?.response?.data?.message || 'حدث خطأ');
+      console.error('❌ Error loading dashboard:', err);
+      setError(err?.response?.data?.message || err?.message || 'حدث خطأ في تحميل البيانات');
     } finally {
       setLoading(false);
     }
@@ -341,7 +394,7 @@ export default function DevDashboard() {
     <div className="min-h-screen flex flex-col" dir="rtl">
       <Navbar />
       <div className="flex-grow flex items-center justify-center">
-        <div className="text-center">
+        <div className="text-center bg-white rounded-2xl shadow-lg p-8 max-w-md">
           <div className="text-6xl mb-4">⚠️</div>
           <h3 className="text-xl font-bold text-gray-700 mb-2">حدث خطأ</h3>
           <p className="text-gray-500 mb-4">{error}</p>
@@ -412,7 +465,7 @@ export default function DevDashboard() {
                 { icon: '💰', title: 'إجمالي الأرباح', value: `$${stats.totalEarnings.toLocaleString()}`, change: `+$${stats.monthlyEarnings.toLocaleString()}`, color: 'from-indigo-500 to-purple-500' },
                 { icon: '✅', title: 'المشاريع المنجزة', value: stats.completedProjects, subtitle: `من إجمالي ${stats.totalProjects}`, color: 'from-green-500 to-emerald-500' },
                 { icon: '🏆', title: 'إجمالي المبيعات', value: stats.totalSales, color: 'from-purple-500 to-pink-500' },
-                { icon: '⭐', title: 'التقييم', value: stats.rating, subtitle: `نسبة الاستجابة ${stats.responseRate}%`, color: 'from-yellow-500 to-orange-500' }
+                { icon: '⭐', title: 'التقييم', value: stats.rating || 0, subtitle: `نسبة الاستجابة ${stats.responseRate || 0}%`, color: 'from-yellow-500 to-orange-500' }
               ].map((card, idx) => (
                 <motion.div key={idx} variants={cardVariants} whileHover={{ y: -8 }} className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 cursor-pointer relative overflow-hidden group">
                   <div className={`absolute inset-0 bg-gradient-to-r ${card.color} opacity-0 group-hover:opacity-5 transition-opacity`} />
@@ -501,7 +554,7 @@ export default function DevDashboard() {
                 <div className="space-y-4">
                   {recentProjects.length > 0 ? recentProjects.map((p, idx) => (
                     <motion.div key={p.id} initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.1 }} whileHover={{ scale: 1.01 }} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl cursor-pointer">
-                      <div className="flex items-center gap-3 flex-1"><img src={p.clientAvatar} alt={p.username} className="w-10 h-10 rounded-full" onError={(e) => { e.target.src = 'https://randomuser.me/api/portraits/men/1.jpg'; }} /><div><div className="font-semibold">{p.name}</div><div className="text-xs text-gray-500">{p.client}</div></div></div>
+                      <div className="flex items-center gap-3 flex-1"><img src={p.clientAvatar} alt={p.client} className="w-10 h-10 rounded-full" onError={(e) => { e.target.src = 'https://randomuser.me/api/portraits/men/1.jpg'; }} /><div><div className="font-semibold">{p.name}</div><div className="text-xs text-gray-500">{p.client}</div></div></div>
                       <div className="flex-1"><div className="flex items-center gap-2"><div className="flex-1 h-2 bg-gray-200 rounded-full"><div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full" style={{ width: `${p.progress}%` }} /></div><span className="text-xs">{p.progress}%</span></div><div className="flex justify-between mt-1"><span className="text-xs text-gray-400">{p.lastUpdate}</span><span className={`text-xs px-2 py-0.5 rounded-full ${getStatusColor(p.status)}`}>{getStatusText(p.status)}</span></div></div>
                       <div className="text-left min-w-[100px]"><div className="font-bold text-indigo-600">${p.amount?.toLocaleString()}</div><Link to={`/project/${p.id}`} className="text-xs text-indigo-400">إدارة →</Link></div>
                     </motion.div>

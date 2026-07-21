@@ -15,11 +15,11 @@ export function SocketProvider({ children }) {
   const [onlineUsers, setOnlineUsers] = useState([]);
   const socketRef = useRef(null);
   const hasConnected = useRef(false);
-
+const url = import.meta.env.VITE_API_URL ;
   useEffect(() => {
     if (!user?._id || hasConnected.current) return;
 
-    const socketInstance = io('http://localhost:3000', {
+    const socketInstance = io(url, {
       withCredentials: true,
       transports: ['websocket'],
     });

@@ -527,8 +527,8 @@ export default function DevProposals() {
                   </div>
                 )}
 
-                {/* Action Buttons for Pending Proposals */}
-                {selectedProposal.status === 'pending' && (
+               {/* Action Buttons for Pending Proposals */}
+       {/*        {selectedProposal.status === 'pending' && (
                   <div className="flex gap-3 pt-4 border-t border-gray-200">
                     <button className="flex-1 py-2 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 transition">
                       سحب العرض
@@ -537,7 +537,7 @@ export default function DevProposals() {
                       تعديل العرض
                     </button>
                   </div>
-                )}
+                )}*/}
 
                 {selectedProposal.status === 'accepted' && (
                   <div className="bg-green-50 rounded-xl p-4 text-center">

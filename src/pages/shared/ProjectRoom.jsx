@@ -46,6 +46,7 @@ import {
   removeTeamMember,
   createFolder,
   getFolderFiles,
+  submitReview,
   getProjectFolders,
   uploadFile,
   deleteFile,
@@ -88,6 +89,14 @@ export default function ProjectWorkspace() {
   
   // ✅ جلب بيانات المستخدم من الـ Context
   const { user, userType, isAuthenticated } = useAuth();
+  
+  // ✅ حالة بوب التقييم
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewHover, setReviewHover] = useState(0);
+  const [reviewComment, setReviewComment] = useState('');
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewSuccess, setReviewSuccess] = useState(false);
   
   // eslint-disable-next-line no-unused-vars
   const [members, setMembers] = useState([]);
@@ -519,6 +528,7 @@ export default function ProjectWorkspace() {
       fetchProjectData();
     }
   }, [fetchProjectData]);
+  
   const getPaymentStatusColor = (status) => {
   const map = {
     'paid': 'bg-green-100 text-green-700 border-green-200',
@@ -1197,6 +1207,41 @@ const handleDownloadReceipt = async (payment) => {
     document.body.removeChild(link);
   };
 
+  // ✅ إرسال التقييم
+  const handleSubmitReview = async () => {
+    if (reviewRating === 0) {
+      showToast('⚠️ يرجى اختيار تقييم', 'error');
+      return;
+    }
+
+    setReviewSubmitting(true);
+    try {
+      // ✅ استدعاء API التقييم
+      const response = await submitReview({
+        projectId: project._id,
+        rating: reviewRating,
+        comment: reviewComment.trim()
+      });
+      
+      console.log('✅ Review submitted:', response);
+      setReviewSuccess(true);
+      showToast('✅ تم إرسال التقييم بنجاح!', 'success');
+      
+      setTimeout(() => {
+        setShowReviewModal(false);
+        setReviewRating(0);
+        setReviewComment('');
+        setReviewSuccess(false);
+      }, 2000);
+      
+    } catch (error) {
+      console.error('❌ Error submitting review:', error);
+      showToast(error.response?.data?.message || 'حدث خطأ أثناء إرسال التقييم', 'error');
+    } finally {
+      setReviewSubmitting(false);
+    }
+  };
+
   // ✅ معاينة الملف
   const handlePreviewFile = (file) => {
     const fileUrl = file?.url || file?.fileUrl || file?.secure_url || file?.link || file?.path || file?.publicUrl;
@@ -1213,55 +1258,68 @@ const handleDownloadReceipt = async (payment) => {
 
   // ==================== دوال العميل ====================
 
-const handleApproveProject = async () => {
-  // ✅ التحقق من صلاحية المستخدم (عميل فقط)
-  if (!isClient) {
-    showToast('⚠️ فقط العميل يمكنه الموافقة على المشروع', 'error');
-    return;
-  }
+  const handleApproveProject = async () => {
+    // ✅ التحقق من صلاحية المستخدم (عميل فقط)
+    if (!isClient) {
+      showToast('⚠️ فقط العميل يمكنه الموافقة على المشروع', 'error');
+      return;
+    }
 
-  // ✅ التحقق من نسبة الإنجاز (شرط 100%)
-  if (project?.progress < 100) {
-    showToast(`⚠️ لا يمكن الموافقة على المشروع إلا بعد اكتمال 100% من التقدم (التقدم الحالي: ${project?.progress}%)`, 'error');
-    return;
-  }
+    // ✅ التحقق من نسبة الإنجاز (شرط 100%)
+    if (project?.progress < 100) {
+      showToast(`⚠️ لا يمكن الموافقة على المشروع إلا بعد اكتمال 100% من التقدم (التقدم الحالي: ${project?.progress}%)`, 'error');
+      return;
+    }
 
-  // ✅ تأكيد الموافقة
-  if (!window.confirm('⚠️ هل أنت متأكد من الموافقة على المشروع؟\n\nهذا الإجراء نهائي ولا يمكن التراجع عنه.')) {
-    return;
-  }
+    // ✅ تأكيد الموافقة
+    if (!window.confirm('⚠️ هل أنت متأكد من الموافقة على المشروع؟\n\nهذا الإجراء نهائي ولا يمكن التراجع عنه.')) {
+      return;
+    }
 
-  // ✅ بدء التحميل
-  setSubmitting(true);
+    // ✅ بدء التحميل
+    setSubmitting(true);
 
-  try {
-    // ✅ استدعاء API الموافقة على المشروع
-    const response = await approveProject(project._id);
-    console.log('✅ Project approved:', response);
+    try {
+      // ✅ استدعاء API الموافقة على المشروع
+      const response = await approveProject(project._id);
+      console.log('✅ Project approved:', response);
 
-    // ✅ تحديث حالة المشروع محلياً
-    setProject(prev => ({ 
-      ...prev, 
-      status: 'approved',
-      approvedAt: new Date().toISOString()
-    }));
+      // ✅ تحديث حالة المشروع محلياً
+      setProject(prev => ({ 
+        ...prev, 
+        status: 'completed',
+        approvedAt: new Date().toISOString()
+      }));
 
-    // ✅ عرض رسالة نجاح
-    showToast('🎉 تمت الموافقة على المشروع بنجاح!', 'success');
+      // ✅ عرض رسالة نجاح
+      showToast('🎉 تمت الموافقة على المشروع بنجاح!', 'success');
 
-    // ✅ تحديث الأنشطة
-    await fetchProjectActivities();
+      // ✅ تحديث الأنشطة
+      await fetchProjectActivities();
 
-  } catch (error) {
-    console.error('❌ Error approving project:', error);
-    showToast(
-      error.response?.data?.message || 'حدث خطأ أثناء الموافقة على المشروع', 
-      'error'
-    );
-  } finally {
-    setSubmitting(false);
-  }
-};
+    } catch (error) {
+      console.error('❌ Error approving project:', error);
+      showToast(
+        error.response?.data?.message || 'حدث خطأ أثناء الموافقة على المشروع', 
+        'error'
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // ✅ فتح بوب التقييم بدلاً من التوجيه
+  const handleReviewProject = () => {
+    if (project?.status !== 'completed') {
+      showToast('⚠️ لا يمكن التقييم إلا بعد اكتمال المشروع', 'error');
+      return;
+    }
+    setShowReviewModal(true);
+    setReviewRating(0);
+    setReviewComment('');
+    setReviewSuccess(false);
+  };
+
   // ✅ إضافة دفعة جديدة - للعميل فقط
   const handleAddPayment = async () => {
     if (!isClient) {
@@ -1292,10 +1350,10 @@ const handleApproveProject = async () => {
 
    const phoneRegex = /^01[0125][0-9]{8}$/; // 01 + (0,1,2,5) + 8 أرقام
 
-if (!phoneRegex.test(paymentData.transferNumber)) {
-  showToast('⚠️ رقم المحفظة غير صحيح، يجب أن يبدأ بـ 010، 011، 012، أو 015 ويتكون من 11 رقم', 'error');
-  return;
-}
+  if (!phoneRegex.test(paymentData.transferNumber)) {
+    showToast('⚠️ رقم المحفظة غير صحيح، يجب أن يبدأ بـ 010، 011، 012، أو 015 ويتكون من 11 رقم', 'error');
+    return;
+  }
 
     setSubmitting(true);
 
@@ -1542,12 +1600,12 @@ if (!phoneRegex.test(paymentData.transferNumber)) {
       
       case 'milestone_completed':
         return `قام ${username} بإكمال المرحلة "${metadata?.milestoneName || 'مرحلة'}"`;
-         case 'feature_created':
+      case 'feature_created':
         return `قام ${username} باضافة ميزة جديد `;
       
       case 'Objective_created':
         return `قام ${username} باضافة هدف جديد `;
-         case 'clientApproved':
+      case 'clientApproved':
         return `قام ${username} العميل وافق علي المشروع `;
       
       default:
@@ -2345,14 +2403,14 @@ if (!phoneRegex.test(paymentData.transferNumber)) {
                                   </span>
                                 </td>
                                 <td className="px-4 py-3">
-  <button
-    onClick={() => handleDownloadReceipt(payment)}
-    className="text-indigo-600 hover:text-indigo-700 transition text-sm flex items-center gap-1"
-  >
-    <FiDownload className="w-4 h-4" />
-    تحميل PDF
-  </button>
-</td>
+                                  <button
+                                    onClick={() => handleDownloadReceipt(payment)}
+                                    className="text-indigo-600 hover:text-indigo-700 transition text-sm flex items-center gap-1"
+                                  >
+                                    <FiDownload className="w-4 h-4" />
+                                    تحميل PDF
+                                  </button>
+                                </td>
                               </tr>
                             ))}
                           </tbody>
@@ -2583,24 +2641,39 @@ if (!phoneRegex.test(paymentData.transferNumber)) {
                       إضافة أهداف
                     </button>
                     
-                    {/* ✅ للعميل فقط - زر الموافقة على المشروع */}
-{isClient && (
-  <button 
-    onClick={handleApproveProject}
-    disabled={project?.progress < 100 || submitting}
-    className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl transition text-sm ${
-      project?.progress >= 100 && !submitting
-        ? 'bg-green-50 text-green-700 hover:bg-green-100'
-        : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-    }`}
-  >
-    <FiCheck className="w-4 h-4" />
-    {submitting ? 'جاري الموافقة...' : 'الموافقة على المشروع'}
-    {project?.progress < 100 && (
-      <span className="text-xs">({project?.progress}%)</span>
-    )}
-  </button>
-)}
+                    {/* ✅ زر التقييم - للعميل فقط */}
+                    {isClient && (
+                      <button 
+                        onClick={handleReviewProject}
+                        className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl transition text-sm ${
+                          project?.status === 'completed'
+                            ? 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100'
+                            : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        }`}
+                      >
+                        <FiStar className="w-4 h-4" />
+                        {project?.status === 'completed' ? 'تقييم المشروع ⭐' : 'التقييم متاح بعد الإكمال'}
+                      </button>
+                    )}
+                    
+                    {/* ✅ زر الموافقة على المشروع */}
+                    {isClient && (
+                      <button 
+                        onClick={handleApproveProject}
+                        disabled={project?.progress < 100 || submitting}
+                        className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl transition text-sm ${
+                          project?.progress >= 100 && !submitting
+                            ? 'bg-green-50 text-green-700 hover:bg-green-100'
+                            : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        }`}
+                      >
+                        <FiCheck className="w-4 h-4" />
+                        {submitting ? 'جاري الموافقة...' : 'الموافقة على المشروع'}
+                        {project?.progress < 100 && (
+                          <span className="text-xs">({project?.progress}%)</span>
+                        )}
+                      </button>
+                    )}
                   </>
                 )}
 
@@ -3319,6 +3392,130 @@ if (!phoneRegex.test(paymentData.transferNumber)) {
                   {submitting ? 'جاري الإضافة...' : 'إضافة هدف 🎯'}
                 </button>
               </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ✅ Review Modal - بوب التقييم */}
+      <AnimatePresence>
+        {showReviewModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => {
+              if (!reviewSubmitting && !reviewSuccess) {
+                setShowReviewModal(false);
+                setReviewRating(0);
+                setReviewComment('');
+              }
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 50 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 50 }}
+              transition={{ type: "spring", damping: 20 }}
+              className="bg-white rounded-2xl max-w-md w-full p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {reviewSuccess ? (
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="text-center py-8"
+                >
+                  <div className="text-6xl mb-4">🎉</div>
+                  <h3 className="text-xl font-bold text-green-600 mb-2">تم إرسال تقييمك بنجاح!</h3>
+                  <p className="text-gray-500">شكراً لك على مشاركة رأيك</p>
+                </motion.div>
+              ) : (
+                <>
+                  <div className="text-center mb-6">
+                    <div className="text-5xl mb-3">⭐</div>
+                    <h3 className="text-xl font-bold text-gray-800">تقييم المشروع</h3>
+                    <p className="text-sm text-gray-500 mt-1">{project?.name}</p>
+                  </div>
+
+                  {/* ✅ نجوم التقييم */}
+                  <div className="flex justify-center gap-2 mb-4">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <motion.button
+                        key={star}
+                        type="button"
+                        whileHover={{ scale: 1.2 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => setReviewRating(star)}
+                        onMouseEnter={() => setReviewHover(star)}
+                        onMouseLeave={() => setReviewHover(0)}
+                        className={`text-5xl transition-all duration-200 focus:outline-none ${
+                          (reviewHover || reviewRating) >= star
+                            ? 'text-yellow-400 drop-shadow-lg'
+                            : 'text-gray-300'
+                        }`}
+                      >
+                        ★
+                      </motion.button>
+                    ))}
+                  </div>
+
+                  {/* ✅ نص التقييم */}
+                  <p className="text-center text-sm text-gray-500 mb-4">
+                    {reviewRating === 0 ? 'اضغط على النجوم للتقييم' : 
+                     reviewRating === 5 ? 'ممتاز! 😍' : 
+                     reviewRating === 4 ? 'جيد جداً 👍' : 
+                     reviewRating === 3 ? 'جيد 🙂' : 
+                     reviewRating === 2 ? 'مقبول 😐' : 
+                     reviewRating === 1 ? 'ضعيف 😞' : ''}
+                  </p>
+
+                  {/* ✅ تعليق اختياري */}
+                  <div className="mb-4">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      تعليقك (اختياري)
+                    </label>
+                    <textarea
+                      rows="3"
+                      value={reviewComment}
+                      onChange={(e) => setReviewComment(e.target.value)}
+                      className="w-full px-4 py-2 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 focus:outline-none resize-none"
+                      placeholder="اكتب تعليقك عن المشروع..."
+                      disabled={reviewSubmitting}
+                    />
+                  </div>
+
+                  {/* ✅ أزرار الإجراء */}
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => {
+                        setShowReviewModal(false);
+                        setReviewRating(0);
+                        setReviewComment('');
+                      }}
+                      disabled={reviewSubmitting}
+                      className="flex-1 py-2 border-2 border-gray-300 text-gray-600 rounded-xl font-medium hover:bg-gray-50 transition disabled:opacity-50"
+                    >
+                      إلغاء
+                    </button>
+                    <button
+                      onClick={handleSubmitReview}
+                      disabled={reviewSubmitting || reviewRating === 0}
+                      className="flex-1 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-xl font-medium hover:shadow-lg transition disabled:opacity-50"
+                    >
+                      {reviewSubmitting ? (
+                        <div className="flex items-center justify-center gap-2">
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          جاري...
+                        </div>
+                      ) : (
+                        'إرسال التقييم ⭐'
+                      )}
+                    </button>
+                  </div>
+                </>
+              )}
             </motion.div>
           </motion.div>
         )}

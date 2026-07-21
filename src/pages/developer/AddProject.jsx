@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import { createProject } from '../../services/develper.service.js';
@@ -16,6 +16,7 @@ export default function AddProject() {
   const [loading, setLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [validationErrors, setValidationErrors] = useState({});
+  const [upgradeMessage, setUpgradeMessage] = useState(null);
   
   // Form Data
   const [formData, setFormData] = useState({
@@ -92,7 +93,7 @@ export default function AddProject() {
     { value: 'lifetime', label: 'مدى الحياة' }
   ];
 
-  // Validate form
+  // ✅ Validate form - كل الحقول مطلوبة
   const validateForm = () => {
     const errors = {};
     
@@ -102,16 +103,16 @@ export default function AddProject() {
     if (!formData.fullDescription.trim()) errors.fullDescription = 'الوصف المفصل مطلوب';
     if (!formData.demoUrl.trim()) errors.demoUrl = 'رابط العرض التجريبي مطلوب';
     if (!formData.githubUrl.trim()) errors.githubUrl = 'رابط GitHub مطلوب';
-    if (!formData.supportPeriod) errors.supportPeriod = 'مدة الدعم الفني مطلوبة';
-    if (!formData.updatesPeriod) errors.updatesPeriod = 'مدة التحديثات مطلوبة';
+    if (!formData.videoFile) errors.videoFile = 'الفيديو التوضيحي مطلوب';
     if (formData.technologies.length === 0) errors.technologies = 'أضف تقنية واحدة على الأقل';
     if (formData.mainFeatures.length === 0) errors.mainFeatures = 'أضف ميزة واحدة على الأقل';
-    if (formData.images.length === 0) errors.images = 'أضف صورة واحدة على الأقل';
-    if (!formData.videoFile) errors.videoFile = 'الفيديو التوضيحي مطلوب';
-    if (!formData.downloadFile) errors.downloadFile = 'ملف المشروع مطلوب';
+    if (!formData.supportPeriod) errors.supportPeriod = 'مدة الدعم الفني مطلوبة';
+    if (!formData.updatesPeriod) errors.updatesPeriod = 'مدة التحديثات مطلوبة';
     if (!formData.basic.price || formData.basic.price <= 0) errors.basicPrice = 'سعر باقة Basic مطلوب';
     if (!formData.pro.price || formData.pro.price <= 0) errors.proPrice = 'سعر باقة Pro مطلوب';
     if (!formData.enterprise.price || formData.enterprise.price <= 0) errors.enterprisePrice = 'سعر باقة Enterprise مطلوب';
+    if (formData.images.length === 0) errors.images = 'أضف صورة واحدة على الأقل';
+    if (!formData.downloadFile) errors.downloadFile = 'ملف المشروع مطلوب';
     
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
@@ -120,51 +121,37 @@ export default function AddProject() {
   // Handle image upload
   const handleImageUpload = (e) => {
     const files = Array.from(e.target.files);
-    setFormData(prev => ({
-      ...prev,
-      images: [...prev.images, ...files]
-    }));
+    setFormData(prev => ({ ...prev, images: [...prev.images, ...files] }));
+    setValidationErrors(prev => ({ ...prev, images: '' }));
   };
 
   const removeImage = (index) => {
-    setFormData(prev => ({
-      ...prev,
-      images: prev.images.filter((_, i) => i !== index)
-    }));
+    setFormData(prev => ({ ...prev, images: prev.images.filter((_, i) => i !== index) }));
   };
 
   // Handle video upload
   const handleVideoUpload = (e) => {
     const file = e.target.files[0];
-    
     if (file) {
       if (file.size > 250 * 1024 * 1024) {
         setValidationErrors({ ...validationErrors, videoFile: 'حجم الفيديو يجب ألا يزيد عن 250 ميجابايت' });
         return;
       }
-      
       const allowedTypes = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'];
       if (!allowedTypes.includes(file.type)) {
-        setValidationErrors({ ...validationErrors, videoFile: 'صيغة الفيديو غير مدعومة. الصيغ المدعومة: MP4, WebM, OGG, MOV' });
+        setValidationErrors({ ...validationErrors, videoFile: 'صيغة الفيديو غير مدعومة' });
         return;
       }
-      
-      setFormData(prev => ({
-        ...prev,
-        videoFile: file
-      }));
-      setValidationErrors({ ...validationErrors, videoFile: '' });
+      setFormData(prev => ({ ...prev, videoFile: file }));
+      setValidationErrors(prev => ({ ...prev, videoFile: '' }));
     }
   };
 
   const removeVideo = () => {
-    setFormData(prev => ({
-      ...prev,
-      videoFile: null
-    }));
+    setFormData(prev => ({ ...prev, videoFile: null }));
   };
 
-  // ✅ Handle download file upload
+  // Handle download file upload
   const handleDownloadUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -178,7 +165,7 @@ export default function AddProject() {
         return;
       }
       setFormData(prev => ({ ...prev, downloadFile: file }));
-      setValidationErrors({ ...validationErrors, downloadFile: '' });
+      setValidationErrors(prev => ({ ...prev, downloadFile: '' }));
     }
   };
 
@@ -189,58 +176,35 @@ export default function AddProject() {
   // Tech Stack Functions
   const addTech = () => {
     if (tempTech.trim() && !formData.technologies.includes(tempTech.trim())) {
-      setFormData({
-        ...formData,
-        technologies: [...formData.technologies, tempTech.trim()]
-      });
+      setFormData({ ...formData, technologies: [...formData.technologies, tempTech.trim()] });
       setTempTech('');
-      setValidationErrors({ ...validationErrors, technologies: '' });
+      setValidationErrors(prev => ({ ...prev, technologies: '' }));
     }
   };
 
   const removeTech = (tech) => {
-    setFormData({
-      ...formData,
-      technologies: formData.technologies.filter(t => t !== tech)
-    });
+    setFormData({ ...formData, technologies: formData.technologies.filter(t => t !== tech) });
   };
 
   // Features Functions
   const addFeature = () => {
     if (tempFeature.trim() && !formData.mainFeatures.includes(tempFeature.trim())) {
-      setFormData({
-        ...formData,
-        mainFeatures: [...formData.mainFeatures, tempFeature.trim()]
-      });
+      setFormData({ ...formData, mainFeatures: [...formData.mainFeatures, tempFeature.trim()] });
       setTempFeature('');
-      setValidationErrors({ ...validationErrors, mainFeatures: '' });
+      setValidationErrors(prev => ({ ...prev, mainFeatures: '' }));
     }
   };
 
   const removeFeature = (feature) => {
-    setFormData({
-      ...formData,
-      mainFeatures: formData.mainFeatures.filter(f => f !== feature)
-    });
+    setFormData({ ...formData, mainFeatures: formData.mainFeatures.filter(f => f !== feature) });
   };
 
   // Package Features Functions
   const addPackageFeature = (packageName) => {
-    const feature = packageName === 'basic' ? tempBasicFeature : 
-                    packageName === 'pro' ? tempProFeature : tempEnterpriseFeature;
-    
+    const feature = packageName === 'basic' ? tempBasicFeature : packageName === 'pro' ? tempProFeature : tempEnterpriseFeature;
     if (feature.trim()) {
-      const key = packageName === 'basic' ? 'basic' : 
-                  packageName === 'pro' ? 'pro' : 'enterprise';
-      
-      setFormData(prev => ({
-        ...prev,
-        [key]: {
-          ...prev[key],
-          features: [...prev[key].features, feature.trim()]
-        }
-      }));
-      
+      const key = packageName === 'basic' ? 'basic' : packageName === 'pro' ? 'pro' : 'enterprise';
+      setFormData(prev => ({ ...prev, [key]: { ...prev[key], features: [...prev[key].features, feature.trim()] } }));
       if (packageName === 'basic') setTempBasicFeature('');
       else if (packageName === 'pro') setTempProFeature('');
       else setTempEnterpriseFeature('');
@@ -248,43 +212,23 @@ export default function AddProject() {
   };
 
   const removePackageFeature = (packageName, index) => {
-    const key = packageName === 'basic' ? 'basic' : 
-                packageName === 'pro' ? 'pro' : 'enterprise';
-    
-    setFormData(prev => ({
-      ...prev,
-      [key]: {
-        ...prev[key],
-        features: prev[key].features.filter((_, i) => i !== index)
-      }
-    }));
+    const key = packageName === 'basic' ? 'basic' : packageName === 'pro' ? 'pro' : 'enterprise';
+    setFormData(prev => ({ ...prev, [key]: { ...prev[key], features: prev[key].features.filter((_, i) => i !== index) } }));
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value
-    });
-    setValidationErrors({ ...validationErrors, [name]: '' });
+    setFormData({ ...formData, [name]: value });
+    setValidationErrors(prev => ({ ...prev, [name]: '' }));
   };
 
   const handlePackageChange = (packageName, field, value) => {
-    const key = packageName === 'basic' ? 'basic' : 
-                packageName === 'pro' ? 'pro' : 'enterprise';
-    
-    setFormData(prev => ({
-      ...prev,
-      [key]: {
-        ...prev[key],
-        [field]: field === 'price' ? Number(value) : value
-      }
-    }));
-    
-    setValidationErrors({ ...validationErrors, [`${packageName}Price`]: '' });
+    const key = packageName === 'basic' ? 'basic' : packageName === 'pro' ? 'pro' : 'enterprise';
+    setFormData(prev => ({ ...prev, [key]: { ...prev[key], [field]: field === 'price' ? Number(value) : value } }));
+    setValidationErrors(prev => ({ ...prev, [`${packageName}Price`]: '' }));
   };
 
-  // ✅ الإرسال للباك اند باستخدام createProject
+  // Submit form
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -294,11 +238,10 @@ export default function AddProject() {
     }
     
     setLoading(true);
+    setUpgradeMessage(null);
     
     try {
       const submitData = new FormData();
-      
-      // ✅ بيانات المشروع
       submitData.append('projectName', formData.projectName);
       submitData.append('category', formData.category);
       submitData.append('shortDescription', formData.shortDescription);
@@ -308,118 +251,85 @@ export default function AddProject() {
       submitData.append('license', formData.license);
       submitData.append('supportPeriod', formData.supportPeriod || '');
       submitData.append('updatesPeriod', formData.updatesPeriod || '');
-      
-      // ✅ التقنيات (JSON)
       submitData.append('technologies', JSON.stringify(formData.technologies));
-      
-      // ✅ المميزات (JSON)
       submitData.append('mainFeatures', JSON.stringify(formData.mainFeatures));
+      submitData.append('basic', JSON.stringify({ price: formData.basic.price, deliveryTime: formData.basic.deliveryTime, features: formData.basic.features }));
+      submitData.append('pro', JSON.stringify({ price: formData.pro.price, deliveryTime: formData.pro.deliveryTime, features: formData.pro.features }));
+      submitData.append('enterprise', JSON.stringify({ price: formData.enterprise.price, deliveryTime: formData.enterprise.deliveryTime, features: formData.enterprise.features }));
+      formData.images.forEach((image) => { submitData.append('images', image); });
+      if (formData.videoFile) { submitData.append('video', formData.videoFile); }
+      if (formData.downloadFile) { submitData.append('downloadurl', formData.downloadFile); }
       
-      // ✅ الباقات (JSON)
-      submitData.append('basic', JSON.stringify({
-        price: formData.basic.price,
-        deliveryTime: formData.basic.deliveryTime,
-        features: formData.basic.features
-      }));
-      
-      submitData.append('pro', JSON.stringify({
-        price: formData.pro.price,
-        deliveryTime: formData.pro.deliveryTime,
-        features: formData.pro.features
-      }));
-      
-      submitData.append('enterprise', JSON.stringify({
-        price: formData.enterprise.price,
-        deliveryTime: formData.enterprise.deliveryTime,
-        features: formData.enterprise.features
-      }));
-      
-      // ✅ الصور
-      formData.images.forEach((image) => {
-        submitData.append('images', image);
-      });
-      
-      // ✅ الفيديو
-      if (formData.videoFile) {
-        submitData.append('video', formData.videoFile);
-      }
-      
-      // ✅ ملف المشروع
-      if (formData.downloadFile) {
-        submitData.append('downloadurl', formData.downloadFile);
-      }
-      
-      // ✅ استخدم createProject من developerService
       const response = await createProject(submitData, (progressEvent) => {
-        const percentCompleted = Math.round(
-          (progressEvent.loaded * 100) / progressEvent.total
-        );
+        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
         setUploadProgress(percentCompleted);
       });
       
       console.log('✅ Project created:', response);
-      
-      // ✅ تشغيل صوت الإشعار عند نجاح إنشاء المشروع
       playSound();
-      
-      // ✅ تحديث بيانات المستخدم
       await fetchUser();
       
-      setTimeout(() => {
-        setLoading(false);
-        navigate('/dashboard/developer/store');
-      }, 500);
+      setTimeout(() => { setLoading(false); navigate('/dashboard/developer/store'); }, 500);
       
     } catch (error) {
       console.error('❌ Error creating project:', error);
-      alert(error.response?.data?.message || 'حدث خطأ أثناء نشر المشروع');
+      
+      const errorMessage = error.response?.data?.message || error.message || 'حدث خطأ أثناء نشر المشروع';
+      
+      if (errorMessage.includes('ترقية الخطة') || 
+          errorMessage.includes('الخطة المجانية') || 
+          errorMessage.includes('الحد الأقصى') ||
+          errorMessage.includes('upgrade') ||
+          errorMessage.includes('plan') ||
+          errorMessage.includes('الحد الاقصي')) {
+        
+        setUpgradeMessage({
+          title: '🚀 تحتاج إلى ترقية خطتك!',
+          message: 'أنت على الخطة المجانية والحد الأقصى للمشاريع هو 3 مشاريع. الرجاء قم بالترقية لنشر المزيد.',
+          action: 'ترقية الخطة الآن'
+        });
+        
+      } else {
+        alert(errorMessage);
+      }
+      
       setLoading(false);
     }
   };
 
+  // ✅ nextStep مع Validation كامل لكل خطوة
   const nextStep = () => {
-    // Basic validation before moving to next step
+    const stepErrors = {};
+    
     if (step === 1) {
-      if (!formData.projectName.trim()) {
-        setValidationErrors({ projectName: 'اسم المشروع مطلوب' });
-        return;
-      }
-      if (!formData.category) {
-        setValidationErrors({ category: 'التصنيف مطلوب' });
-        return;
-      }
-      if (!formData.shortDescription.trim()) {
-        setValidationErrors({ shortDescription: 'الوصف القصير مطلوب' });
-        return;
-      }
+      if (!formData.projectName.trim()) stepErrors.projectName = 'اسم المشروع مطلوب';
+      if (!formData.category) stepErrors.category = 'التصنيف مطلوب';
+      if (!formData.shortDescription.trim()) stepErrors.shortDescription = 'الوصف القصير مطلوب';
+      if (!formData.fullDescription.trim()) stepErrors.fullDescription = 'الوصف المفصل مطلوب';
+      if (!formData.demoUrl.trim()) stepErrors.demoUrl = 'رابط العرض التجريبي مطلوب';
+      if (!formData.githubUrl.trim()) stepErrors.githubUrl = 'رابط GitHub مطلوب';
+      if (!formData.videoFile) stepErrors.videoFile = 'الفيديو التوضيحي مطلوب';
     }
     
     if (step === 2) {
-      if (formData.technologies.length === 0) {
-        setValidationErrors({ technologies: 'أضف تقنية واحدة على الأقل' });
-        return;
-      }
-      if (formData.mainFeatures.length === 0) {
-        setValidationErrors({ mainFeatures: 'أضف ميزة واحدة على الأقل' });
-        return;
-      }
+      if (formData.technologies.length === 0) stepErrors.technologies = 'أضف تقنية واحدة على الأقل';
+      if (formData.mainFeatures.length === 0) stepErrors.mainFeatures = 'أضف ميزة واحدة على الأقل';
+      if (!formData.supportPeriod) stepErrors.supportPeriod = 'مدة الدعم الفني مطلوبة';
+      if (!formData.updatesPeriod) stepErrors.updatesPeriod = 'مدة التحديثات مطلوبة';
     }
     
     if (step === 3) {
-      if (!formData.basic.price || formData.basic.price <= 0) {
-        setValidationErrors({ basicPrice: 'سعر باقة Basic مطلوب' });
-        return;
-      }
-      if (!formData.pro.price || formData.pro.price <= 0) {
-        setValidationErrors({ proPrice: 'سعر باقة Pro مطلوب' });
-        return;
-      }
-      if (!formData.enterprise.price || formData.enterprise.price <= 0) {
-        setValidationErrors({ enterprisePrice: 'سعر باقة Enterprise مطلوب' });
-        return;
-      }
+      if (!formData.basic.price || formData.basic.price <= 0) stepErrors.basicPrice = 'سعر باقة Basic مطلوب';
+      if (!formData.pro.price || formData.pro.price <= 0) stepErrors.proPrice = 'سعر باقة Pro مطلوب';
+      if (!formData.enterprise.price || formData.enterprise.price <= 0) stepErrors.enterprisePrice = 'سعر باقة Enterprise مطلوب';
     }
     
+    if (Object.keys(stepErrors).length > 0) {
+      setValidationErrors(stepErrors);
+      return;
+    }
+    
+    setValidationErrors({});
     setStep(step + 1);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -445,6 +355,7 @@ export default function AddProject() {
 
         <div className="flex-1 overflow-x-auto">
           <div className="p-6 lg:p-8">
+            
             {/* Header */}
             <motion.div
               initial={{ opacity: 0, y: -20 }}
@@ -527,7 +438,7 @@ export default function AddProject() {
                             type="button"
                             onClick={() => {
                               setFormData({ ...formData, category: cat.value });
-                              setValidationErrors({ ...validationErrors, category: '' });
+                              setValidationErrors(prev => ({ ...prev, category: '' }));
                             }}
                             className={`p-3 rounded-xl border-2 transition-all duration-300 flex items-center gap-2 ${
                               formData.category === cat.value
@@ -566,44 +477,59 @@ export default function AddProject() {
 
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        وصف مفصل
+                        وصف مفصل <span className="text-red-500">*</span>
                       </label>
                       <textarea
                         name="fullDescription"
                         rows="6"
                         value={formData.fullDescription}
                         onChange={handleChange}
-                        className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:outline-none resize-none"
+                        className={`w-full px-4 py-3 rounded-xl border-2 transition-all ${
+                          validationErrors.fullDescription ? 'border-red-500' : 'border-gray-200 focus:border-indigo-500'
+                        } focus:outline-none resize-none`}
                         placeholder="وصف مفصل للمشروع يشمل جميع المميزات والتفاصيل التقنية..."
                       />
+                      {validationErrors.fullDescription && (
+                        <p className="text-red-500 text-xs mt-1">{validationErrors.fullDescription}</p>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-2">
-                          رابط العرض التجريبي
+                          رابط العرض التجريبي <span className="text-red-500">*</span>
                         </label>
                         <input
                           type="url"
                           name="demoUrl"
                           value={formData.demoUrl}
                           onChange={handleChange}
-                          className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:outline-none"
+                          className={`w-full px-4 py-3 rounded-xl border-2 transition-all ${
+                            validationErrors.demoUrl ? 'border-red-500' : 'border-gray-200 focus:border-indigo-500'
+                          } focus:outline-none`}
                           placeholder="https://example.com/demo"
                         />
+                        {validationErrors.demoUrl && (
+                          <p className="text-red-500 text-xs mt-1">{validationErrors.demoUrl}</p>
+                        )}
                       </div>
                       <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-2">
-                          رابط GitHub (اختياري)
+                          رابط GitHub <span className="text-red-500">*</span>
                         </label>
                         <input
                           type="url"
                           name="githubUrl"
                           value={formData.githubUrl}
                           onChange={handleChange}
-                          className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:outline-none"
+                          className={`w-full px-4 py-3 rounded-xl border-2 transition-all ${
+                            validationErrors.githubUrl ? 'border-red-500' : 'border-gray-200 focus:border-indigo-500'
+                          } focus:outline-none`}
                           placeholder="https://github.com/username/project"
                         />
+                        {validationErrors.githubUrl && (
+                          <p className="text-red-500 text-xs mt-1">{validationErrors.githubUrl}</p>
+                        )}
                       </div>
                     </div>
 
@@ -623,10 +549,9 @@ export default function AddProject() {
                           ))}
                         </select>
                       </div>
-                      {/* ✅ فيديو توضيحي - رفع */}
                       <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-2">
-                          فيديو توضيحي (اختياري - أقصى حجم 250 ميجا)
+                          فيديو توضيحي <span className="text-red-500">*</span>
                         </label>
                         {formData.videoFile ? (
                           <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border-2 border-gray-200">
@@ -679,7 +604,6 @@ export default function AddProject() {
                     transition={{ duration: 0.3 }}
                     className="space-y-6"
                   >
-                    {/* Tech Stack */}
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">
                         التقنيات المستخدمة <span className="text-red-500">*</span>
@@ -693,13 +617,7 @@ export default function AddProject() {
                           className="flex-1 px-4 py-2 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:outline-none"
                           placeholder="اكتب التقنية ثم اضغط Enter"
                         />
-                        <button
-                          type="button"
-                          onClick={addTech}
-                          className="px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition"
-                        >
-                          إضافة
-                        </button>
+                        <button type="button" onClick={addTech} className="px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition">إضافة</button>
                       </div>
                       <div className="flex flex-wrap gap-2 mb-3">
                         {formData.technologies.map((tech, idx) => (
@@ -730,7 +648,6 @@ export default function AddProject() {
                       )}
                     </div>
 
-                    {/* Features */}
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">
                         المميزات الرئيسية <span className="text-red-500">*</span>
@@ -744,13 +661,7 @@ export default function AddProject() {
                           className="flex-1 px-4 py-2 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:outline-none"
                           placeholder="مثال: لوحة تحكم متقدمة"
                         />
-                        <button
-                          type="button"
-                          onClick={addFeature}
-                          className="px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition"
-                        >
-                          إضافة
-                        </button>
+                        <button type="button" onClick={addFeature} className="px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition">إضافة</button>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                         {formData.mainFeatures.map((feature, idx) => (
@@ -768,35 +679,45 @@ export default function AddProject() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-2">
-                          مدة الدعم الفني
+                          مدة الدعم الفني <span className="text-red-500">*</span>
                         </label>
                         <select
                           name="supportPeriod"
                           value={formData.supportPeriod}
                           onChange={handleChange}
-                          className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:outline-none"
+                          className={`w-full px-4 py-3 rounded-xl border-2 transition-all ${
+                            validationErrors.supportPeriod ? 'border-red-500' : 'border-gray-200 focus:border-indigo-500'
+                          } focus:outline-none`}
                         >
                           <option value="">اختر مدة الدعم</option>
                           {supportOptions.map((opt) => (
                             <option key={opt.value} value={opt.value}>{opt.label}</option>
                           ))}
                         </select>
+                        {validationErrors.supportPeriod && (
+                          <p className="text-red-500 text-xs mt-1">{validationErrors.supportPeriod}</p>
+                        )}
                       </div>
                       <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-2">
-                          مدة التحديثات
+                          مدة التحديثات <span className="text-red-500">*</span>
                         </label>
                         <select
                           name="updatesPeriod"
                           value={formData.updatesPeriod}
                           onChange={handleChange}
-                          className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:outline-none"
+                          className={`w-full px-4 py-3 rounded-xl border-2 transition-all ${
+                            validationErrors.updatesPeriod ? 'border-red-500' : 'border-gray-200 focus:border-indigo-500'
+                          } focus:outline-none`}
                         >
                           <option value="">اختر مدة التحديثات</option>
                           {updatesOptions.map((opt) => (
                             <option key={opt.value} value={opt.value}>{opt.label}</option>
                           ))}
                         </select>
+                        {validationErrors.updatesPeriod && (
+                          <p className="text-red-500 text-xs mt-1">{validationErrors.updatesPeriod}</p>
+                        )}
                       </div>
                     </div>
                   </motion.div>
@@ -813,76 +734,32 @@ export default function AddProject() {
                     className="space-y-6"
                   >
                     {/* Basic Package */}
-                    <div className={`border-2 rounded-2xl p-6 transition-all ${
-                      validationErrors.basicPrice ? 'border-red-500' : 'border-gray-200'
-                    }`}>
+                    <div className={`border-2 rounded-2xl p-6 transition-all ${validationErrors.basicPrice ? 'border-red-500' : 'border-gray-200'}`}>
                       <div className="flex justify-between items-center mb-4">
                         <h3 className="text-lg font-bold text-gray-800">📦 Basic</h3>
                       </div>
-                      
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-2">
-                            السعر ($) <span className="text-red-500">*</span>
-                          </label>
-                          <input
-                            type="number"
-                            value={formData.basic.price}
-                            onChange={(e) => handlePackageChange('basic', 'price', e.target.value)}
-                            className={`w-full px-4 py-2 rounded-xl border-2 transition-all ${
-                              validationErrors.basicPrice ? 'border-red-500' : 'border-gray-200 focus:border-indigo-500'
-                            } focus:outline-none`}
-                            placeholder="سعر الباقة"
-                          />
-                          {validationErrors.basicPrice && (
-                            <p className="text-red-500 text-xs mt-1">{validationErrors.basicPrice}</p>
-                          )}
+                          <label className="block text-sm font-semibold text-gray-700 mb-2">السعر ($) <span className="text-red-500">*</span></label>
+                          <input type="number" value={formData.basic.price} onChange={(e) => handlePackageChange('basic', 'price', e.target.value)} className={`w-full px-4 py-2 rounded-xl border-2 ${validationErrors.basicPrice ? 'border-red-500' : 'border-gray-200'} focus:border-indigo-500 focus:outline-none`} placeholder="سعر الباقة" />
+                          {validationErrors.basicPrice && <p className="text-red-500 text-xs mt-1">{validationErrors.basicPrice}</p>}
                         </div>
                         <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-2">
-                            مدة التسليم (أيام)
-                          </label>
-                          <input
-                            type="number"
-                            value={formData.basic.deliveryTime}
-                            onChange={(e) => handlePackageChange('basic', 'deliveryTime', e.target.value)}
-                            className="w-full px-4 py-2 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:outline-none"
-                          />
+                          <label className="block text-sm font-semibold text-gray-700 mb-2">مدة التسليم (أيام)</label>
+                          <input type="number" value={formData.basic.deliveryTime} onChange={(e) => handlePackageChange('basic', 'deliveryTime', e.target.value)} className="w-full px-4 py-2 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:outline-none" />
                         </div>
                       </div>
-
                       <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                          مميزات الباقة
-                        </label>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">مميزات الباقة</label>
                         <div className="flex gap-2 mb-3">
-                          <input
-                            type="text"
-                            value={tempBasicFeature}
-                            onChange={(e) => setTempBasicFeature(e.target.value)}
-                            onKeyPress={(e) => e.key === 'Enter' && addPackageFeature('basic')}
-                            className="flex-1 px-4 py-2 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:outline-none"
-                            placeholder="أضف ميزة جديدة"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => addPackageFeature('basic')}
-                            className="px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition"
-                          >
-                            إضافة
-                          </button>
+                          <input type="text" value={tempBasicFeature} onChange={(e) => setTempBasicFeature(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && addPackageFeature('basic')} className="flex-1 px-4 py-2 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:outline-none" placeholder="أضف ميزة جديدة" />
+                          <button type="button" onClick={() => addPackageFeature('basic')} className="px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition">إضافة</button>
                         </div>
                         <div className="space-y-1">
                           {formData.basic.features.map((feature, idx) => (
                             <div key={idx} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
                               <span className="text-sm text-gray-700">✓ {feature}</span>
-                              <button
-                                type="button"
-                                onClick={() => removePackageFeature('basic', idx)}
-                                className="text-red-500 hover:text-red-700"
-                              >
-                                ✕
-                              </button>
+                              <button type="button" onClick={() => removePackageFeature('basic', idx)} className="text-red-500 hover:text-red-700">✕</button>
                             </div>
                           ))}
                         </div>
@@ -890,77 +767,33 @@ export default function AddProject() {
                     </div>
 
                     {/* Pro Package */}
-                    <div className={`border-2 rounded-2xl p-6 transition-all ${
-                      validationErrors.proPrice ? 'border-red-500' : 'border-gray-200'
-                    }`}>
+                    <div className={`border-2 rounded-2xl p-6 transition-all ${validationErrors.proPrice ? 'border-red-500' : 'border-gray-200'}`}>
                       <div className="flex justify-between items-center mb-4">
                         <h3 className="text-lg font-bold text-gray-800">⭐ Pro</h3>
                         <span className="px-2 py-1 bg-yellow-100 text-yellow-600 text-xs rounded-full">موصى به</span>
                       </div>
-                      
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-2">
-                            السعر ($) <span className="text-red-500">*</span>
-                          </label>
-                          <input
-                            type="number"
-                            value={formData.pro.price}
-                            onChange={(e) => handlePackageChange('pro', 'price', e.target.value)}
-                            className={`w-full px-4 py-2 rounded-xl border-2 transition-all ${
-                              validationErrors.proPrice ? 'border-red-500' : 'border-gray-200 focus:border-indigo-500'
-                            } focus:outline-none`}
-                            placeholder="سعر الباقة"
-                          />
-                          {validationErrors.proPrice && (
-                            <p className="text-red-500 text-xs mt-1">{validationErrors.proPrice}</p>
-                          )}
+                          <label className="block text-sm font-semibold text-gray-700 mb-2">السعر ($) <span className="text-red-500">*</span></label>
+                          <input type="number" value={formData.pro.price} onChange={(e) => handlePackageChange('pro', 'price', e.target.value)} className={`w-full px-4 py-2 rounded-xl border-2 ${validationErrors.proPrice ? 'border-red-500' : 'border-gray-200'} focus:border-indigo-500 focus:outline-none`} placeholder="سعر الباقة" />
+                          {validationErrors.proPrice && <p className="text-red-500 text-xs mt-1">{validationErrors.proPrice}</p>}
                         </div>
                         <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-2">
-                            مدة التسليم (أيام)
-                          </label>
-                          <input
-                            type="number"
-                            value={formData.pro.deliveryTime}
-                            onChange={(e) => handlePackageChange('pro', 'deliveryTime', e.target.value)}
-                            className="w-full px-4 py-2 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:outline-none"
-                          />
+                          <label className="block text-sm font-semibold text-gray-700 mb-2">مدة التسليم (أيام)</label>
+                          <input type="number" value={formData.pro.deliveryTime} onChange={(e) => handlePackageChange('pro', 'deliveryTime', e.target.value)} className="w-full px-4 py-2 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:outline-none" />
                         </div>
                       </div>
-
                       <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                          مميزات الباقة
-                        </label>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">مميزات الباقة</label>
                         <div className="flex gap-2 mb-3">
-                          <input
-                            type="text"
-                            value={tempProFeature}
-                            onChange={(e) => setTempProFeature(e.target.value)}
-                            onKeyPress={(e) => e.key === 'Enter' && addPackageFeature('pro')}
-                            className="flex-1 px-4 py-2 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:outline-none"
-                            placeholder="أضف ميزة جديدة"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => addPackageFeature('pro')}
-                            className="px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition"
-                          >
-                            إضافة
-                          </button>
+                          <input type="text" value={tempProFeature} onChange={(e) => setTempProFeature(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && addPackageFeature('pro')} className="flex-1 px-4 py-2 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:outline-none" placeholder="أضف ميزة جديدة" />
+                          <button type="button" onClick={() => addPackageFeature('pro')} className="px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition">إضافة</button>
                         </div>
                         <div className="space-y-1">
                           {formData.pro.features.map((feature, idx) => (
                             <div key={idx} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
                               <span className="text-sm text-gray-700">✓ {feature}</span>
-                              <button
-                                type="button"
-                                onClick={() => removePackageFeature('pro', idx)}
-                                className="text-red-500 hover:text-red-700"
-                              >
-                                ✕
-                              </button>
+                              <button type="button" onClick={() => removePackageFeature('pro', idx)} className="text-red-500 hover:text-red-700">✕</button>
                             </div>
                           ))}
                         </div>
@@ -968,76 +801,32 @@ export default function AddProject() {
                     </div>
 
                     {/* Enterprise Package */}
-                    <div className={`border-2 rounded-2xl p-6 transition-all ${
-                      validationErrors.enterprisePrice ? 'border-red-500' : 'border-gray-200'
-                    }`}>
+                    <div className={`border-2 rounded-2xl p-6 transition-all ${validationErrors.enterprisePrice ? 'border-red-500' : 'border-gray-200'}`}>
                       <div className="flex justify-between items-center mb-4">
                         <h3 className="text-lg font-bold text-gray-800">🏢 Enterprise</h3>
                       </div>
-                      
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-2">
-                            السعر ($) <span className="text-red-500">*</span>
-                          </label>
-                          <input
-                            type="number"
-                            value={formData.enterprise.price}
-                            onChange={(e) => handlePackageChange('enterprise', 'price', e.target.value)}
-                            className={`w-full px-4 py-2 rounded-xl border-2 transition-all ${
-                              validationErrors.enterprisePrice ? 'border-red-500' : 'border-gray-200 focus:border-indigo-500'
-                            } focus:outline-none`}
-                            placeholder="سعر الباقة"
-                          />
-                          {validationErrors.enterprisePrice && (
-                            <p className="text-red-500 text-xs mt-1">{validationErrors.enterprisePrice}</p>
-                          )}
+                          <label className="block text-sm font-semibold text-gray-700 mb-2">السعر ($) <span className="text-red-500">*</span></label>
+                          <input type="number" value={formData.enterprise.price} onChange={(e) => handlePackageChange('enterprise', 'price', e.target.value)} className={`w-full px-4 py-2 rounded-xl border-2 ${validationErrors.enterprisePrice ? 'border-red-500' : 'border-gray-200'} focus:border-indigo-500 focus:outline-none`} placeholder="سعر الباقة" />
+                          {validationErrors.enterprisePrice && <p className="text-red-500 text-xs mt-1">{validationErrors.enterprisePrice}</p>}
                         </div>
                         <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-2">
-                            مدة التسليم (أيام)
-                          </label>
-                          <input
-                            type="number"
-                            value={formData.enterprise.deliveryTime}
-                            onChange={(e) => handlePackageChange('enterprise', 'deliveryTime', e.target.value)}
-                            className="w-full px-4 py-2 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:outline-none"
-                          />
+                          <label className="block text-sm font-semibold text-gray-700 mb-2">مدة التسليم (أيام)</label>
+                          <input type="number" value={formData.enterprise.deliveryTime} onChange={(e) => handlePackageChange('enterprise', 'deliveryTime', e.target.value)} className="w-full px-4 py-2 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:outline-none" />
                         </div>
                       </div>
-
                       <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                          مميزات الباقة
-                        </label>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">مميزات الباقة</label>
                         <div className="flex gap-2 mb-3">
-                          <input
-                            type="text"
-                            value={tempEnterpriseFeature}
-                            onChange={(e) => setTempEnterpriseFeature(e.target.value)}
-                            onKeyPress={(e) => e.key === 'Enter' && addPackageFeature('enterprise')}
-                            className="flex-1 px-4 py-2 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:outline-none"
-                            placeholder="أضف ميزة جديدة"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => addPackageFeature('enterprise')}
-                            className="px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition"
-                          >
-                            إضافة
-                          </button>
+                          <input type="text" value={tempEnterpriseFeature} onChange={(e) => setTempEnterpriseFeature(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && addPackageFeature('enterprise')} className="flex-1 px-4 py-2 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:outline-none" placeholder="أضف ميزة جديدة" />
+                          <button type="button" onClick={() => addPackageFeature('enterprise')} className="px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition">إضافة</button>
                         </div>
                         <div className="space-y-1">
                           {formData.enterprise.features.map((feature, idx) => (
                             <div key={idx} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
                               <span className="text-sm text-gray-700">✓ {feature}</span>
-                              <button
-                                type="button"
-                                onClick={() => removePackageFeature('enterprise', idx)}
-                                className="text-red-500 hover:text-red-700"
-                              >
-                                ✕
-                              </button>
+                              <button type="button" onClick={() => removePackageFeature('enterprise', idx)} className="text-red-500 hover:text-red-700">✕</button>
                             </div>
                           ))}
                         </div>
@@ -1056,7 +845,6 @@ export default function AddProject() {
                     transition={{ duration: 0.3 }}
                     className="space-y-6"
                   >
-                    {/* Image Upload */}
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">
                         صور المشروع <span className="text-red-500">*</span>
@@ -1064,124 +852,58 @@ export default function AddProject() {
                       <div className={`border-2 border-dashed rounded-2xl p-6 text-center transition-all ${
                         validationErrors.images ? 'border-red-500' : 'border-gray-300 hover:border-indigo-500'
                       }`}>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          multiple
-                          onChange={handleImageUpload}
-                          className="hidden"
-                          id="imageUpload"
-                        />
+                        <input type="file" accept="image/*" multiple onChange={handleImageUpload} className="hidden" id="imageUpload" />
                         <label htmlFor="imageUpload" className="cursor-pointer">
                           <div className="text-4xl mb-2">🖼️</div>
                           <p className="text-gray-500">اضغط لرفع الصور</p>
                           <p className="text-xs text-gray-400 mt-1">يمكنك رفع أكثر من صورة</p>
                         </label>
                       </div>
-                      {validationErrors.images && (
-                        <p className="text-red-500 text-xs mt-1">{validationErrors.images}</p>
-                      )}
-                      
+                      {validationErrors.images && <p className="text-red-500 text-xs mt-1">{validationErrors.images}</p>}
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
                         {formData.images.map((img, idx) => (
                           <div key={idx} className="relative group">
-                            <img 
-                              src={URL.createObjectURL(img)} 
-                              alt={`Preview ${idx}`} 
-                              className="w-full h-32 object-cover rounded-xl"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => removeImage(idx)}
-                              className="absolute top-2 right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition"
-                            >
-                              ✕
-                            </button>
+                            <img src={URL.createObjectURL(img)} alt={`Preview ${idx}`} className="w-full h-32 object-cover rounded-xl" />
+                            <button type="button" onClick={() => removeImage(idx)} className="absolute top-2 right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition">✕</button>
                           </div>
                         ))}
                       </div>
                     </div>
 
-                    {/* ✅ رفع الفيديو */}
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        فيديو توضيحي (اختياري - أقصى حجم 250 ميجا)
+                        فيديو توضيحي <span className="text-red-500">*</span>
                       </label>
                       {formData.videoFile ? (
                         <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border-2 border-gray-200">
-                          <div className="flex items-center gap-3">
-                            <span className="text-3xl">🎬</span>
-                            <div>
-                              <p className="font-medium text-gray-700">{formData.videoFile.name}</p>
-                              <p className="text-sm text-gray-500">
-                                {(formData.videoFile.size / (1024 * 1024)).toFixed(2)} ميجابايت
-                              </p>
-                            </div>
-                          </div>
+                          <div className="flex items-center gap-3"><span className="text-3xl">🎬</span><div><p className="font-medium">{formData.videoFile.name}</p><p className="text-sm text-gray-500">{(formData.videoFile.size / (1024 * 1024)).toFixed(2)} ميجابايت</p></div></div>
                           <button type="button" onClick={removeVideo} className="text-red-500 hover:text-red-700 text-xl">✕</button>
                         </div>
                       ) : (
-                        <div className={`border-2 border-dashed rounded-2xl p-6 text-center transition-all ${
-                          validationErrors.videoFile ? 'border-red-500' : 'border-gray-300 hover:border-indigo-500'
-                        }`}>
-                          <input
-                            type="file"
-                            accept="video/mp4,video/webm,video/ogg,video/quicktime"
-                            onChange={handleVideoUpload}
-                            className="hidden"
-                            id="videoUploadStep4"
-                          />
-                          <label htmlFor="videoUploadStep4" className="cursor-pointer">
-                            <div className="text-4xl mb-2">🎥</div>
-                            <p className="text-gray-500">اضغط لرفع فيديو توضيحي</p>
-                            <p className="text-xs text-gray-400 mt-1">MP4, WebM, OGG, MOV - أقصى حجم 250 ميجا</p>
-                          </label>
+                        <div className={`border-2 border-dashed rounded-2xl p-6 text-center transition-all ${validationErrors.videoFile ? 'border-red-500' : 'border-gray-300 hover:border-indigo-500'}`}>
+                          <input type="file" accept="video/mp4,video/webm,video/ogg,video/quicktime" onChange={handleVideoUpload} className="hidden" id="videoUploadStep4" />
+                          <label htmlFor="videoUploadStep4" className="cursor-pointer"><div className="text-4xl mb-2">🎥</div><p className="text-gray-500">اضغط لرفع فيديو</p></label>
                         </div>
                       )}
-                      {validationErrors.videoFile && (
-                        <p className="text-red-500 text-xs mt-1">{validationErrors.videoFile}</p>
-                      )}
+                      {validationErrors.videoFile && <p className="text-red-500 text-xs mt-1">{validationErrors.videoFile}</p>}
                     </div>
 
-                    {/* ✅ رفع ملف المشروع */}
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">
                         ملف المشروع <span className="text-red-500">*</span>
                       </label>
                       {formData.downloadFile ? (
                         <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border-2 border-gray-200">
-                          <div className="flex items-center gap-3">
-                            <span className="text-3xl">📦</span>
-                            <div>
-                              <p className="font-medium text-gray-700">{formData.downloadFile.name}</p>
-                              <p className="text-sm text-gray-500">
-                                {(formData.downloadFile.size / (1024 * 1024)).toFixed(2)} ميجابايت
-                              </p>
-                            </div>
-                          </div>
+                          <div className="flex items-center gap-3"><span className="text-3xl">📦</span><div><p className="font-medium">{formData.downloadFile.name}</p><p className="text-sm text-gray-500">{(formData.downloadFile.size / (1024 * 1024)).toFixed(2)} ميجابايت</p></div></div>
                           <button type="button" onClick={removeDownload} className="text-red-500 hover:text-red-700 text-xl">✕</button>
                         </div>
                       ) : (
-                        <div className={`border-2 border-dashed rounded-2xl p-6 text-center transition-all ${
-                          validationErrors.downloadFile ? 'border-red-500' : 'border-gray-300 hover:border-indigo-500'
-                        }`}>
-                          <input
-                            type="file"
-                            accept=".zip,.rar,.7z"
-                            onChange={handleDownloadUpload}
-                            className="hidden"
-                            id="downloadUpload"
-                          />
-                          <label htmlFor="downloadUpload" className="cursor-pointer">
-                            <div className="text-4xl mb-2">📦</div>
-                            <p className="text-gray-500">اضغط لرفع ملف المشروع</p>
-                            <p className="text-xs text-gray-400 mt-1">ZIP, RAR, 7Z - أقصى حجم 500 ميجا</p>
-                          </label>
+                        <div className={`border-2 border-dashed rounded-2xl p-6 text-center transition-all ${validationErrors.downloadFile ? 'border-red-500' : 'border-gray-300 hover:border-indigo-500'}`}>
+                          <input type="file" accept=".zip,.rar,.7z" onChange={handleDownloadUpload} className="hidden" id="downloadUpload" />
+                          <label htmlFor="downloadUpload" className="cursor-pointer"><div className="text-4xl mb-2">📦</div><p className="text-gray-500">اضغط لرفع ملف المشروع</p><p className="text-xs text-gray-400 mt-1">ZIP, RAR, 7Z - أقصى حجم 500 ميجا</p></label>
                         </div>
                       )}
-                      {validationErrors.downloadFile && (
-                        <p className="text-red-500 text-xs mt-1">{validationErrors.downloadFile}</p>
-                      )}
+                      {validationErrors.downloadFile && <p className="text-red-500 text-xs mt-1">{validationErrors.downloadFile}</p>}
                     </div>
                   </motion.div>
                 )}
@@ -1190,28 +912,16 @@ export default function AddProject() {
               {/* Navigation Buttons */}
               <div className="flex justify-between gap-4 mt-8 pt-6 border-t border-gray-200">
                 {step > 1 && (
-                  <button
-                    type="button"
-                    onClick={prevStep}
-                    className="px-6 py-2 border-2 border-gray-300 text-gray-600 rounded-xl font-medium hover:bg-gray-50 transition"
-                  >
+                  <button type="button" onClick={prevStep} className="px-6 py-2 border-2 border-gray-300 text-gray-600 rounded-xl font-medium hover:bg-gray-50 transition">
                     السابق
                   </button>
                 )}
                 {step < 4 ? (
-                  <button
-                    type="button"
-                    onClick={nextStep}
-                    className="px-6 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium hover:shadow-lg transition-all ml-auto"
-                  >
+                  <button type="button" onClick={nextStep} className="px-6 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium hover:shadow-lg transition-all ml-auto">
                     التالي
                   </button>
                 ) : (
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="px-6 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-medium hover:shadow-lg transition-all ml-auto disabled:opacity-50"
-                  >
+                  <button type="submit" disabled={loading} className="px-6 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-medium hover:shadow-lg transition-all ml-auto disabled:opacity-50">
                     {loading ? (
                       <div className="flex items-center gap-2">
                         <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -1223,6 +933,37 @@ export default function AddProject() {
                   </button>
                 )}
               </div>
+
+              {/* ✅ رسالة الترقية - تحت زر النشر */}
+              {upgradeMessage && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mt-6 p-5 bg-gradient-to-r from-amber-50 to-orange-50 border-r-4 border-amber-500 rounded-2xl shadow-lg"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="text-3xl mt-1">⚠️</div>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-bold text-amber-800">🚀 تحتاج إلى ترقية خطتك!</h3>
+                      <p className="text-amber-700 mt-1 text-sm">
+                        أنت على الخطة المجانية والحد الأقصى للمشاريع هو 3 مشاريع. الرجاء قم بالترقية لنشر المزيد.
+                      </p>
+                      <Link
+                        to="/pricing"
+                        className="inline-block mt-3 px-6 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold rounded-xl hover:shadow-lg transition-all hover:scale-105 text-sm"
+                      >
+                        ترقية الخطة الآن 💎
+                      </Link>
+                    </div>
+                    <button
+                      onClick={() => setUpgradeMessage(null)}
+                      className="text-amber-400 hover:text-amber-600 text-xl font-bold"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </motion.div>
+              )}
             </form>
           </div>
         </div>

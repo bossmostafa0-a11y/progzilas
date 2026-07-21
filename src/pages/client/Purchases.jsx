@@ -1,15 +1,27 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { Link, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import ClientSidebar from '../../components/layout/ClientSidebar';
-import { getClientPurchases } from '../../services/cliecnt.service.js';
+import { getClientPurchases, submitReview , createSupportChat } from '../../services/cliecnt.service.js';
 
 export default function Purchases() {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [purchases, setPurchases] = useState([]);
+  const [supportLoading, setSupportLoading] = useState(false);
+  
+  // ✅ Rating Modal State
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [ratingProject, setRatingProject] = useState(null);
+  const [rating, setRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState('');
+  const [ratingLoading, setRatingLoading] = useState(false);
+  const [ratingSuccess, setRatingSuccess] = useState(false);
+  const [ratingError, setRatingError] = useState('');
 
   useEffect(() => {
     const loadPurchases = async () => {
@@ -56,7 +68,6 @@ export default function Purchases() {
     loadPurchases();
   }, []);
 
-  // ✅ دالة تحميل الملف - تفتح الرابط للتحميل المباشر
   const handleDownload = (url) => {
     const link = document.createElement('a');
     link.href = url;
@@ -65,6 +76,67 @@ export default function Purchases() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  // ✅ طلب دعم فني - إنشاء شات والتحويل لصفحة الدعم
+  // في Purchases.jsx - تعديل دالة handleSupportRequest
+
+const handleSupportRequest = async (projectId) => {
+  setSupportLoading(true);
+  try {
+    // ✅ إنشاء الشات
+    await createSupportChat(projectId);
+    // ✅ التحويل لصفحة الدعم مع projectId
+    navigate(`/Support/${projectId}`);
+  } catch (err) {
+    console.error('❌ Support error:', err);
+    // ✅ لو الشات موجود بالفعل، نحول برضو مع projectId
+    if (err?.response?.data?.message?.includes('يوجد شات')) {
+      navigate(`/Support/${projectId}`);
+    } else {
+      alert(err?.response?.data?.message || 'فشل في إنشاء طلب الدعم الفني');
+    }
+  } finally {
+    setSupportLoading(false);
+  }
+};
+
+  const handleOpenRating = (purchase) => {
+    setRatingProject(purchase);
+    setRating(0);
+    setHoverRating(0);
+    setReviewComment('');
+    setRatingError('');
+    setRatingSuccess(false);
+    setShowRatingModal(true);
+  };
+
+  const handleSubmitRating = async () => {
+    if (rating === 0) {
+      setRatingError('يرجى اختيار التقييم');
+      return;
+    }
+
+    setRatingLoading(true);
+    setRatingError('');
+
+    try {
+      await submitReview({
+        projectId: ratingProject.projectId,
+        rating: rating,
+        comment: reviewComment
+      });
+
+      setRatingSuccess(true);
+      setTimeout(() => {
+        setShowRatingModal(false);
+        setRatingProject(null);
+      }, 2000);
+    } catch (err) {
+      setRatingError(err?.response?.data?.message || 'فشل في إرسال التقييم');
+    } finally {
+      setRatingLoading(false);
+    }
   };
 
   const getStatusInfo = (status) => {
@@ -191,29 +263,30 @@ export default function Purchases() {
 
                           {isPaid && (
                             <div className="flex gap-3 flex-wrap">
-                              {/* ✅ تحميل المشروع - يفتح في صفحة جديدة للتحميل */}
                               {purchase.downloadUrl && (
                                 <button 
-                                  onClick={() => handleDownload(purchase.downloadUrl, purchase.projectName)}
+                                  onClick={() => handleDownload(purchase.downloadUrl)}
                                   className="flex-1 py-2 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition text-center min-w-[100px]"
                                 >
                                   تحميل المشروع 📥
                                 </button>
                               )}
                               
-                              <Link 
-                                to={`/rate/${purchase.projectId}`}
+                              <button 
+                                onClick={() => handleOpenRating(purchase)}
                                 className="flex-1 py-2 border-2 border-yellow-500 text-yellow-600 rounded-xl font-medium hover:bg-yellow-50 transition text-center min-w-[100px]"
                               >
                                 تقييم المشروع ⭐
-                              </Link>
+                              </button>
                               
-                              <Link 
-                                to={`/messages`}
-                                className="flex-1 py-2 border-2 border-indigo-600 text-indigo-600 rounded-xl font-medium hover:bg-indigo-50 transition text-center min-w-[100px]"
+                              {/* ✅ طلب دعم فني - ينشئ شات ويحول للدعم */}
+                              <button 
+                                onClick={() => handleSupportRequest(purchase.projectId)}
+                                disabled={supportLoading}
+                                className="flex-1 py-2 border-2 border-indigo-600 text-indigo-600 rounded-xl font-medium hover:bg-indigo-50 transition text-center min-w-[100px] disabled:opacity-50"
                               >
-                                طلب دعم فني 💬
-                              </Link>
+                                {supportLoading ? '⏳ جاري...' : 'طلب دعم فني 💬'}
+                              </button>
                             </div>
                           )}
 
@@ -234,6 +307,110 @@ export default function Purchases() {
           </div>
         </div>
       </div>
+
+      {/* ✅ Rating Modal */}
+      <AnimatePresence>
+        {showRatingModal && ratingProject && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setShowRatingModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 50 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 50 }}
+              transition={{ type: "spring", damping: 20 }}
+              className="bg-white rounded-2xl max-w-md w-full p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {ratingSuccess ? (
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="text-center py-8"
+                >
+                  <div className="text-6xl mb-4">🎉</div>
+                  <h3 className="text-xl font-bold text-green-600 mb-2">تم إرسال تقييمك بنجاح!</h3>
+                  <p className="text-gray-500">شكراً لك على مشاركة رأيك</p>
+                </motion.div>
+              ) : (
+                <>
+                  <div className="text-center mb-6">
+                    <div className="text-4xl mb-3">⭐</div>
+                    <h3 className="text-xl font-bold text-gray-800">تقييم المشروع</h3>
+                    <p className="text-sm text-gray-500 mt-1">{ratingProject.projectName}</p>
+                  </div>
+
+                  <div className="flex justify-center gap-2 mb-6">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <motion.button
+                        key={star}
+                        type="button"
+                        whileHover={{ scale: 1.2 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => setRating(star)}
+                        onMouseEnter={() => setHoverRating(star)}
+                        onMouseLeave={() => setHoverRating(0)}
+                        className={`text-4xl transition-all duration-200 ${
+                          (hoverRating || rating) >= star
+                            ? 'text-yellow-400 drop-shadow-lg'
+                            : 'text-gray-300'
+                        }`}
+                      >
+                        ★
+                      </motion.button>
+                    ))}
+                  </div>
+                  <p className="text-center text-sm text-gray-500 mb-4">
+                    {rating === 0 ? 'اضغط على النجوم للتقييم' : rating === 5 ? 'ممتاز! 😍' : rating === 4 ? 'جيد جداً 👍' : rating === 3 ? 'جيد 🙂' : rating === 2 ? 'مقبول 😐' : 'ضعيف 😞'}
+                  </p>
+
+                  <div className="mb-4">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">تعليقك (اختياري)</label>
+                    <textarea
+                      rows="3"
+                      value={reviewComment}
+                      onChange={(e) => setReviewComment(e.target.value)}
+                      className="w-full px-4 py-2 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:outline-none resize-none"
+                      placeholder="اكتب تعليقك عن المشروع..."
+                    />
+                  </div>
+
+                  {ratingError && (
+                    <div className="p-3 bg-red-50 text-red-600 rounded-xl text-sm mb-4 text-center">{ratingError}</div>
+                  )}
+
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setShowRatingModal(false)}
+                      className="flex-1 py-2 border-2 border-gray-300 text-gray-600 rounded-xl font-medium hover:bg-gray-50 transition"
+                    >
+                      إلغاء
+                    </button>
+                    <button
+                      onClick={handleSubmitRating}
+                      disabled={ratingLoading || rating === 0}
+                      className="flex-1 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-xl font-medium hover:shadow-lg transition disabled:opacity-50"
+                    >
+                      {ratingLoading ? (
+                        <div className="flex items-center justify-center gap-2">
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          جاري...
+                        </div>
+                      ) : (
+                        'إرسال التقييم ⭐'
+                      )}
+                    </button>
+                  </div>
+                </>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <Footer />
     </div>

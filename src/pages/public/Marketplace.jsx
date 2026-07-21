@@ -50,7 +50,7 @@ export default function Marketplace() {
           developerAvatar: project.owner?.profileImage || 'https://randomuser.me/api/portraits/men/32.jpg',
           category: project.category || 'management',
           price: project.basic?.price || 0,
-          salesCount: project.sales || 0,
+          salesCount: project.salesCount || 0,
           rating: project.rating || 0,
           image: project.images?.[0] || 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=600',
           tech: project.technologies || [],

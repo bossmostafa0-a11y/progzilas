@@ -46,11 +46,21 @@ import Messages from '../pages/shared/Messages'
 import Notifications from '../pages/shared/Notifications'
 import NotFound from '../pages/shared/NotFound'
 import Payment from '../pages/shared/Payment'
+import Support from '../pages/shared/supportchat.jsx'
+import Messagesupport from '../pages/developer/messagesupport'
+import PreviousProjects from '../pages/developer/PreviousProjects.jsx'
+import AddPreviousProjects from '../pages/developer/addPreviousProjects'
+import ReportProblem from '../pages/shared/ReportProblem'
+
+
+
 
 const router = createBrowserRouter([
   // Public Routes
   { path: '/', element: <Home /> },
+    { path: '/Messagesupport', element: <Messagesupport /> },
   { path: '/developers', element: <Developers /> },
+  { path: '/support/:projectId', element: <Support /> },
   { path: '/marketplace', element: <Marketplace /> },
   { path: '/marketplaceitem/:id', element: <MarketplaceItem /> },
   { path: '/dev/:id', element: <DevProfilePublic /> },
@@ -63,7 +73,10 @@ const router = createBrowserRouter([
   { path: '/complete-client-profile', element: <CompleteClientProfile /> },
   { path: '/forgot-password', element: <ForgotPassword /> },
 
+  
   // Developer Routes
+    { path: '/dashboard/developer/PreviousProjects', element: <PreviousProjects /> },
+    { path: '/dashboard/developer/PreviousProjects/AddPreviousProjects', element: <AddPreviousProjects /> },
   { path: '/dashboard/developer', element: <PrivateRoute allowedTypes={['developer']}><DevDashboard /></PrivateRoute> },
   { path: '/dashboard/developer/projects', element: <PrivateRoute allowedTypes={['developer']}><DevProjects /></PrivateRoute> },
   { path: '/dashboard/developer/proposals', element: <PrivateRoute allowedTypes={['developer']}><DevProposals /></PrivateRoute> },
@@ -88,6 +101,8 @@ const router = createBrowserRouter([
   { path: '/messages', element: <PrivateRoute><Messages /></PrivateRoute> },
   { path: '/notifications', element: <PrivateRoute><Notifications /></PrivateRoute> },
 { path: '/payment', element: <PrivateRoute><Payment /></PrivateRoute> },
+{ path: '/ReportProblem', element: <PrivateRoute><ReportProblem /></PrivateRoute> },
+
   // 404
   { path: '*', element: <NotFound /> }
 ])

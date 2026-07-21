@@ -29,8 +29,7 @@ export default function DevStore() {
   });
 
   const transformProjectData = (project) => {
-    const totalSales = (project.basic?.sales || 0) + (project.pro?.sales || 0) + (project.enterprise?.sales || 0);
-    const avgRating = project.rating || 4.5;
+    const avgRating = project.rating || 0;
     const status = project.public === true ? 'published' : 'draft';
     
     const packages = [];
@@ -69,7 +68,7 @@ export default function DevStore() {
       fullDescription: project.fullDescription || '',
       category: project.category || 'other',
       price: project.price || packages[0]?.price || 0,
-      salesCount: totalSales,
+      salesCount: project.salesCount,
       rating: avgRating,
       views: project.views || 0,
       image: project.images?.[0] || 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=400',
@@ -255,14 +254,14 @@ export default function DevStore() {
                 </h1>
                 <p className="text-gray-500 mt-1">إدارة وبيع مشاريعك البرمجية للعملاء</p>
               </div>
-              <Link to="/dashboard/developer/add-project">
+              <Link to="/Messagesupport">
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium hover:shadow-lg transition-all flex items-center gap-2"
                 >
-                  <span>➕</span>
-                  <span>إضافة مشروع جديد</span>
+                  <span>💬</span>
+                  <span>رسائل الدعم الفني</span>
                 </motion.button>
               </Link>
             </motion.div>

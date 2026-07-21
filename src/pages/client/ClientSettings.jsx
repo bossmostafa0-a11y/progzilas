@@ -39,11 +39,10 @@ export default function ClientSettings() {
     companyName: user?.companyName || '',
     email: user?.email || '',
     phone: user?.phone || '',
-    location: user?.location || user?.country || '',
+    location: user?.location || '',
     website: user?.website || '',
     language: user?.language || 'ar',
-    timezone: user?.timezone || 'Africa/Cairo',
-    currency: user?.currency || 'EGP'
+    currency: user?.currency || 'USD'
   });
 
   // Notification Settings
@@ -89,7 +88,6 @@ export default function ClientSettings() {
     setErrorMessage('');
 
     try {
-      // ✅ إرسال البيانات زي ما هي - الباك إند بيقبل location و language
       await updateAccountSettings(accountSettings);
       
       const updatedUser = { ...user, ...accountSettings };
@@ -169,16 +167,36 @@ export default function ClientSettings() {
     { value: 'en', label: 'English' }
   ];
 
-  const timezones = [
-    { value: 'Africa/Cairo', label: 'القاهرة (+2)' },
-    { value: 'Asia/Dubai', label: 'دبي (+4)' },
-    { value: 'Europe/London', label: 'لندن (+0)' }
+  // ✅ الدول العربية
+  const countries = [
+    { value: 'Egypt', label: '🇪🇬 مصر' },
+    { value: 'Saudi Arabia', label: '🇸🇦 السعودية' },
+    { value: 'UAE', label: '🇦🇪 الإمارات' },
+    { value: 'Kuwait', label: '🇰🇼 الكويت' },
+    { value: 'Qatar', label: '🇶🇦 قطر' },
+    { value: 'Bahrain', label: '🇧🇭 البحرين' },
+    { value: 'Oman', label: '🇴🇲 عمان' },
+    { value: 'Jordan', label: '🇯🇴 الأردن' },
+    { value: 'Lebanon', label: '🇱🇧 لبنان' },
+    { value: 'Syria', label: '🇸🇾 سوريا' },
+    { value: 'Iraq', label: '🇮🇶 العراق' },
+    { value: 'Palestine', label: '🇵🇸 فلسطين' },
+    { value: 'Yemen', label: '🇾🇪 اليمن' },
+    { value: 'Sudan', label: '🇸🇩 السودان' },
+    { value: 'Libya', label: '🇱🇾 ليبيا' },
+    { value: 'Tunisia', label: '🇹🇳 تونس' },
+    { value: 'Algeria', label: '🇩🇿 الجزائر' },
+    { value: 'Morocco', label: '🇲🇦 المغرب' },
+    { value: 'Mauritania', label: '🇲🇷 موريتانيا' },
+    { value: 'Somalia', label: '🇸🇴 الصومال' },
+    { value: 'Djibouti', label: '🇩🇯 جيبوتي' },
+    { value: 'Comoros', label: '🇰🇲 جزر القمر' },
   ];
 
+  // ✅ العملات - فقط جنيه ودولار
   const currencies = [
     { value: 'USD', label: 'دولار أمريكي ($)' },
-    { value: 'EUR', label: 'يورو (€)' },
-    { value: 'EGP', label: 'جنيه مصري (E£)' }
+    { value: 'EGP', label: 'جنيه مصري (E£)' },
   ];
 
   const tabs = [
@@ -306,15 +324,18 @@ export default function ClientSettings() {
                         </div>
                         <div>
                           <label className="block text-sm font-semibold text-gray-700 mb-2">
-                            الموقع
+                            الدولة
                           </label>
-                          <input
-                            type="text"
+                          <select
                             name="location"
                             value={accountSettings.location}
                             onChange={handleAccountChange}
                             className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:outline-none"
-                          />
+                          >
+                            {countries.map(country => (
+                              <option key={country.value} value={country.value}>{country.label}</option>
+                            ))}
+                          </select>
                         </div>
                       </div>
 
@@ -331,7 +352,7 @@ export default function ClientSettings() {
                         />
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                           <label className="block text-sm font-semibold text-gray-700 mb-2">
                             اللغة
@@ -344,21 +365,6 @@ export default function ClientSettings() {
                           >
                             {languages.map(lang => (
                               <option key={lang.value} value={lang.value}>{lang.label}</option>
-                            ))}
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-2">
-                            المنطقة الزمنية
-                          </label>
-                          <select
-                            name="timezone"
-                            value={accountSettings.timezone}
-                            onChange={handleAccountChange}
-                            className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:outline-none"
-                          >
-                            {timezones.map(tz => (
-                              <option key={tz.value} value={tz.value}>{tz.label}</option>
                             ))}
                           </select>
                         </div>

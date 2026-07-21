@@ -446,11 +446,11 @@ export default function Developers() {
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
                       
-                      <div className="absolute top-2 right-2">
+                    {/* <div className="absolute top-2 right-2">
                         <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${dev.available ? 'bg-green-500 text-white' : 'bg-gray-500 text-white'}`}>
                           {dev.available ? 'متاح' : 'مشغول'}
                         </span>
-                      </div>
+                      </div>*/}
                       
                       <div className="absolute bottom-2 right-2 flex gap-1">
                         {dev.badges.slice(0, 2).map((badge, i) => (
