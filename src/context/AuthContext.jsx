@@ -261,7 +261,22 @@ const fetchMe = useCallback(async () => {
       throw error;
     }
   };
-
+// ✅ إعادة إرسال رمز التحقق
+const resendVerification = async (email) => {
+  try {
+    const response = await authService.resendVerificationCode(email);
+    console.log('✅ Resend verification response:', response);
+    
+    if (response.success) {
+      return response;
+    } else {
+      throw new Error(response.message || 'حدث خطأ أثناء إعادة إرسال الرمز');
+    }
+  } catch (error) {
+    console.error('❌ Resend verification error:', error);
+    throw error;
+  }
+};
   const value = {
     user,
     userType,
@@ -276,7 +291,7 @@ const fetchMe = useCallback(async () => {
     compliteprofileclient: uplodimageclient,
     fetchUser,
     fetchMe,
-    
+    resendVerification,
     isDeveloper: userType === 'developer',
     isClient: userType === 'client',
     isAuthenticated: !!user

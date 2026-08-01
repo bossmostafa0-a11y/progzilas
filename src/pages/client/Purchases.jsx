@@ -25,48 +25,52 @@ export default function Purchases() {
 
   useEffect(() => {
     const loadPurchases = async () => {
-      try {
-        setLoading(true);
-        const response = await getClientPurchases();
-        
-        let data = response;
-        if (typeof data === 'string') {
-          data = JSON.parse(data);
-        }
-        
-        const purchasesData = data?.data?.project || data?.project || data?.data || [];
-        
-        if (purchasesData.length > 0) {
-          const mapped = purchasesData.map((order, index) => ({
-            id: order._id || `purchase-${index}`,
-            projectName: order.project?.projectName || 'مشروع',
-            developer: order.developer?.username || 'مطور',
-            developerAvatar: order.developer?.profileImage || 'https://randomuser.me/api/portraits/men/32.jpg',
-            developerId: order.developer?._id || order.developer,
-            projectId: order.project?._id || order.project,
-            amount: order.amount || 0,
-            package: order.package || order.type || 'Basic',
-            purchaseDate: order.createdAt || '',
-            status: order.status || 'pending',
-            downloadUrl: order.project?.downloadurl || '',
-            licenseKey: order.licenseKey || '',
-            typewallet: order.typewallet || '',
-            phone: order.phone || '',
-            name: order.name || '',
-            delivered: order.delivered || false
-          }));
-          setPurchases(mapped);
-        }
-      } catch (err) {
-        console.error('❌ Error:', err);
-        setError(err?.response?.data?.message || 'حدث خطأ في تحميل المشتريات');
-      } finally {
-        setLoading(false);
+    try {
+      setLoading(true);
+      const response = await getClientPurchases();
+      
+      let data = response;
+      if (typeof data === 'string') {
+        data = JSON.parse(data);
       }
-    };
-    
-    loadPurchases();
-  }, []);
+      
+      const purchasesData = data?.data?.project || data?.project || data?.data || [];
+      
+      if (purchasesData.length > 0) {
+        const mapped = purchasesData.map((order, index) => ({
+          id: order._id || `purchase-${index}`,
+          projectName: order.project?.projectName || 'مشروع',
+          developer: order.developer?.username || 'مطور',
+          developerAvatar: order.developer?.profileImage || 'https://randomuser.me/api/portraits/men/32.jpg',
+          developerId: order.developer?._id || order.developer,
+          projectId: order.project?._id || order.project,
+          amount: order.amount || 0,
+          package: order.package || order.type || 'Basic',
+          purchaseDate: order.createdAt || '',
+          status: order.status || 'pending',
+          downloadUrl: order.project?.downloadurl || '',
+          licenseKey: order.licenseKey || '',
+          typewallet: order.typewallet || '',
+          phone: order.phone || '',
+          name: order.name || '',
+          delivered: order.delivered || false
+        }));
+        
+        // ✅ ترتيب المشتريات: الأجدد أولاً (من الأحدث إلى الأقدم)
+        mapped.sort((a, b) => new Date(b.purchaseDate) - new Date(a.purchaseDate));
+        
+        setPurchases(mapped);
+      }
+    } catch (err) {
+      console.error('❌ Error:', err);
+      setError(err?.response?.data?.message || 'حدث خطأ في تحميل المشتريات');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  loadPurchases();
+}, []);
 
   const handleDownload = (url) => {
     const link = document.createElement('a');

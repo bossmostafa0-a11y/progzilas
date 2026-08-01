@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import {  useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import Navbar from '../../components/layout/Navbar';
@@ -7,8 +7,8 @@ import Footer from '../../components/layout/Footer';
 import { getMarketplaceProjects } from '../../services/develper.service.js';
 
 export default function Marketplace() {
-  const { user } = useAuth(); // ✅ جلب المستخدم
-  const navigate = useNavigate(); // ✅ للتنقل
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -16,16 +16,34 @@ export default function Marketplace() {
   const [selectedPriceRange, setSelectedPriceRange] = useState('all');
   const [sortBy, setSortBy] = useState('popular');
   const [viewMode, setViewMode] = useState('grid');
+  
+  // ✅ Pagination State - 6 items per page
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 9;
 
   const containerRef = useRef(null);
+
+  // ✅ Reset page when filters change
+  const prevFiltersRef = useRef({ searchTerm, selectedCategory, selectedPriceRange, sortBy });
+
+  useEffect(() => {
+    const prev = prevFiltersRef.current;
+    const current = { searchTerm, selectedCategory, selectedPriceRange, sortBy };
+    
+    if (prev.searchTerm !== current.searchTerm ||
+        prev.selectedCategory !== current.selectedCategory ||
+        prev.selectedPriceRange !== current.selectedPriceRange ||
+        prev.sortBy !== current.sortBy) {
+      setCurrentPage(1);
+      prevFiltersRef.current = current;
+    }
+  }, [searchTerm, selectedCategory, selectedPriceRange, sortBy]);
 
   // ✅ دالة التعامل مع الضغط على تفاصيل المشروع
   const handleProjectClick = (projectId) => {
     if (!user) {
-      // ✅ لو مش مسجل، اتنقل على صفحة تسجيل الدخول
       navigate('/login', { state: { from: `/marketplaceitem/${projectId}` } });
     } else {
-      // ✅ لو مسجل، روح على صفحة المشروع
       navigate(`/marketplaceitem/${projectId}`);
     }
   };
@@ -117,6 +135,13 @@ export default function Marketplace() {
 
     return filtered;
   }, [projects, searchTerm, selectedCategory, selectedPriceRange, sortBy]);
+
+  // ✅ Pagination
+  const totalPages = Math.ceil(filteredProjects.length / itemsPerPage);
+  const paginatedProjects = filteredProjects.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   const categories = [
     { value: 'all', label: 'الكل', icon: '🌐' },
@@ -412,6 +437,9 @@ export default function Marketplace() {
             <div className="flex items-center gap-2">
               <p className="text-gray-600 text-xs">
                 عرض <span className="font-bold text-indigo-600 mx-0.5">{filteredProjects.length}</span> مشروع
+                {totalPages > 1 && (
+                  <span className="mr-2 text-gray-400 text-xs">| صفحة {currentPage} من {totalPages}</span>
+                )}
               </p>
             </div>
             {loading && (
@@ -450,142 +478,254 @@ export default function Marketplace() {
               </button>
             </motion.div>
           ) : viewMode === 'grid' ? (
-            <motion.div
-              variants={containerScrollVariants}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, amount: 0.1 }}
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
-            >
-              {filteredProjects.map((project, index) => (
-                <motion.div
-                  key={project.id}
-                  custom={index}
-                  variants={scrollRevealVariants}
-                  whileHover={{ y: -8 }}
-                  className="group bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer"
-                  onClick={() => handleProjectClick(project.id)} // ✅ الضغط على الكارد كله
-                >
-                  <div className="relative h-40 overflow-hidden">
-                    <motion.img src={project.image} alt={project.name} className="w-full h-full object-cover" whileHover={{ scale: 1.1 }} transition={{ duration: 0.5 }} onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=600'; }} />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
-                    
-                    {project.badge && (
-                      <div className="absolute top-3 right-3">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          project.badge === 'الأكثر مبيعاً' ? 'bg-yellow-500 text-white' : project.badge === 'مميز' ? 'bg-purple-500 text-white' : 'bg-blue-500 text-white'
-                        }`}>
-                          {project.badge}
-                        </span>
-                      </div>
-                    )}
-                    
-                    <div className="absolute bottom-3 left-3">
-                      <div className="bg-black/70 backdrop-blur-sm rounded-lg px-2 py-1">
-                        <span className="text-white font-bold text-sm">${project.price}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="p-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="flex-1 ml-2">
-                        <h3 className="text-base font-bold text-gray-800 truncate">{project.name}</h3>
-                        <div className="flex items-center gap-1 mt-1">
-                          <img src={project.developerAvatar} alt={project.developer} className="w-4 h-4 rounded-full" onError={(e) => { e.target.src = 'https://randomuser.me/api/portraits/men/32.jpg'; }} />
-                          <span className="text-[10px] text-gray-500 truncate">{project.developer}</span>
+            <>
+              <motion.div
+                key={currentPage}
+                variants={containerScrollVariants}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, amount: 0.1 }}
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
+              >
+                {paginatedProjects.map((project, index) => (
+                  <motion.div
+                    key={project.id}
+                    custom={index}
+                    variants={scrollRevealVariants}
+                    whileHover={{ y: -8 }}
+                    className="group bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer"
+                    onClick={() => handleProjectClick(project.id)}
+                  >
+                    <div className="relative h-40 overflow-hidden">
+                      <motion.img src={project.image} alt={project.name} className="w-full h-full object-cover" whileHover={{ scale: 1.1 }} transition={{ duration: 0.5 }} onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=600'; }} />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+                      
+                      {project.badge && (
+                        <div className="absolute top-3 right-3">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            project.badge === 'الأكثر مبيعاً' ? 'bg-yellow-500 text-white' : project.badge === 'مميز' ? 'bg-purple-500 text-white' : 'bg-blue-500 text-white'
+                          }`}>
+                            {project.badge}
+                          </span>
+                        </div>
+                      )}
+                      
+                      <div className="absolute bottom-3 left-3">
+                        <div className="bg-black/70 backdrop-blur-sm rounded-lg px-2 py-1">
+                          <span className="text-white font-bold text-sm">${project.price}</span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-0.5 shrink-0">
-                        <span className="text-yellow-400 text-xs">★</span>
-                        <span className="text-xs font-semibold">{project.rating}</span>
-                      </div>
                     </div>
 
-                    <p className="text-gray-500 text-xs line-clamp-2 mb-3">{project.description}</p>
-
-                    <div className="flex flex-wrap gap-1 mb-3">
-                      {project.tech.slice(0, 3).map((tech, i) => (
-                        <span key={i} className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[9px] rounded-lg">{tech}</span>
-                      ))}
-                      {project.tech.length > 3 && (
-                        <span className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[9px] rounded-lg">+{project.tech.length - 3}</span>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-2 mb-3 text-[10px] text-gray-400">
-                      <span>🏆 {project.salesCount} عملية بيع</span>
-                    </div>
-
-                    {/* ✅ زرار تفاصيل المشروع */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation(); // منع تضارب الـ onClick
-                        handleProjectClick(project.id);
-                      }}
-                      className="block w-full text-center py-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:shadow-lg transition-all duration-300 text-xs font-medium"
-                    >
-                      تفاصيل المشروع
-                    </button>
-                  </div>
-                </motion.div>
-              ))}
-            </motion.div>
-          ) : (
-            <motion.div
-              variants={containerScrollVariants}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, amount: 0.1 }}
-              className="space-y-3"
-            >
-              {filteredProjects.map((project, index) => (
-                <motion.div
-                  key={project.id}
-                  custom={index}
-                  variants={scrollRevealVariants}
-                  whileHover={{ x: 10, scale: 1.01 }}
-                  className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-4 cursor-pointer"
-                  onClick={() => handleProjectClick(project.id)} // ✅ الضغط على الكارد كله
-                >
-                  <div className="flex gap-4">
-                    <img src={project.image} alt={project.name} className="w-24 h-24 rounded-xl object-cover shrink-0" onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=600'; }} />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-start mb-1">
+                    <div className="p-4">
+                      <div className="flex justify-between items-start mb-2">
                         <div className="flex-1 ml-2">
-                          <h3 className="text-base font-bold truncate">{project.name}</h3>
-                          <div className="flex items-center gap-2 mt-0.5">
+                          <h3 className="text-base font-bold text-gray-800 truncate">{project.name}</h3>
+                          <div className="flex items-center gap-1 mt-1">
                             <img src={project.developerAvatar} alt={project.developer} className="w-4 h-4 rounded-full" onError={(e) => { e.target.src = 'https://randomuser.me/api/portraits/men/32.jpg'; }} />
-                            <span className="text-xs text-gray-500 truncate">{project.developer}</span>
-                            <span className="text-gray-300 text-xs">|</span>
-                            <span className="text-yellow-400 text-xs">★ {project.rating}</span>
+                            <span className="text-[10px] text-gray-500 truncate">{project.developer}</span>
                           </div>
                         </div>
-                        <div className="text-lg font-bold text-indigo-600 shrink-0">${project.price}</div>
-                      </div>
-                      <p className="text-gray-500 text-xs line-clamp-1 mb-2">{project.description}</p>
-                      <div className="flex items-center gap-3">
-                        <div className="flex flex-wrap gap-1">
-                          {project.tech.slice(0, 3).map((tech, i) => (
-                            <span key={i} className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[9px] rounded-lg">{tech}</span>
-                          ))}
+                        <div className="flex items-center gap-0.5 shrink-0">
+                          <span className="text-yellow-400 text-xs">★</span>
+                          <span className="text-xs font-semibold">{project.rating}</span>
                         </div>
-                        <span className="text-[10px] text-gray-400">🏆 {project.salesCount} بيع</span>
                       </div>
+
+                      <p className="text-gray-500 text-xs line-clamp-2 mb-3">{project.description}</p>
+
+                      <div className="flex flex-wrap gap-1 mb-3">
+                        {project.tech.slice(0, 3).map((tech, i) => (
+                          <span key={i} className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[9px] rounded-lg">{tech}</span>
+                        ))}
+                        {project.tech.length > 3 && (
+                          <span className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[9px] rounded-lg">+{project.tech.length - 3}</span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2 mb-3 text-[10px] text-gray-400">
+                        <span>🏆 {project.salesCount} عملية بيع</span>
+                      </div>
+
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleProjectClick(project.id);
+                        }}
+                        className="block w-full text-center py-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:shadow-lg transition-all duration-300 text-xs font-medium"
+                      >
+                        تفاصيل المشروع
+                      </button>
                     </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation(); // منع تضارب الـ onClick
-                        handleProjectClick(project.id);
-                      }}
-                      className="px-4 py-1.5 bg-indigo-600 text-white text-sm rounded-xl hover:bg-indigo-700 transition whitespace-nowrap shrink-0"
-                    >
-                      تفاصيل
-                    </button>
+                  </motion.div>
+                ))}
+              </motion.div>
+
+              {/* ✅ Pagination - Grid View */}
+              {totalPages > 1 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex justify-center items-center gap-2 mt-8"
+                >
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    className="px-4 py-2 bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                  >
+                    السابق
+                  </button>
+                  
+                  <div className="flex gap-1">
+                    {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                      let pageNum;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => setCurrentPage(pageNum)}
+                          className={`w-9 h-9 rounded-xl text-sm font-medium transition-all duration-300 ${
+                            currentPage === pageNum
+                              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg'
+                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
                   </div>
+
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                    className="px-4 py-2 bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                  >
+                    التالي
+                  </button>
                 </motion.div>
-              ))}
-            </motion.div>
+              )}
+            </>
+          ) : (
+            // List View
+            <>
+              <motion.div
+                key={currentPage}
+                variants={containerScrollVariants}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, amount: 0.1 }}
+                className="space-y-3"
+              >
+                {paginatedProjects.map((project, index) => (
+                  <motion.div
+                    key={project.id}
+                    custom={index}
+                    variants={scrollRevealVariants}
+                    whileHover={{ x: 10, scale: 1.01 }}
+                    className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-4 cursor-pointer"
+                    onClick={() => handleProjectClick(project.id)}
+                  >
+                    <div className="flex gap-4">
+                      <img src={project.image} alt={project.name} className="w-24 h-24 rounded-xl object-cover shrink-0" onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=600'; }} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-start mb-1">
+                          <div className="flex-1 ml-2">
+                            <h3 className="text-base font-bold truncate">{project.name}</h3>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <img src={project.developerAvatar} alt={project.developer} className="w-4 h-4 rounded-full" onError={(e) => { e.target.src = 'https://randomuser.me/api/portraits/men/32.jpg'; }} />
+                              <span className="text-xs text-gray-500 truncate">{project.developer}</span>
+                              <span className="text-gray-300 text-xs">|</span>
+                              <span className="text-yellow-400 text-xs">★ {project.rating}</span>
+                            </div>
+                          </div>
+                          <div className="text-lg font-bold text-indigo-600 shrink-0">${project.price}</div>
+                        </div>
+                        <p className="text-gray-500 text-xs line-clamp-1 mb-2">{project.description}</p>
+                        <div className="flex items-center gap-3">
+                          <div className="flex flex-wrap gap-1">
+                            {project.tech.slice(0, 3).map((tech, i) => (
+                              <span key={i} className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[9px] rounded-lg">{tech}</span>
+                            ))}
+                          </div>
+                          <span className="text-[10px] text-gray-400">🏆 {project.salesCount} بيع</span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleProjectClick(project.id);
+                        }}
+                        className="px-4 py-1.5 bg-indigo-600 text-white text-sm rounded-xl hover:bg-indigo-700 transition whitespace-nowrap shrink-0"
+                      >
+                        تفاصيل
+                      </button>
+                    </div>
+                  </motion.div>
+                ))}
+              </motion.div>
+
+              {/* ✅ Pagination - List View */}
+              {totalPages > 1 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex justify-center items-center gap-2 mt-8"
+                >
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    className="px-4 py-2 bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                  >
+                    السابق
+                  </button>
+                  
+                  <div className="flex gap-1">
+                    {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                      let pageNum;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => setCurrentPage(pageNum)}
+                          className={`w-9 h-9 rounded-xl text-sm font-medium transition-all duration-300 ${
+                            currentPage === pageNum
+                              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg'
+                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                    className="px-4 py-2 bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                  >
+                    التالي
+                  </button>
+                </motion.div>
+              )}
+            </>
           )}
         </div>
       </main>

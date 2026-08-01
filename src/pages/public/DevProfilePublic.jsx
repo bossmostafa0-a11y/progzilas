@@ -72,6 +72,7 @@ export default function DevProfile() {
           memberSince: userData.createdAt || new Date().toISOString(),
           techStack: userData.techStack || [],
           skills: userData.skills || [],
+          isTeam: userData.isTeam === true || userData.isTeam === 'true' || false, // ✅ علامة الفريق
           portfolio: (data?.data?.previousprojectss || []).map(item => ({
             id: item._id || item.id,
             title: item.projectName || item.name || 'مشروع بدون اسم',
@@ -116,7 +117,6 @@ export default function DevProfile() {
             date: cert.date || '',
             credentialId: cert.credentialId || ''
           })),
-          // ✅ ✅ ✅ التعديل النهائي هنا ✅ ✅ ✅
           reviews: (data?.data?.projectreviwess || []).map(review => ({
             user: review.client?.username || 'مستخدم',
             username: review.client?.username || 'مستخدم',
@@ -233,7 +233,18 @@ export default function DevProfile() {
             </motion.div>
 
             <div className="flex-1 text-center md:text-right">
-              <h1 className="text-3xl md:text-4xl font-bold text-gray-800">{developer.name}</h1>
+              <h1 className="text-3xl md:text-4xl font-bold text-gray-800 flex items-center gap-2 justify-center md:justify-start">
+                {developer.name}
+                {/* ✅ علامة الفريق الزرقاء */}
+                {developer.isTeam === true && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-500 text-white text-xs font-bold rounded-full shadow-lg">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    فريق
+                  </span>
+                )}
+              </h1>
               <p className="text-indigo-600 font-semibold mt-1">{developer.title}</p>
               <div className="flex flex-wrap justify-center md:justify-start gap-4 mt-2">
                 <span className="flex items-center gap-1 text-sm text-gray-500">

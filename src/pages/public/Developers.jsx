@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../../components/layout/Navbar';
@@ -13,6 +13,10 @@ export default function Developers() {
   const [selectedLevel, setSelectedLevel] = useState('all');
   const [sortBy, setSortBy] = useState('rating');
   const [viewMode, setViewMode] = useState('grid');
+  
+  // ✅ Pagination State - 13 items per page
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 9;
 
   // ✅ جلب البيانات من الباك إند
   useEffect(() => {
@@ -26,7 +30,6 @@ export default function Developers() {
         
         const devs = data?.data?.dev || data?.dev || data?.data || [];
         
-        // ✅ تحويل البيانات للشكل المطلوب
         const mappedDevelopers = devs.map(dev => ({
           id: dev._id,
           name: dev.username || 'غير معروف',
@@ -46,7 +49,8 @@ export default function Developers() {
           languages: dev.languages || ['العربية'],
           social: { github: dev.github || '', linkedin: dev.linkedin || '' },
           projectsCount: dev.totalProjects || 0,
-          salesCount: dev.salesCount || 0
+          salesCount: dev.salesCount || 0,
+          isTeam: dev.isTeam === true || dev.isTeam === 'true' || false
         }));
         
         setDevelopers(mappedDevelopers);
@@ -80,7 +84,11 @@ export default function Developers() {
       filtered = filtered.filter(dev => dev.level === selectedLevel);
     }
 
+    // ✅ ترتيب: اللي معاهم isTeam يظهروا في الأول
     filtered.sort((a, b) => {
+      if (a.isTeam && !b.isTeam) return -1;
+      if (!a.isTeam && b.isTeam) return 1;
+      
       switch (sortBy) {
         case 'rating': return b.rating - a.rating;
         case 'projects': return b.completedProjects - a.completedProjects;
@@ -92,6 +100,29 @@ export default function Developers() {
 
     return filtered;
   }, [developers, searchTerm, selectedTrack, selectedLevel, sortBy]);
+
+  // ✅ Pagination
+  const totalPages = Math.ceil(filteredDevelopers.length / itemsPerPage);
+  const paginatedDevelopers = filteredDevelopers.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  // ✅ Reset page when filters change
+  const prevFiltersRef = useRef({ searchTerm, selectedTrack, selectedLevel, sortBy });
+
+  useEffect(() => {
+    const prev = prevFiltersRef.current;
+    const current = { searchTerm, selectedTrack, selectedLevel, sortBy };
+    
+    if (prev.searchTerm !== current.searchTerm ||
+        prev.selectedTrack !== current.selectedTrack ||
+        prev.selectedLevel !== current.selectedLevel ||
+        prev.sortBy !== current.sortBy) {
+      setCurrentPage(1);
+      prevFiltersRef.current = current;
+    }
+  }, [searchTerm, selectedTrack, selectedLevel, sortBy]);
 
   const tracks = [
     { value: 'all', label: 'الكل', icon: '🌐' },
@@ -371,6 +402,9 @@ export default function Developers() {
               <div className="text-indigo-500 text-sm">✨</div>
               <p className="text-gray-600 text-xs">
                 عرض <span className="font-bold text-indigo-600 mx-0.5">{filteredDevelopers.length}</span> مبرمج
+                {filteredDevelopers.some(d => d.isTeam) && (
+                  <span className="mr-2 text-blue-500">🔵 {filteredDevelopers.filter(d => d.isTeam).length} موثق</span>
+                )}
               </p>
             </div>
             {loading && (
@@ -420,164 +454,307 @@ export default function Developers() {
               </button>
             </motion.div>
           ) : viewMode === 'grid' ? (
-            <motion.div
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
-            >
-              <AnimatePresence mode="wait">
-                {filteredDevelopers.map((dev) => (
-                  <motion.div
-                    key={dev.id}
-                    variants={cardVariants}
-                    whileHover="hover"
-                    layout
-                    className="group bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer"
-                  >
-                    <div className="relative h-24 overflow-hidden">
-                      <motion.img
-                        src={dev.cover}
-                        alt={dev.name}
-                        className="w-full h-full object-cover"
-                        whileHover={{ scale: 1.1 }}
-                        transition={{ duration: 0.5 }}
-                        onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=600'; }}
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                      
-                    {/* <div className="absolute top-2 right-2">
-                        <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${dev.available ? 'bg-green-500 text-white' : 'bg-gray-500 text-white'}`}>
-                          {dev.available ? 'متاح' : 'مشغول'}
-                        </span>
-                      </div>*/}
-                      
-                      <div className="absolute bottom-2 right-2 flex gap-1">
-                        {dev.badges.slice(0, 2).map((badge, i) => (
-                          <span key={i} className="px-1.5 py-0.5 bg-yellow-400 text-gray-800 text-[10px] rounded-full">
-                            {badge}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="relative px-5">
-                      <motion.div
-                        whileHover={{ rotate: 360, scale: 1.1 }}
-                        transition={{ duration: 0.5 }}
-                        className="absolute -top-9 right-5 w-14 h-14 rounded-xl border-4 border-white shadow-xl overflow-hidden bg-white"
-                      >
-                        <img src={dev.avatar} alt={dev.name} className="w-full h-full object-cover" onError={(e) => { e.target.src = 'https://randomuser.me/api/portraits/men/32.jpg'; }} />
-                      </motion.div>
-                    </div>
-
-                    <div className="pt-8 pb-4 px-5">
-                      <div className="flex justify-between items-start mb-1">
-                        <div>
-                          <h3 className="text-base font-bold text-gray-800">{dev.name}</h3>
-                          <p className="text-[11px] text-indigo-600 font-semibold">{dev.title}</p>
-                        </div>
-                        <div className="text-left">
-                          <div className="text-lg font-bold text-indigo-600">${dev.hourlyRate}</div>
-                          <div className="text-[10px] text-gray-500">/ ساعة</div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 mb-2 flex-wrap">
-                        <div className="flex items-center gap-0.5">
-                          <span className="text-yellow-400 text-[11px]">★</span>
-                          <span className="font-semibold text-[11px]">{dev.rating}</span>
-                        </div>
-                        <div className="text-gray-400 text-[10px]">|</div>
-                        <div className="text-[10px] text-gray-600">📦 {dev.completedProjects}</div>
-                        <div className="text-[10px] text-gray-600">🏆 {dev.salesCount}</div>
-                      </div>
-
-                      <div className="mb-2">
-                        <span className={`px-1.5 py-0.5 rounded-lg text-[10px] font-semibold border ${getLevelColor(dev.level)}`}>
-                          {levels.find(l => l.value === dev.level)?.label}
-                        </span>
-                      </div>
-
-                      <div className="flex flex-wrap gap-1 mb-3">
-                        {dev.tech.slice(0, 4).map((tech, i) => (
-                          <span key={i} className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded-lg">
-                            {tech}
-                          </span>
-                        ))}
-                        {dev.tech.length > 4 && (
-                          <span className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded-lg">
-                            +{dev.tech.length - 4}
-                          </span>
+            <>
+              <motion.div
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
+              >
+                <AnimatePresence mode="popLayout">
+                  {paginatedDevelopers.map((dev) => (
+                    <motion.div
+                      key={dev.id}
+                      variants={cardVariants}
+                      whileHover="hover"
+                      layout
+                      className={`group bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer ${
+                        dev.isTeam ? 'ring-2 ring-blue-400 ring-offset-2' : ''
+                      }`}
+                    >
+                      <div className="relative h-24 overflow-hidden">
+                        <motion.img
+                          src={dev.cover}
+                          alt={dev.name}
+                          className="w-full h-full object-cover"
+                          whileHover={{ scale: 1.1 }}
+                          transition={{ duration: 0.5 }}
+                          onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=600'; }}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                        
+                        {dev.isTeam && (
+                          <div className="absolute top-2 left-2">
+                            <span className="px-2 py-0.5 bg-blue-500 text-white text-[10px] font-bold rounded-full shadow-lg flex items-center gap-1">
+                              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                              </svg>
+                              موثق
+                            </span>
+                          </div>
                         )}
+                        
+                        <div className="absolute bottom-2 right-2 flex gap-1">
+                          {dev.badges.slice(0, 2).map((badge, i) => (
+                            <span key={i} className="px-1.5 py-0.5 bg-yellow-400 text-gray-800 text-[10px] rounded-full">
+                              {badge}
+                            </span>
+                          ))}
+                        </div>
                       </div>
 
-                      <Link
-                        to={`/dev/${dev.id}`}
-                        className="block w-full text-center py-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:shadow-lg transition-all duration-300 text-[11px] font-medium"
-                      >
-                        عرض البروفايل
-                      </Link>
-                    </div>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </motion.div>
-          ) : (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="space-y-3"
-            >
-              <AnimatePresence mode="wait">
-                {filteredDevelopers.map((dev, index) => (
-                  <motion.div
-                    key={dev.id}
-                    initial={{ opacity: 0, x: -50 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 50 }}
-                    transition={{ delay: index * 0.05 }}
-                    whileHover={{ x: 10, scale: 1.01 }}
-                    className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-4 cursor-pointer"
-                  >
-                    <div className="flex items-center gap-4">
-                      <motion.img
-                        whileHover={{ scale: 1.1, rotate: 5 }}
-                        src={dev.avatar}
-                        alt={dev.name}
-                        className="w-14 h-14 rounded-full object-cover"
-                        onError={(e) => { e.target.src = 'https://randomuser.me/api/portraits/men/32.jpg'; }}
-                      />
-                      <div className="flex-1">
+                      <div className="relative px-5">
+                        <motion.div
+                          whileHover={{ rotate: 360, scale: 1.1 }}
+                          transition={{ duration: 0.5 }}
+                          className="absolute -top-9 right-5 w-14 h-14 rounded-xl border-4 border-white shadow-xl overflow-hidden bg-white"
+                        >
+                          <img src={dev.avatar} alt={dev.name} className="w-full h-full object-cover" onError={(e) => { e.target.src = 'https://randomuser.me/api/portraits/men/32.jpg'; }} />
+                        </motion.div>
+                      </div>
+
+                      <div className="pt-8 pb-4 px-5">
                         <div className="flex justify-between items-start mb-1">
                           <div>
-                            <h3 className="text-base font-bold">{dev.name}</h3>
-                            <p className="text-xs text-indigo-600">{dev.title}</p>
+                            <h3 className="text-base font-bold text-gray-800 flex items-center gap-1">
+                              {dev.name}
+                              {/* ✅ علامة التوثيق الزرقاء - زي فيسبوك */}
+                              {dev.isTeam === true && (
+                                <span className="inline-flex items-center justify-center w-5 h-5 bg-[#1b74e4] rounded-full shadow-md border-2 border-white flex-shrink-0">
+                                  <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                                  </svg>
+                                </span>
+                              )}
+                            </h3>
+                            <p className="text-[11px] text-indigo-600 font-semibold">{dev.title}</p>
                           </div>
-                          <div className="text-lg font-bold text-indigo-600">
-                            ${dev.hourlyRate}<span className="text-[10px] text-gray-500">/ساعة</span>
+                          <div className="text-left">
+                            <div className="text-lg font-bold text-indigo-600">${dev.hourlyRate}</div>
+                            <div className="text-[10px] text-gray-500">/ ساعة</div>
                           </div>
                         </div>
-                        <div className="flex items-center gap-3 mb-1 text-xs">
-                          <span className="flex items-center gap-0.5">★ {dev.rating}</span>
-                          <span>{dev.completedProjects} مشروع</span>
-                          <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${dev.available ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-600'}`}>
-                            {dev.available ? 'متاح' : 'مشغول'}
+
+                        <div className="flex items-center gap-2 mb-2 flex-wrap">
+                          <div className="flex items-center gap-0.5">
+                            <span className="text-yellow-400 text-[11px]">★</span>
+                            <span className="font-semibold text-[11px]">{dev.rating}</span>
+                          </div>
+                          <div className="text-gray-400 text-[10px]">|</div>
+                          <div className="text-[10px] text-gray-600">📦 {dev.completedProjects}</div>
+                          <div className="text-[10px] text-gray-600">🏆 {dev.salesCount}</div>
+                        </div>
+
+                        <div className="mb-2">
+                          <span className={`px-1.5 py-0.5 rounded-lg text-[10px] font-semibold border ${getLevelColor(dev.level)}`}>
+                            {levels.find(l => l.value === dev.level)?.label}
                           </span>
                         </div>
-                        <p className="text-gray-500 text-xs line-clamp-1">{dev.bio}</p>
+
+                        <div className="flex flex-wrap gap-1 mb-3">
+                          {dev.tech.slice(0, 4).map((tech, i) => (
+                            <span key={i} className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded-lg">
+                              {tech}
+                            </span>
+                          ))}
+                          {dev.tech.length > 4 && (
+                            <span className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded-lg">
+                              +{dev.tech.length - 4}
+                            </span>
+                          )}
+                        </div>
+
+                        <Link
+                          to={`/dev/${dev.id}`}
+                          className="block w-full text-center py-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:shadow-lg transition-all duration-300 text-[11px] font-medium"
+                        >
+                          عرض البروفايل
+                        </Link>
                       </div>
-                      <Link
-                        to={`/dev/${dev.id}`}
-                        className="px-4 py-1.5 bg-indigo-600 text-white text-sm rounded-xl hover:bg-indigo-700 transition whitespace-nowrap"
-                      >
-                        عرض البروفايل
-                      </Link>
-                    </div>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </motion.div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </motion.div>
+
+              {/* ✅ Pagination */}
+              {totalPages > 1 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex justify-center items-center gap-2 mt-8"
+                >
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    className="px-4 py-2 bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                  >
+                    السابق
+                  </button>
+                  
+                  <div className="flex gap-1">
+                    {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                      let pageNum;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => setCurrentPage(pageNum)}
+                          className={`w-9 h-9 rounded-xl text-sm font-medium transition-all duration-300 ${
+                            currentPage === pageNum
+                              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg'
+                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                    className="px-4 py-2 bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                  >
+                    التالي
+                  </button>
+                </motion.div>
+              )}
+            </>
+          ) : (
+            // List View
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="space-y-3"
+              >
+                <AnimatePresence mode="popLayout">
+                  {paginatedDevelopers.map((dev, index) => (
+                    <motion.div
+                      key={dev.id}
+                      initial={{ opacity: 0, x: -50 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 50 }}
+                      transition={{ delay: index * 0.05 }}
+                      whileHover={{ x: 10, scale: 1.01 }}
+                      className={`bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-4 cursor-pointer ${
+                        dev.isTeam ? 'ring-2 ring-blue-400 ring-offset-2' : ''
+                      }`}
+                    >
+                      <div className="flex items-center gap-4">
+                        <motion.img
+                          whileHover={{ scale: 1.1, rotate: 5 }}
+                          src={dev.avatar}
+                          alt={dev.name}
+                          className="w-14 h-14 rounded-full object-cover"
+                          onError={(e) => { e.target.src = 'https://randomuser.me/api/portraits/men/32.jpg'; }}
+                        />
+                        <div className="flex-1">
+                          <div className="flex justify-between items-start mb-1">
+                            <div>
+                              <h3 className="text-base font-bold flex items-center gap-1">
+                                {dev.name}
+                                {/* ✅ علامة التوثيق الزرقاء - زي فيسبوك */}
+                                {dev.isTeam === true && (
+                                  <span className="inline-flex items-center justify-center w-5 h-5 bg-[#1b74e4] rounded-full shadow-md border-2 border-white flex-shrink-0">
+                                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                                    </svg>
+                                  </span>
+                                )}
+                              </h3>
+                              <p className="text-xs text-indigo-600">{dev.title}</p>
+                            </div>
+                            <div className="text-lg font-bold text-indigo-600">
+                              ${dev.hourlyRate}<span className="text-[10px] text-gray-500">/ساعة</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3 mb-1 text-xs">
+                            <span className="flex items-center gap-0.5">★ {dev.rating}</span>
+                            <span>{dev.completedProjects} مشروع</span>
+                            <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${dev.available ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-600'}`}>
+                              {dev.available ? 'متاح' : 'مشغول'}
+                            </span>
+                            {dev.isTeam && (
+                              <span className="px-1.5 py-0.5 bg-blue-500 text-white text-[10px] rounded-full">موثق</span>
+                            )}
+                          </div>
+                          <p className="text-gray-500 text-xs line-clamp-1">{dev.bio}</p>
+                        </div>
+                        <Link
+                          to={`/dev/${dev.id}`}
+                          className="px-4 py-1.5 bg-indigo-600 text-white text-sm rounded-xl hover:bg-indigo-700 transition whitespace-nowrap"
+                        >
+                          عرض البروفايل
+                        </Link>
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </motion.div>
+
+              {/* ✅ Pagination for List View */}
+              {totalPages > 1 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex justify-center items-center gap-2 mt-8"
+                >
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    className="px-4 py-2 bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                  >
+                    السابق
+                  </button>
+                  
+                  <div className="flex gap-1">
+                    {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                      let pageNum;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => setCurrentPage(pageNum)}
+                          className={`w-9 h-9 rounded-xl text-sm font-medium transition-all duration-300 ${
+                            currentPage === pageNum
+                              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg'
+                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                    className="px-4 py-2 bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                  >
+                    التالي
+                  </button>
+                </motion.div>
+              )}
+            </>
           )}
         </div>
       </main>

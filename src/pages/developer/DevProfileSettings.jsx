@@ -38,7 +38,8 @@ export default function DevProfileSettings() {
     certificates: user?.certificates || [],
     country: user?.country || '',
     avatar: user?.profileImage || user?.avatar || 'https://via.placeholder.com/200/6366f1/ffffff?text=User',
-    coverImage: user?.coverImage || 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=1200'
+    coverImage: user?.coverImage || 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=1200',
+    isTeam: user?.isTeam || false // ✅ علامة الفريق
   });
 
   // ✅ ملفات للرفع
@@ -104,7 +105,8 @@ export default function DevProfileSettings() {
             certificates: parseArray(userData.certificates),
             country: userData.country || '',
             avatar: userData.profileImage || userData.avatar || 'https://via.placeholder.com/200/6366f1/ffffff?text=User',
-            coverImage: userData.coverImage || 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=1200'
+            coverImage: userData.coverImage || 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=1200',
+            isTeam: userData.isTeam || false // ✅ علامة الفريق
           });
           
           hasLoaded.current = true;
@@ -415,7 +417,18 @@ export default function DevProfileSettings() {
                     </label>
                   </div>
                   <div className="pb-2">
-                    <h2 className="text-2xl font-bold text-gray-800">{formData.fullName}</h2>
+                    <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                      {formData.fullName}
+                      {/* ✅ علامة الفريق الزرقاء */}
+                      {formData.isTeam && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-500 text-white text-xs font-bold rounded-full shadow-lg">
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                          </svg>
+                          فريق
+                        </span>
+                      )}
+                    </h2>
                     <p className="text-indigo-600">{formData.title}</p>
                   </div>
                 </div>

@@ -118,3 +118,13 @@ export const forgotPassword = async (email) => {
   const response = await api.post('/auth/changePasswordemail', { email });
   return response.data;
 };
+//اعادة ارسال كلمة السر
+export const resendVerificationCode = async (email) => {
+  try {
+    const response = await api.post('/auth/resendverifyemail', { email });
+    return response.data;
+  } catch (error) {
+    console.error('❌ Resend verification error:', error);
+    throw handleApiError(error);
+  }
+};
