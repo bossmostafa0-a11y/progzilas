@@ -348,7 +348,7 @@ export default function DevDashboard() {
 
   const handleNotificationClick = (notification) => {
     if (!notification.isRead) handleMarkAsRead(notification._id);
-    const paths = { message: '/messages', project: `/project-room/${notification.metadata?.projectId || ''}`, task: `/project/${notification.metadata?.projectId}/tasks`, payment: `/project-room/${notification.metadata?.projectId}?tab=payments`, file: `/project-room/${notification.metadata?.projectId}?tab=files`, folder: `/project-room/${notification.metadata?.projectId}?tab=files` };
+    const paths = { message: '/messages', project: `/dashboard/developer/projects`, task: `/project/${notification.metadata?.projectId}/tasks`, payment: `/project/${notification.metadata?.projectId}?tab=payments`, file: `/project/${notification.metadata?.projectId}?tab=files`, folder: `/project/${notification.metadata?.projectId}?tab=files` };
     setShowNotifications(false); hasLoadedNotifications.current = false;
     navigate(paths[notification.type] || notification.link || '#');
   };

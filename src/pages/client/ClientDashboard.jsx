@@ -229,7 +229,7 @@ track: dev.track
     let path = '#';
     switch (notification.type) {
       case 'message': path = `/messages`; break;
-      case 'project': path = `/project-room/${notification.metadata?.projectId || notification.link}`; break;
+      case 'project': path = `/project/${notification.metadata?.projectId || notification.link}`; break;
       case 'proposal': path = `/dashboard/client/proposals`; break;
       case 'payment': path = `/dashboard/client/purchases`; break;
       case 'milestone': path = `/project/${notification.metadata?.projectId}`; break;

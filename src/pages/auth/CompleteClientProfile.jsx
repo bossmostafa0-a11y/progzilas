@@ -207,7 +207,7 @@ export default function CompleteClientProfile() {
               
               {/* الشعار */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-3 text-center">🏢 شعار الشركة</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-3 text-center"> اختار الافتار الخاص بك 👤</label>
                 <div className="flex flex-col items-center gap-4">
                   <div className="w-40 h-40 rounded-2xl overflow-hidden bg-gradient-to-r from-indigo-100 to-purple-100 flex items-center justify-center border-4 border-white shadow-lg">
                     {logoPreview ? (
@@ -215,11 +215,11 @@ export default function CompleteClientProfile() {
                     ) : formData.profileImage ? (
                       <img src={formData.profileImage} alt="Logo" className="w-full h-full object-cover" />
                     ) : (
-                      <span className="text-6xl">🏢</span>
+                      <span className="text-6xl">👤</span>
                     )}
                   </div>
                   <button type="button" onClick={() => openImagePicker('logo')} className="px-4 py-2 bg-indigo-600 text-white text-sm rounded-xl hover:bg-indigo-700 transition shadow-lg w-40 font-medium">
-                    📂 اختر شعاراً
+                     اختر افتار 🧛‍♂️
                   </button>
                 </div>
               </div>

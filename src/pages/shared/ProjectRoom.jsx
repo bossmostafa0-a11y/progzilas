@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 // src/pages/shared/ProjectWorkspace.jsx
-
+import { Link } from 'react-router-dom';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -364,163 +364,187 @@ export default function ProjectWorkspace() {
 
   // ✅ جلب بيانات المشروع من الباك اند
   const fetchProjectData = useCallback(async () => {
+  try {
+    setLoading(true);
+    setError(null);
+
+    console.log('📤 Fetching project workspace for ID:', id);
+
+    const roomResponse = await getProjectRoom(id);
+    console.log('📥 Full Room Response:', roomResponse);
+
+    if (!roomResponse) {
+      throw new Error('لم يتم استلام بيانات من الخادم');
+    }
+
+    let projectData = null;
+    let clientData = null;
+    let developerData = null;
+    let chatIdData = null;
+
+    if (roomResponse.data) {
+      projectData = roomResponse.data.project || roomResponse.data;
+      clientData = roomResponse.data.client;
+      developerData = roomResponse.data.developer;
+      chatIdData = roomResponse.data.chatId;
+    } else {
+      projectData = roomResponse.project || roomResponse;
+      clientData = roomResponse.client;
+      developerData = roomResponse.developer;
+      chatIdData = roomResponse.chatId;
+    }
+
+    console.log('✅ Project Data:', projectData);
+    console.log('✅ Chat ID:', chatIdData);
+
+    setChatId(chatIdData);
+    setRepoLink(projectData?.githubRepo || '');
+    setDemoLink(projectData?.demoUrl || '');
+
+    // ✅ جلب المهام
+    let tasksData = [];
     try {
-      setLoading(true);
-      setError(null);
+      const tasksResponse = await getProjectTasks(id);
+      console.log('📥 Full Tasks Response:', tasksResponse);
 
-      console.log('📤 Fetching project workspace for ID:', id);
-
-      const roomResponse = await getProjectRoom(id);
-      console.log('📥 Full Room Response:', roomResponse);
-
-      if (!roomResponse) {
-        throw new Error('لم يتم استلام بيانات من الخادم');
-      }
-
-      let projectData = null;
-      let clientData = null;
-      let developerData = null;
-      let chatIdData = null;
-
-      if (roomResponse.data) {
-        projectData = roomResponse.data.project || roomResponse.data;
-        clientData = roomResponse.data.client;
-        developerData = roomResponse.data.developer;
-        chatIdData = roomResponse.data.chatId;
-      } else {
-        projectData = roomResponse.project || roomResponse;
-        clientData = roomResponse.client;
-        developerData = roomResponse.developer;
-        chatIdData = roomResponse.chatId;
-      }
-
-      console.log('✅ Project Data:', projectData);
-      console.log('✅ Chat ID:', chatIdData);
-
-      setChatId(chatIdData);
-      setRepoLink(projectData?.githubRepo || '');
-      setDemoLink(projectData?.demoUrl || '');
-
-      // ✅ جلب المهام
-      let tasksData = [];
-      try {
-        const tasksResponse = await getProjectTasks(id);
-        console.log('📥 Full Tasks Response:', tasksResponse);
-
-        if (tasksResponse) {
-          if (tasksResponse.data) {
-            if (Array.isArray(tasksResponse.data)) {
-              tasksData = tasksResponse.data;
-            } else if (tasksResponse.data.tasks) {
-              tasksData = tasksResponse.data.tasks;
-            } else if (tasksResponse.data.task) {
-              tasksData = tasksResponse.data.task;
-            } else {
-              tasksData = tasksResponse.data;
-            }
-          } else if (Array.isArray(tasksResponse)) {
-            tasksData = tasksResponse;
-          } else if (tasksResponse.tasks) {
-            tasksData = tasksResponse.tasks;
-          } else if (tasksResponse.task) {
-            tasksData = tasksResponse.task;
+      if (tasksResponse) {
+        if (tasksResponse.data) {
+          if (Array.isArray(tasksResponse.data)) {
+            tasksData = tasksResponse.data;
+          } else if (tasksResponse.data.tasks) {
+            tasksData = tasksResponse.data.tasks;
+          } else if (tasksResponse.data.task) {
+            tasksData = tasksResponse.data.task;
           } else {
-            tasksData = tasksResponse;
+            tasksData = tasksResponse.data;
           }
+        } else if (Array.isArray(tasksResponse)) {
+          tasksData = tasksResponse;
+        } else if (tasksResponse.tasks) {
+          tasksData = tasksResponse.tasks;
+        } else if (tasksResponse.task) {
+          tasksData = tasksResponse.task;
+        } else {
+          tasksData = tasksResponse;
         }
-        
-        if (!Array.isArray(tasksData)) {
-          tasksData = [];
-        }
-        
-        tasksData = tasksData.map(task => ({
-          _id: task._id || task.id,
-          title: task.title || 'مهمة بدون عنوان',
-          description: task.description || '',
-          status: task.status || 'pending',
-          dueDate: task.dueDate || '',
-          createdAt: task.createdAt || '',
-          updatedAt: task.updatedAt || '',
-          project: task.project || '',
-          createdBy: task.createdBy || ''
-        }));
-        
-      } catch (taskErr) {
-        console.warn('⚠️ Could not fetch tasks:', taskErr);
+      }
+      
+      if (!Array.isArray(tasksData)) {
         tasksData = [];
       }
+      
+      tasksData = tasksData.map(task => ({
+        _id: task._id || task.id,
+        title: task.title || 'مهمة بدون عنوان',
+        description: task.description || '',
+        status: task.status || 'pending',
+        dueDate: task.dueDate || '',
+        createdAt: task.createdAt || '',
+        updatedAt: task.updatedAt || '',
+        project: task.project || '',
+        createdBy: task.createdBy || ''
+      }));
+      
+    } catch (taskErr) {
+      console.warn('⚠️ Could not fetch tasks:', taskErr);
+      tasksData = [];
+    }
 
-      // ✅ بناء كائن المشروع - استخدم feature و objective
-      const formattedProject = {
-        _id: projectData?._id || id,
-        name: projectData?.projectName || projectData?.name || 'مشروع بدون اسم',
-        status: projectData?.status || 'in_progress',
-        progress: projectData?.progress || 0,
-        description: projectData?.description || projectData?.projectDescription || 'لا يوجد وصف',
-        objective: projectData?.objective || projectData?.objectives || [],
-        feature: projectData?.feature || projectData?.features || [],
-        techStack: projectData?.techStack || projectData?.technologies || [],
-        client: {
-          _id: clientData?._id || 'client123',
-          name: clientData?.username || clientData?.name || 'عميل',
-          avatar: clientData?.profileImage || clientData?.avatar || 'https://randomuser.me/api/portraits/men/1.jpg',
-          email: clientData?.email || ''
-        },
-        developer: {
+    // ✅ بناء كائن المشروع - استخدم feature و objective
+    const formattedProject = {
+      _id: projectData?._id || id,
+      name: projectData?.projectName || projectData?.name || 'مشروع بدون اسم',
+      status: projectData?.status || 'in_progress',
+      progress: projectData?.progress || 0,
+      description: projectData?.description || projectData?.projectDescription || 'لا يوجد وصف',
+      objective: projectData?.objective || projectData?.objectives || [],
+      feature: projectData?.feature || projectData?.features || [],
+      techStack: projectData?.techStack || projectData?.technologies || [],
+      client: {
+        _id: clientData?._id || 'client123',
+        name: clientData?.username || clientData?.name || 'عميل',
+        avatar: clientData?.profileImage || clientData?.avatar || 'https://randomuser.me/api/portraits/men/1.jpg',
+        email: clientData?.email || ''
+      },
+      developer: {
+        _id: developerData?._id || 'dev456',
+        name: developerData?.username || developerData?.name || 'مبرمج رئيسي',
+        avatar: developerData?.profileImage || developerData?.avatar || 'https://randomuser.me/api/portraits/men/32.jpg',
+        email: developerData?.email || '',
+        isMain: true
+      },
+      startDate: projectData?.startDate || projectData?.createdAt || new Date().toISOString(),
+      deadline: projectData?.dueDate || projectData?.deadline || projectData?.endDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      budget: projectData?.budget || projectData?.amount || 0,
+      paidAmount: projectData?.paidAmount || projectData?.paid || 0,
+      githubRepo: projectData?.githubRepo || '',
+      demoUrl: projectData?.demoUrl || '',
+      team: [
+        { 
           _id: developerData?._id || 'dev456',
-          name: developerData?.username || developerData?.name || 'مبرمج رئيسي',
-          avatar: developerData?.profileImage || developerData?.avatar || 'https://randomuser.me/api/portraits/men/32.jpg',
+          name: developerData?.username || 'مبرمج رئيسي', 
+          role: 'مطور رئيسي', 
+          online: true, 
+          avatar: developerData?.profileImage || 'https://randomuser.me/api/portraits/men/32.jpg',
           email: developerData?.email || '',
           isMain: true
-        },
-        startDate: projectData?.startDate || projectData?.createdAt || new Date().toISOString(),
-        deadline: projectData?.dueDate || projectData?.deadline || projectData?.endDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        budget: projectData?.budget || projectData?.amount || 0,
-        paidAmount: projectData?.paidAmount || projectData?.paid || 0,
-        githubRepo: projectData?.githubRepo || '',
-        demoUrl: projectData?.demoUrl || '',
-        team: [
-          { 
-            _id: developerData?._id || 'dev456',
-            name: developerData?.username || 'مبرمج رئيسي', 
-            role: 'مطور رئيسي', 
-            online: true, 
-            avatar: developerData?.profileImage || 'https://randomuser.me/api/portraits/men/32.jpg',
-            email: developerData?.email || '',
-            isMain: true
-          }
-        ],
-        milestones: tasksData,
-        files: projectData?.files || [],
-        payments: projectData?.payments || [],
-        transactions: projectData?.transactions || [],
-        activity: projectData?.activity || []
-      };
+        }
+      ],
+      milestones: tasksData,
+      files: projectData?.files || [],
+      payments: projectData?.payments || [],
+      transactions: projectData?.transactions || [],
+      activity: projectData?.activity || []
+    };
 
-      setProject(formattedProject);
-      setTasks(tasksData);
+    setProject(formattedProject);
+    setTasks(tasksData);
 
-      await fetchProjectMembers();
-      await fetchFolders();
-      await fetchProjectActivities();
-      await fetchFeaturesAndGoals();
+    await fetchProjectMembers();
+    await fetchFolders();
+    await fetchProjectActivities();
+    await fetchFeaturesAndGoals();
 
-    } catch (err) {
-      console.error('❌ Error fetching project data:', err);
+  } catch (err) {
+    console.error('❌ Error fetching project data:', err);
+    
+    if (err.response?.status === 401) {
+      navigate('/login');
+    } else if (err.response?.status === 403) {
+      // ✅ التحقق من رسالة الترقية
+      const errorMessage = err.response?.data?.message || err.message || '';
       
-      if (err.response?.status === 401) {
-        navigate('/login');
-      } else if (err.response?.status === 403) {
-        setError('ليس لديك صلاحية للوصول إلى هذا المشروع');
-      } else if (err.response?.status === 404) {
-        setError('المشروع غير موجود');
+      if (errorMessage.includes('ترقية') || 
+          errorMessage.includes('اشتراكك') || 
+          errorMessage.includes('الخطة') ||
+          errorMessage.includes('subscription') ||
+          errorMessage.includes('upgrade') ||
+          errorMessage.includes('اشتراك')) {
+        setError({
+          message: errorMessage,
+          isUpgrade: true
+        });
       } else {
-        setError(err.response?.data?.message || err.message || 'حدث خطأ أثناء تحميل بيانات المشروع');
+        setError({
+          message: 'ليس لديك صلاحية للوصول إلى هذا المشروع',
+          isUpgrade: false
+        });
       }
-    } finally {
-      setLoading(false);
+    } else if (err.response?.status === 404) {
+      setError({ 
+        message: 'المشروع غير موجود', 
+        isUpgrade: false 
+      });
+    } else {
+      setError({ 
+        message: err.response?.data?.message || err.message || 'حدث خطأ أثناء تحميل بيانات المشروع',
+        isUpgrade: false 
+      });
     }
-  }, [id, navigate, fetchProjectMembers, fetchFolders, fetchProjectActivities, fetchFeaturesAndGoals]);
+  } finally {
+    setLoading(false);
+  }
+}, [id, navigate, fetchProjectMembers, fetchFolders, fetchProjectActivities, fetchFeaturesAndGoals]);
 
   useEffect(() => {
     if (!hasFetched.current) {
@@ -678,7 +702,7 @@ const handleDownloadReceipt = async (payment) => {
         <div class="receipt" id="receipt">
           <div class="receipt-header">
             <div class="receipt-logo">
-              DevHire
+              Progzila
               <span>💼</span>
             </div>
             <h1>وصل الدفعة</h1>
@@ -720,10 +744,10 @@ const handleDownloadReceipt = async (payment) => {
 
           <div class="receipt-footer">
             <div class="company">
-              DevHire <span>💼</span>
+              Progzila <span>💼</span>
             </div>
             <p class="thanks">شكراً لثقتكم بنا 🙏</p>
-            <p class="powered">تم إنشاء هذا الوصل بواسطة DevHire</p>
+            <p class="powered">تم إنشاء هذا الوصل بواسطة Progzila</p>
           </div>
         </div>
       </body>
@@ -765,87 +789,64 @@ const handleDownloadReceipt = async (payment) => {
   }
 };
   // ✅ إنشاء مهمة جديدة - فقط للمبرمج الرئيسي
-  const handleCreateTask = async (e) => {
-    e.preventDefault();
+// ✅ إنشاء مهمة جديدة - فقط للمبرمج الرئيسي
+const handleCreateTask = async (e) => {
+  e.preventDefault();
+  
+  if (!isMainDeveloper) {
+    showToast('⚠️ فقط المبرمج الرئيسي يمكنه إضافة مراحل', 'error');
+    return;
+  }
+  
+  setSubmitting(true);
+
+  try {
+    const response = await createTask({
+      projectId: id,
+      title: newTask.title,
+      description: newTask.description,
+      dueDate: newTask.dueDate
+    });
+
+    console.log('✅ Task created:', response);
+    showToast('✅ تم إنشاء المرحلة بنجاح');
+
+    // ... باقي الكود ...
+
+  } catch (error) {
+    console.error('❌ Error creating task:', error);
     
-    if (!isMainDeveloper) {
-      showToast('⚠️ فقط المبرمج الرئيسي يمكنه إضافة مراحل', 'error');
-      return;
-    }
+    // ✅ التحقق من رسالة الترقية
+    const errorMessage = error?.response?.data?.message || error?.message || '';
+    console.log('🔍 Error message:', errorMessage);
     
-    setSubmitting(true);
-
-    try {
-      const response = await createTask({
-        projectId: id,
-        title: newTask.title,
-        description: newTask.description,
-        dueDate: newTask.dueDate
-      });
-
-      console.log('✅ Task created:', response);
-      showToast('✅ تم إنشاء المرحلة بنجاح');
-
-      const tasksResponse = await getProjectTasks(id);
-      let tasksData = [];
+    if (errorMessage.includes('ترقية') || 
+        errorMessage.includes('اشتراكك') || 
+        errorMessage.includes('الخطة') ||
+        errorMessage.includes('subscription') ||
+        errorMessage.includes('upgrade') ||
+        errorMessage.includes('اشتراك')) {
       
-      if (tasksResponse) {
-        if (tasksResponse.data) {
-          if (Array.isArray(tasksResponse.data)) {
-            tasksData = tasksResponse.data;
-          } else if (tasksResponse.data.tasks) {
-            tasksData = tasksResponse.data.tasks;
-          } else if (tasksResponse.data.task) {
-            tasksData = tasksResponse.data.task;
-          } else {
-            tasksData = tasksResponse.data;
-          }
-        } else if (Array.isArray(tasksResponse)) {
-          tasksData = tasksResponse;
-        } else if (tasksResponse.tasks) {
-          tasksData = tasksResponse.tasks;
-        } else if (tasksResponse.task) {
-          tasksData = tasksResponse.task;
-        } else {
-          tasksData = tasksResponse;
-        }
-      }
+      showToast(
+        <div className="flex flex-col items-center gap-2 text-center">
+          <span className="text-sm font-medium">⚠️ {errorMessage}</span>
+          <Link
+            to="/pricing"
+            className="px-4 py-1.5 bg-amber-500 text-white text-sm font-bold rounded-lg hover:bg-amber-600 transition w-full text-center"
+          >
+            🚀 انتقل لترقية اشتراكك
+          </Link>
+        </div>,
+        'error'
+      );
       
-      if (!Array.isArray(tasksData)) {
-        tasksData = [];
-      }
-      
-      tasksData = tasksData.map(task => ({
-        _id: task._id || task.id,
-        title: task.title || 'مهمة بدون عنوان',
-        description: task.description || '',
-        status: task.status || 'pending',
-        dueDate: task.dueDate || '',
-        createdAt: task.createdAt || '',
-        updatedAt: task.updatedAt || '',
-        project: task.project || '',
-        createdBy: task.createdBy || ''
-      }));
-      
-      setTasks(tasksData);
-      setProject(prev => ({ ...prev, milestones: tasksData }));
-
-      if (response?.data?.progress !== undefined) {
-        setProject(prev => ({ ...prev, progress: response.data.progress }));
-      } else if (response?.progress !== undefined) {
-        setProject(prev => ({ ...prev, progress: response.progress }));
-      }
-
-      setShowAddTaskModal(false);
-      setNewTask({ title: '', description: '', dueDate: '' });
-
-    } catch (error) {
-      console.error('❌ Error creating task:', error);
+    } else {
       showToast(error.response?.data?.message || 'حدث خطأ أثناء إنشاء المرحلة', 'error');
-    } finally {
-      setSubmitting(false);
     }
-  };
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   // ✅ تحديث حالة المهمة - فقط للمبرمج الرئيسي
   const handleUpdateTaskStatus = async (taskId, newStatus) => {
@@ -909,38 +910,75 @@ const handleDownloadReceipt = async (payment) => {
   };
 
   // ✅ إضافة عضو جديد للفريق - فقط للمبرمج الرئيسي
-  const handleAddMember = (e) => {
-    e.preventDefault();
+// ✅ إضافة عضو جديد للفريق - باستخدام API
+// ✅ إضافة عضو جديد للفريق - باستخدام API
+const handleAddMember = async (e) => {
+  e.preventDefault();
+  
+  if (!isMainDeveloper) {
+    showToast('⚠️ فقط المبرمج الرئيسي يمكنه إضافة أعضاء', 'error');
+    return;
+  }
+  
+  // ✅ التحقق من وجود بريد إلكتروني
+  if (!newMember.email) {
+    showToast('⚠️ يرجى إدخال البريد الإلكتروني', 'error');
+    return;
+  }
+
+  if (!newMember.role) {
+    showToast('⚠️ يرجى إدخال دور المبرمج', 'error');
+    return;
+  }
+
+  setSubmitting(true);
+
+  try {
+    // ✅ استخدام API الدعوة
+    const response = await inviteDeveloper(id, newMember.email, newMember.role);
+    console.log('✅ Member invited:', response);
     
-    if (!isMainDeveloper) {
-      showToast('⚠️ فقط المبرمج الرئيسي يمكنه إضافة أعضاء', 'error');
-      return;
-    }
+    showToast(`✅ تم اضافة العضو للفريق ${newMember.email}`, 'success');
     
-    if (!newMember.name.trim()) {
-      showToast('يرجى إدخال اسم العضو', 'error');
-      return;
-    }
-
-    const member = {
-      _id: 'member-' + Date.now(),
-      name: newMember.name,
-      role: newMember.role || 'عضو فريق',
-      online: true,
-      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(newMember.name)}&background=4F46E5&color=fff&size=100`,
-      email: newMember.email || '',
-      isMain: false
-    };
-
-    setProject(prev => ({
-      ...prev,
-      team: [...prev.team, member]
-    }));
-
-    showToast(`✅ تم إضافة ${member.name} إلى الفريق`, 'success');
-    setNewMember({ name: '', role: '', email: '' });
+    await fetchProjectMembers();
+    setNewMember({ role: '', email: '' });
     setShowAddMemberModal(false);
-  };
+    
+  } catch (error) {
+    console.error('❌ Error inviting member:', error);
+    
+    // ✅ التحقق من رسالة الترقية
+    const errorMessage = error?.response?.data?.message || error?.message || '';
+    console.log('🔍 Error message:', errorMessage);
+    
+    if (errorMessage.includes('ترقية') || 
+        errorMessage.includes('اشتراكك') || 
+        errorMessage.includes('الخطة') ||
+        errorMessage.includes('subscription') ||
+        errorMessage.includes('upgrade') ||
+        errorMessage.includes('اشتراك')) {
+      
+      // ✅ عرض رسالة الترقية مع زر التحويل
+      showToast(
+        <div className="flex flex-col items-center gap-2">
+          <span>{errorMessage}</span>
+          <Link
+            to="/pricing"
+            className="px-4 py-1.5 bg-amber-500 text-white text-sm font-bold rounded-lg hover:bg-amber-600 transition"
+          >
+            🚀 انتقل لترقية اشتراكك
+          </Link>
+        </div>,
+        'error'
+      );
+      
+    } else {
+      showToast(errorMessage || 'حدث خطأ أثناء إضافة العضو', 'error');
+    }
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   // ✅ حذف عضو من الفريق - فقط للمبرمج الرئيسي
   const handleRemoveMember = async (memberId) => {
@@ -1728,30 +1766,42 @@ const handleDownloadReceipt = async (payment) => {
   }
 
   // ✅ عرض الخطأ
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar />
-        <div className="flex items-center justify-center h-[calc(100vh-80px)]">
-          <div className="text-center bg-white rounded-2xl shadow-lg p-8 max-w-md">
-            <div className="text-5xl mb-4">⚠️</div>
-            <h3 className="text-xl font-bold text-gray-700 mb-2">حدث خطأ</h3>
-            <p className="text-gray-500 mb-4">{error}</p>
-            <button
-              onClick={() => {
-                hasFetched.current = false;
-                fetchProjectData();
-              }}
-              className="px-6 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition"
+ // ✅ عرض الخطأ
+if (error) {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Navbar />
+      <div className="flex items-center justify-center h-[calc(100vh-80px)]">
+        <div className="text-center bg-white rounded-2xl shadow-lg p-8 max-w-md">
+          <div className="text-5xl mb-4">⚠️</div>
+          <h3 className="text-xl font-bold text-gray-700 mb-2">حدث خطأ</h3>
+          <p className="text-gray-500 mb-4">{error.message}</p>
+          
+          {/* ✅ زر الترقية - يظهر بس لو isUpgrade === true */}
+          {error.isUpgrade && (
+            <Link
+              to="/pricing"
+              className="inline-block w-full px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold rounded-xl hover:shadow-lg transition-all hover:scale-105 mb-3"
             >
-              إعادة المحاولة 🔄
-            </button>
-          </div>
+              🚀 انتقل لترقية اشتراكك
+            </Link>
+          )}
+          
+          <button
+            onClick={() => {
+              hasFetched.current = false;
+              fetchProjectData();
+            }}
+            className="px-6 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition"
+          >
+            إعادة المحاولة 🔄
+          </button>
         </div>
-        <Footer />
       </div>
-    );
-  }
+      <Footer />
+    </div>
+  );
+}
 
   // ✅ لو مفيش بيانات
   if (!project) {
@@ -2287,15 +2337,15 @@ const handleDownloadReceipt = async (payment) => {
                                   <div className="flex items-start justify-between">
                                     <div className="flex items-center gap-3">
                                       <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                                        file.type === 'pdf' ? 'bg-red-50 text-red-500' :
-                                        file.type === 'excel' ? 'bg-green-50 text-green-500' :
-                                        file.type === 'powerpoint' ? 'bg-orange-50 text-orange-500' :
+                                        file.fileName.split(".")[1] === 'pdf' ? 'bg-red-50 text-red-500' :
+                                        file.fileName.split(".")[1] === 'excel' ? 'bg-green-50 text-green-500' :
+                                        file.fileName.split(".")[1] === 'powerpoint' ? 'bg-orange-50 text-orange-500' :
                                         'bg-blue-50 text-blue-500'
                                       }`}>
                                         <FiFile className="w-5 h-5" />
                                       </div>
                                       <div>
-                                        <p className="text-gray-900 text-sm font-medium truncate max-w-[120px]">{file.name}</p>
+                                        <p className="text-gray-900 text-sm font-medium truncate max-w-[120px]">{file.fileName}</p>
                                         <p className="text-gray-500 text-xs">{file.size || '0 KB'} • {file.uploadedBy?.username || 'مستخدم'}</p>
                                       </div>
                                     </div>
@@ -2822,77 +2872,77 @@ const handleDownloadReceipt = async (payment) => {
       </AnimatePresence>
 
       {/* Add Member Modal */}
-      <AnimatePresence>
-        {showAddMemberModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            onClick={() => setShowAddMemberModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0, y: 50 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 50 }}
-              className="bg-white rounded-2xl max-w-md w-full p-6"
-              onClick={(e) => e.stopPropagation()}
+<AnimatePresence>
+  {showAddMemberModal && (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      onClick={() => setShowAddMemberModal(false)}
+    >
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0, y: 50 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.9, opacity: 0, y: 50 }}
+        className="bg-white rounded-2xl max-w-md w-full p-6"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 className="text-xl font-bold text-gray-800 mb-4">👥 اضافة مبرمج للفريق</h3>
+        <form onSubmit={handleAddMember}>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">
+                البريد الإلكتروني <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="email"
+                value={newMember.email}
+                onChange={(e) => setNewMember({ ...newMember, email: e.target.value })}
+                className="w-full px-4 py-2 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:outline-none"
+                placeholder="example@email.com"
+                required
+              />
+              <p className="text-xs text-gray-400 mt-1">📧 سيتم اضافة المبرمج صاحب هذا البريد</p>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">
+                الدور 
+              </label>
+              <input
+                type="text"
+                value={newMember.role}
+                onChange={(e) => setNewMember({ ...newMember, role: e.target.value })}
+                className="w-full px-4 py-2 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:outline-none"
+                placeholder="مثال: مطور Frontend"
+              />
+            </div>
+          </div>
+          <div className="flex gap-3 mt-6">
+            <button
+              type="button"
+              onClick={() => {
+                setShowAddMemberModal(false);
+                setNewMember({ name: '', role: '', email: '' });
+              }}
+              className="flex-1 py-2 border-2 border-gray-300 text-gray-600 rounded-xl font-medium hover:bg-gray-50 transition"
             >
-              <h3 className="text-xl font-bold text-gray-800 mb-4">👤 إضافة عضو جديد</h3>
-              <form onSubmit={handleAddMember}>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1">الاسم *</label>
-                    <input
-                      type="text"
-                      value={newMember.name}
-                      onChange={(e) => setNewMember({ ...newMember, name: e.target.value })}
-                      className="w-full px-4 py-2 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:outline-none"
-                      placeholder="أدخل اسم العضو"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1">الدور</label>
-                    <input
-                      type="text"
-                      value={newMember.role}
-                      onChange={(e) => setNewMember({ ...newMember, role: e.target.value })}
-                      className="w-full px-4 py-2 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:outline-none"
-                      placeholder="مثال: مطور Frontend"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1">البريد الإلكتروني</label>
-                    <input
-                      type="email"
-                      value={newMember.email}
-                      onChange={(e) => setNewMember({ ...newMember, email: e.target.value })}
-                      className="w-full px-4 py-2 rounded-xl border-2 border-gray-200 focus:border-indigo-500 focus:outline-none"
-                      placeholder="example@email.com"
-                    />
-                  </div>
-                </div>
-                <div className="flex gap-3 mt-6">
-                  <button
-                    type="button"
-                    onClick={() => setShowAddMemberModal(false)}
-                    className="flex-1 py-2 border-2 border-gray-300 text-gray-600 rounded-xl font-medium hover:bg-gray-50 transition"
-                  >
-                    إلغاء
-                  </button>
-                  <button
-                    type="submit"
-                    className="flex-1 py-2 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition"
-                  >
-                    إضافة عضو 👤
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              إلغاء
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="flex-1 py-2 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition disabled:opacity-50"
+            >
+              {submitting ? 'جاري الإرسال...' : 'إرسال الدعوة 📧'}
+            </button>
+          </div>
+        </form>
+      </motion.div>
+    </motion.div>
+  )}
+</AnimatePresence>
 
       {/* Invite Developer Modal */}
       <AnimatePresence>

@@ -65,9 +65,9 @@ export const getProjectMembers = async (projectId) => {
 };
 
 // ============ إرسال دعوة لمبرمج ============
-export const inviteDeveloper = async (projectId, developerId) => {
+export const inviteDeveloper = async (projectId , email , role) => {
   try {
-    const response = await api.post(`/dev/project/${projectId}/invite`, { developerId });
+    const response = await api.post(`/dev/addMember`, { projectId , email , role});
     return response.data;
   } catch (error) {
     throw handleApiError(error);
