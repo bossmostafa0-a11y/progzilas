@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, memo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import Particles from "@tsparticles/react";
 import { loadSlim } from "@tsparticles/slim";
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import { getHomeDetails } from '../../services/cliecnt.service.js';
+
 
 const STEPS = [
   { number: '01', title: 'سجل مجاناً', description: 'أنشئ حسابك كمبرمج أو عميل في دقيقة واحدة', icon: '📝', color: 'from-blue-500 to-cyan-500' },
@@ -41,6 +42,7 @@ const AnimatedCounter = memo(({ target, duration = 2500 }) => {
 AnimatedCounter.displayName = 'AnimatedCounter';
 
 export default function Home() {
+    const navigate = useNavigate();
   const [featuredProjects, setFeaturedProjects] = useState([]);
   const [topDevelopers, setTopDevelopers] = useState([]);
   // eslint-disable-next-line no-unused-vars
@@ -119,7 +121,20 @@ export default function Home() {
   ];
 
   const particlesInit = useCallback(async (engine) => { await loadSlim(engine); }, []);
-
+// ✅ دالة التعامل مع الضغط على تفاصيل المشروع
+const handleProjectClick = (projectId) => {
+  // ✅ التحقق من وجود مستخدم مسجل (من localStorage أو context)
+  const token = localStorage.getItem('token');
+  const user = localStorage.getItem('user');
+  
+  if (!token || !user) {
+    // ✅ لو مش مسجل، روح لتسجيل الدخول مع حفظ رابط المشروع
+    navigate(`/login`);
+  } else {
+    // ✅ لو مسجل، روح لصفحة المشروع
+    navigate(`/marketplaceitem/${projectId}`);
+  }
+};
   const particlesOptions = {
     background: { color: { value: "transparent" } },
     fpsLimit: 60,
@@ -242,7 +257,12 @@ export default function Home() {
                       <div className="flex items-center gap-2 mb-3"><img src={project.devAvatar} alt={project.dev} className="w-6 h-6 rounded-full" onError={(e) => { e.target.src = 'https://randomuser.me/api/portraits/men/32.jpg'; }} /><span className="text-sm text-gray-600">{project.dev}</span></div>
                       <div className="flex flex-wrap gap-2 mb-4">{project.tech.map((t, i) => (<span key={i} className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-lg">{t}</span>))}</div>
                       <div className="flex justify-between items-center">
-                        <Link to={`/marketplaceitem/${project.id}`} className="px-5 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:shadow-lg transition-all duration-300 text-sm">تفاصيل المشروع</Link>
+                       <button
+  onClick={() => handleProjectClick(project.id)}
+  className="px-5 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:shadow-lg transition-all duration-300 text-sm"
+>
+  تفاصيل المشروع
+</button>
                         <span className="text-2xl font-bold text-indigo-600">${project.price}</span>
                       </div>
                     </div>

@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import { getDeveloperProfile } from '../../services/develper.service.js';
 import { FiX, FiExternalLink, FiGithub } from 'react-icons/fi';
-
 export default function DevProfile() {
+    const navigate = useNavigate();
   const { id, username } = useParams();
   const [developer, setDeveloper] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -30,6 +30,7 @@ export default function DevProfile() {
   }, [showProjectModal]);
 
   useEffect(() => {
+    
     const loadDeveloperProfile = async () => {
       if (!devIdentifier) {
         setLoading(false);
@@ -42,7 +43,8 @@ export default function DevProfile() {
         
         let data = response;
         if (typeof data === 'string') data = JSON.parse(data);
-        
+        // ✅ دالة التعامل مع الضغط على تفاصيل المشروع
+
         const userData = data?.data?.userdata;
         const projects = data?.data?.projects || [];
         
@@ -136,7 +138,16 @@ export default function DevProfile() {
 
     loadDeveloperProfile();
   }, [devIdentifier]);
-
+const handleProjectClick = (projectId) => {
+  const token = localStorage.getItem('token');
+  const user = localStorage.getItem('user');
+  
+  if (!token || !user) {
+    navigate(`/login`);
+  } else {
+    navigate(`/marketplaceitem/${projectId}`);
+  }
+};
   const getExperienceLabel = (exp) => {
     const levels = {
       '0-1': 'مبتدئ (0-1 سنة)',
@@ -421,9 +432,12 @@ export default function DevProfile() {
                             <div className="flex justify-between items-center mt-2">
                               <span className="text-xl font-bold text-indigo-600">${project.price}</span>
                             </div>
-                            <Link to={`/marketplaceitem/${project.id}`} className="block w-full text-center mt-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
-                              عرض المشروع
-                            </Link>
+                           <button
+  onClick={() => handleProjectClick(project.id)}
+  className="block w-full text-center mt-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+>
+  عرض المشروع
+</button>
                           </div>
                         </div>
                       )) : (
