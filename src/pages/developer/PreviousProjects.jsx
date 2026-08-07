@@ -39,10 +39,8 @@ export default function PreviousProjects() {
   try {
     setLoading(true);
     
-    console.log('📤 Fetching projects for user ID:', user._id);
     
     const response = await getPreviousProjects(user._id);
-    console.log('📥 Previous projects response:', response);
     
     let projectsData = [];
     
@@ -80,8 +78,6 @@ export default function PreviousProjects() {
       _id: project._id || project.id,
     }));
     
-    console.log('✅ Projects array after fix:', projectsData);
-    console.log('📊 Number of projects:', projectsData.length);
     
     setProjects(projectsData);
   } catch (error) {
@@ -103,9 +99,8 @@ const handleDelete = async () => {
   
   try {
     // ✅ إرسال projectId فقط
-    const response = await deletePreviousProject(projectToDelete._id);
+     await deletePreviousProject(projectToDelete._id);
     
-    console.log('✅ Project deleted:', response);
     
     setProjects(projects.filter(p => p._id !== projectToDelete._id));
     setShowDeleteModal(false);

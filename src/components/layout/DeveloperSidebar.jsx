@@ -14,7 +14,7 @@ export default function DeveloperSidebar({ activePage }) {
     { id: 'earnings', label: 'أرباحي', icon: '💰', path: '/dashboard/developer/earnings' },
     { id: 'profile', label: 'بروفايلي', icon: '👤', path: '/dashboard/developer/profile' },
     { id: 'add-project', label: 'إضافة مشروع', icon: '➕', path: '/dashboard/developer/add-project' },
-        { id: 'PreviousProjects', label: 'الأعمال السايقة', icon: '💼', path: '/dashboard/developer/PreviousProjects' },
+        { id: 'PreviousProjects', label: 'الأعمال السابقة', icon: '💼', path: '/dashboard/developer/PreviousProjects' },
 
     { id: 'settings', label: 'الإعدادات', icon: '⚙️', path: '/dashboard/developer/settings' }
   ];

@@ -321,19 +321,19 @@ const handleProjectClick = (projectId) => {
                   <h3 className="font-bold text-lg text-gray-800 mb-4">🔗 روابط التواصل</h3>
                   <div className="space-y-3">
                     {developer.social.github && (
-                      <a href={`https://github.com/${developer.social.github}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg transition">
+                      <a href={`${developer.social.github}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg transition">
                         <div className="w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center text-white">🐙</div>
                         <span className="text-gray-700">GitHub</span>
                       </a>
                     )}
                     {developer.social.linkedin && (
-                      <a href={`https://linkedin.com/in/${developer.social.linkedin}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg transition">
+                      <a href={`${developer.social.linkedin}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg transition">
                         <div className="w-8 h-8 bg-blue-700 rounded-full flex items-center justify-center text-white">in</div>
                         <span className="text-gray-700">LinkedIn</span>
                       </a>
                     )}
                     {developer.social.twitter && (
-                      <a href={`https://twitter.com/${developer.social.twitter}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg transition">
+                      <a href={`${developer.social.twitter}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg transition">
                         <div className="w-8 h-8 bg-sky-500 rounded-full flex items-center justify-center text-white">𝕏</div>
                         <span className="text-gray-700">Twitter</span>
                       </a>

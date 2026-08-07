@@ -28,7 +28,6 @@ export default function DevProjects() {
       setLoading(true);
       try {
         const response = await getDeveloperProject();
-        console.log('📥 Developer projects:', response);
 
         // ✅ استخراج البيانات من الـ Response
         const projectsData = response?.data?.projects || response?.projects || response?.data || [];

@@ -41,7 +41,6 @@ export default function DevEarnings() {
       // ✅ الباك إند بيرجع { message, data: { stats, chartData, ... } }
       const data = response?.data || response;
       
-      console.log('📥 Earnings Data:', data);
       
       // ✅ إحصائيات
       if (data?.stats) {

@@ -126,10 +126,8 @@ export default function NewProject() {
         deadline: formData.deadline || ''
       };
       
-      console.log('📤 Sending project data:', submitData);
       
-      const response = await createClientProject(submitData);
-      console.log('📥 Project created:', response);
+       await createClientProject(submitData);
       
       await fetchUser();
       

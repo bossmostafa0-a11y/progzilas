@@ -1,4 +1,5 @@
 // src/services/developerService.js
+import axios from "axios";
 import { api, handleApiError } from './api';
 
 // ============ المشاريع ============
@@ -317,4 +318,59 @@ export const deletePreviousProject = async (projectId) => {
     console.error('❌ Error in deletePreviousProject:', error);
     throw handleApiError(error);
   }
+};
+
+export const getVideoUploadUrl = async (file) => {
+  const response = await api.post("/dev/video-upload-url", {
+    fileName: file.name,
+    contentType: file.type,
+  });
+
+  return response.data;
+};
+
+
+export const uploadVideoToR2 = async (
+  uploadUrl,
+  file,
+  onUploadProgress
+) => {
+  await axios.put(uploadUrl, file, {
+    headers: {
+      "Content-Type": file.type,
+    },
+    onUploadProgress,
+  });
+};
+
+export const getProjectFileUploadUrl = async (file) => {
+
+    const res = await api.post(
+        "/dev/project-file-upload-url",
+        {
+            fileName: file.name,
+            contentType: file.type,
+        }
+    );
+
+    return res.data;
+
+};
+
+export const uploadProjectFileToR2 = async (
+    uploadUrl,
+    file,
+    onUploadProgress
+) => {
+
+    await axios.put(uploadUrl, file, {
+
+        headers: {
+            "Content-Type": file.type,
+        },
+
+        onUploadProgress,
+
+    });
+
 };

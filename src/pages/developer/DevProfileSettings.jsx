@@ -80,9 +80,7 @@ export default function DevProfileSettings() {
     
     const loadUserData = async () => {
       try {
-        console.log('📥 Loading user data...');
         const userData = await fetchUser();
-        console.log('📥 User data loaded:', userData);
         
         if (userData) {
           setFormData({
@@ -280,9 +278,6 @@ export default function DevProfileSettings() {
       const certificates = parseToArray(formData.certificates);
       
       // ✅ للتأكد من القيم قبل الإرسال
-      console.log('📤 Sending techStack (array):', techStack);
-      console.log('📤 Sending skills (array):', skills);
-      console.log('📤 Sending languages (array):', languages);
       
       submitData.append('techStack', JSON.stringify(techStack));
       submitData.append('skills', JSON.stringify(skills));
@@ -298,8 +293,7 @@ export default function DevProfileSettings() {
         submitData.append('coverImage', coverImageFile);
       }
       
-      const response = await updateUserProfile(submitData);
-      console.log('✅ Profile updated:', response);
+       await updateUserProfile(submitData);
       
       setSaveSuccess(true);
       await fetchUser();

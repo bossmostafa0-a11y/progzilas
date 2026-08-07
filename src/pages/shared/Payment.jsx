@@ -132,11 +132,7 @@ export default function Payment() {
         'instapay': 'instapay'
       };
 
-      console.log('📤 Sending withdraw request:', {
-        amount: Number(paymentData.amount),
-        method: methodMap[paymentMethod],
-        account: accountData
-      });
+     
 
       // ✅ إرسال الطلب للباك إند
       const response = await requestWithdraw({
@@ -146,7 +142,6 @@ export default function Payment() {
         phone: accountData.number
       });
 
-      console.log('✅ Withdraw response:', response);
 
       // ✅ تخزين الرصيد الجديد من الـ response
       const updatedBalance = response?.data?.availableBalance || response?.availableBalance;

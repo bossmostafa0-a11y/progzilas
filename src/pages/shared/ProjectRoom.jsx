@@ -256,9 +256,7 @@ export default function ProjectWorkspace() {
   // ✅ جلب أعضاء الفريق
   const fetchProjectMembers = useCallback(async () => {
     try {
-      console.log('📤 Fetching project members for ID:', id);
       const response = await getProjectMembers(id);
-      console.log('📥 Members Response:', response);
       
       if (response?.members) {
         const formattedMembers = response.members.map(member => ({
@@ -288,10 +286,8 @@ export default function ProjectWorkspace() {
   const fetchFolders = useCallback(async () => {
     try {
       const response = await getProjectFolders(id);
-      console.log('📥 Folders Response:', response);
       
       const foldersData = extractDataFromResponse(response);
-      console.log('📥 Folders Data:', foldersData);
       setFolders(foldersData);
     } catch (error) {
       console.error('❌ Error fetching folders:', error);
@@ -305,10 +301,8 @@ export default function ProjectWorkspace() {
     try {
       setLoadingFiles(true);
       const response = await getFolderFiles(id, folderId);
-      console.log('📥 Folder files Response:', response);
       
       const filesData = extractDataFromResponse(response);
-      console.log('📥 Files Data:', filesData);
       setCurrentFiles(filesData);
       setCurrentFolder(folderId);
     } catch (error) {
@@ -325,10 +319,8 @@ export default function ProjectWorkspace() {
     try {
       setLoadingActivities(true);
       const response = await getProjectActivity(id);
-      console.log('📥 Activities Response:', response);
       
       const activitiesData = extractDataFromResponse(response);
-      console.log('📥 Activities Data:', activitiesData);
       setActivities(activitiesData);
     } catch (error) {
       console.error('❌ Error fetching activities:', error);
@@ -343,7 +335,6 @@ export default function ProjectWorkspace() {
     try {
       setLoadingFeaturesGoals(true);
       const response = await getProjectFeaturesAndGoals(id);
-      console.log('📥 Features & Goals Response:', response);
       
       const data = response?.data || response || {};
       
@@ -351,8 +342,7 @@ export default function ProjectWorkspace() {
       setFeatures(data.feature || data.features || []);
       setGoals(data.objective || data.objectives || []);
       
-      console.log('✅ Features:', data.feature || data.features || []);
-      console.log('✅ Goals:', data.objective || data.objectives || []);
+   
     } catch (error) {
       console.error('❌ Error fetching features and goals:', error);
       setFeatures([]);
@@ -368,10 +358,8 @@ export default function ProjectWorkspace() {
     setLoading(true);
     setError(null);
 
-    console.log('📤 Fetching project workspace for ID:', id);
 
     const roomResponse = await getProjectRoom(id);
-    console.log('📥 Full Room Response:', roomResponse);
 
     if (!roomResponse) {
       throw new Error('لم يتم استلام بيانات من الخادم');
@@ -394,8 +382,7 @@ export default function ProjectWorkspace() {
       chatIdData = roomResponse.chatId;
     }
 
-    console.log('✅ Project Data:', projectData);
-    console.log('✅ Chat ID:', chatIdData);
+   
 
     setChatId(chatIdData);
     setRepoLink(projectData?.githubRepo || '');
@@ -405,7 +392,6 @@ export default function ProjectWorkspace() {
     let tasksData = [];
     try {
       const tasksResponse = await getProjectTasks(id);
-      console.log('📥 Full Tasks Response:', tasksResponse);
 
       if (tasksResponse) {
         if (tasksResponse.data) {
@@ -808,7 +794,6 @@ const handleCreateTask = async (e) => {
       dueDate: newTask.dueDate
     });
 
-    console.log('✅ Task created:', response);
     showToast('✅ تم إنشاء المرحلة بنجاح');
 
     // ... باقي الكود ...
@@ -857,7 +842,6 @@ const handleCreateTask = async (e) => {
     
     try {
       const response = await updateTaskStatus(taskId, newStatus);
-      console.log('✅ Task status updated:', response);
 
       const updatedTasks = tasks.map(task =>
         task._id === taskId ? { ...task, status: newStatus } : task
@@ -890,7 +874,6 @@ const handleCreateTask = async (e) => {
 
     try {
       await deleteTask(taskId);
-      console.log('✅ Task deleted');
 
       const remainingTasks = tasks.filter(task => task._id !== taskId);
       setTasks(remainingTasks);
@@ -936,7 +919,6 @@ const handleAddMember = async (e) => {
   try {
     // ✅ استخدام API الدعوة
     const response = await inviteDeveloper(id, newMember.email, newMember.role);
-    console.log('✅ Member invited:', response);
     
     showToast(`✅ تم اضافة العضو للفريق ${newMember.email}`, 'success');
     
@@ -1006,7 +988,6 @@ const handleAddMember = async (e) => {
       setSubmitting(true);
       
       const response = await removeTeamMember(id, memberId);
-      console.log('✅ Member removed:', response);
       
       setProject(prev => ({
         ...prev,
@@ -1054,7 +1035,6 @@ const handleAddMember = async (e) => {
     
     try {
       const response = await inviteDeveloper(id, inviteData.developerId || inviteData.email);
-      console.log('✅ Invite sent:', response);
       
       showToast('✅ تم إرسال الدعوة بنجاح', 'success');
       
@@ -1085,7 +1065,6 @@ const handleAddMember = async (e) => {
 
     try {
       const response = await createFolder(id, newFolderName.trim());
-      console.log('✅ Folder created:', response);
       showToast('✅ تم إنشاء المجلد بنجاح', 'success');
       setNewFolderName('');
       setShowCreateFolderModal(false);
@@ -1117,7 +1096,6 @@ const handleAddMember = async (e) => {
     setUploading(true);
     try {
       const response = await uploadFile(id, currentFolder, selectedFile);
-      console.log('✅ File uploaded:', response);
       showToast('✅ تم رفع الملف بنجاح', 'success');
       setSelectedFile(null);
       setShowUploadModal(false);
@@ -1195,7 +1173,6 @@ const handleAddMember = async (e) => {
         demoUrl: demoLink.trim()
       });
       
-      console.log('✅ Links updated:', response);
       
       setProject(prev => ({ 
         ...prev, 
@@ -1234,7 +1211,6 @@ const handleAddMember = async (e) => {
       return;
     }
     
-    console.log('📥 Downloading file from:', fileUrl);
     
     const link = document.createElement('a');
     link.href = fileUrl;
@@ -1261,7 +1237,6 @@ const handleAddMember = async (e) => {
         comment: reviewComment.trim()
       });
       
-      console.log('✅ Review submitted:', response);
       setReviewSuccess(true);
       showToast('✅ تم إرسال التقييم بنجاح!', 'success');
       
@@ -1290,7 +1265,6 @@ const handleAddMember = async (e) => {
       return;
     }
     
-    console.log('📥 Previewing file from:', fileUrl);
     window.open(fileUrl, '_blank');
   };
 
@@ -1320,7 +1294,6 @@ const handleAddMember = async (e) => {
     try {
       // ✅ استدعاء API الموافقة على المشروع
       const response = await approveProject(project._id);
-      console.log('✅ Project approved:', response);
 
       // ✅ تحديث حالة المشروع محلياً
       setProject(prev => ({ 
@@ -1403,7 +1376,6 @@ const handleAddMember = async (e) => {
         phone: paymentData.transferNumber,
       });
 
-      console.log('✅ Payment added:', response);
       showToast('✅ تم إضافة الدفعة بنجاح', 'success');
 
       // ✅ تحديث بيانات المشروع
@@ -1449,7 +1421,6 @@ const handleAddMember = async (e) => {
         feature: featureData.feature.trim()
       });
 
-      console.log('✅ Feature added:', response);
       showToast('✅ تم إضافة الميزة بنجاح', 'success');
 
       const newFeature = response?.data?.feature || response?.feature || response?.data;
@@ -1488,7 +1459,6 @@ const handleAddMember = async (e) => {
         objective: goalData.objective.trim()
       });
 
-      console.log('✅ Goal added:', response);
       showToast('✅ تم إضافة الهدف بنجاح', 'success');
 
       const newGoal = response?.data?.goal || response?.goal || response?.data;

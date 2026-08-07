@@ -61,13 +61,9 @@ export default function Support() {
   const isConnected = !!(socket && chatId);
 
   useEffect(() => {
-    console.log('📍 Current URL:', window.location.href);
-    console.log('📍 Pathname:', location.pathname);
-    console.log('📍 Project ID from params:', projectId);
-    console.log('📍 Location state:', location.state);
+    
     
     if (!projectId && location.state?.projectId) {
-      console.log('📍 Using projectId from state:', location.state.projectId);
       navigate(`/support/chat/${location.state.projectId}`, { replace: true });
     }
   }, [projectId, location, navigate]);
@@ -98,11 +94,8 @@ export default function Support() {
         
         const finalProjectId = projectId || location.state?.projectId;
         
-        console.log('📡 Loading support chat...');
-        console.log('📡 Final Project ID:', finalProjectId);
-        
+    
         const response = await getSupportChat(finalProjectId);
-        console.log('✅ Chat response:', response);
         
         const chat = response?.data?.chat || response?.chat || response?.data;
         
@@ -117,7 +110,6 @@ export default function Support() {
           }
           
           const msgResponse = await getSupportMessages(id);
-          console.log('✅ Messages response:', msgResponse);
           
           let messagesData = [];
           if (msgResponse?.data?.messages) messagesData = msgResponse.data.messages;
@@ -172,7 +164,6 @@ export default function Support() {
     console.log('🟢 Socket and chatId are READY! Active Listeners configured.');
 
     const handleReceiveMessage = (message) => {
-      console.log('📥 Received message from server:', message);
       const incomingChatId = message.chat?._id || message.chat || message.chatId;
       
       if (incomingChatId && incomingChatId.toString() === chatId.toString()) {
@@ -303,13 +294,11 @@ export default function Support() {
     setMessages(prev => [...prev, tempMessage]);
     if (!text) setNewMessage('');
     
-    console.log('📤 Sending message to server:', messageData);
     socket.emit('send-message', messageData);
 
     const timeoutId = setTimeout(() => {
       setMessages(prev => prev.map(msg => {
         if (msg._id === tempMessageId && msg.status === 'sending') {
-          console.log('⏰ Message timeout, marking as sent');
           return { ...msg, status: 'sent' };
         }
         return msg;

@@ -32,7 +32,6 @@ export const AuthProvider = ({ children }) => {
   const fetchUser = async () => {
   try {
     const response = await fetchUserProfile();
-    console.log('📥 Full response:', response); // للتأكد
     
     // ✅ المسار الصحيح للبيانات
     const userData = response?.data?.user ||  // ← ده المسار الصحيح
@@ -40,7 +39,6 @@ export const AuthProvider = ({ children }) => {
                     response?.data || 
                     response;
     
-    console.log('✅ Extracted user data:', userData);
     
     if (userData && userData._id) {
       // ✅ تأكد من وجود userType
@@ -53,7 +51,6 @@ export const AuthProvider = ({ children }) => {
       setUser(userWithType);
       setUserType(userWithType.userType);
       localStorage.setItem('user', JSON.stringify(userWithType));
-      console.log('✅ User set successfully:', userWithType);
     } else {
       throw new Error('No valid user data found');
     }
@@ -92,7 +89,6 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
   try {
     const response = await loginUser(email, password);
-    console.log('📥 Login response:', response);
     
     // ✅ استخراج التوكن من data
     const token = response.data?.token || response.token || '';
@@ -106,7 +102,6 @@ export const AuthProvider = ({ children }) => {
       userType: email.includes('client') ? 'client' : 'developer'
     };
     
-    console.log('✅ User created:', user);
     
     localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(user));
@@ -164,10 +159,7 @@ export const AuthProvider = ({ children }) => {
   // ✅ إكمال البروفايل
   const completeProfileAction = async (formData) => {
     try {
-      console.log('🔄 Completing profile with FormData...');
-      const response = await completeProfile(formData);
-      console.log('✅ Complete profile response:', response);
-      
+      const response = await completeProfile(formData);      
       if (response.user) {
         const userData = response.user;
         setUser(userData);
@@ -208,7 +200,6 @@ const fetchMe = useCallback(async () => {
   try {
     setLoading(true);
     const response = await authService.fetchUserProfile();
-    console.log('📥 FetchMe response:', response);
     
     const userData = response?.data?.user || response?.user || response?.data;
     
@@ -222,7 +213,6 @@ const fetchMe = useCallback(async () => {
       setUser(userWithType);
       setIsAuthenticated(true);
       localStorage.setItem('user', JSON.stringify(userWithType));
-      console.log('✅ User data updated:', userWithType);
       return userWithType;
     }
     
@@ -249,7 +239,6 @@ const fetchMe = useCallback(async () => {
   const verifyAccount = async (email, code) => {
     try {
       const response = await verifyEmail(email, code);
-      console.log('✅ Verify response:', response);
       
       if (response.success) {
         return response;
@@ -265,7 +254,6 @@ const fetchMe = useCallback(async () => {
 const resendVerification = async (email) => {
   try {
     const response = await authService.resendVerificationCode(email);
-    console.log('✅ Resend verification response:', response);
     
     if (response.success) {
       return response;

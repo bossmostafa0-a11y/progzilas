@@ -150,7 +150,6 @@ export default function ProjectProposals() {
       setLoading(true);
       setError(null);
       const response = await getOpenProjects();
-      console.log('📥 Projects from API:', response);
       
       const projectsData = response?.data?.projects || response?.projects || response?.data || [];
       setProjects(projectsData);
@@ -228,10 +227,8 @@ export default function ProjectProposals() {
         currency: proposalData.currency || 'EGP'
       };
       
-      console.log('📤 Sending proposal:', submitData);
       
-      const response = await createProposal(submitData);
-      console.log('📥 Proposal response:', response);
+       await createProposal(submitData);
       
       setSuccessMessage('✅ تم تقديم العرض بنجاح!');
       

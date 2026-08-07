@@ -98,7 +98,6 @@ export default function DevStore() {
       setLoading(true);
       try {
         const response = await getStoreProjects();
-        console.log('📥 Store projects from API:', response);
         
         const projectsData = response?.data?.myprojects || response?.myprojects || response?.data || [];
         

@@ -2,7 +2,14 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
-import { createProject } from '../../services/develper.service.js';
+import {
+  createProject,
+  getVideoUploadUrl,
+  uploadVideoToR2,
+  getProjectFileUploadUrl,
+  uploadProjectFileToR2,
+} from "../../services/develper.service.js";
+
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import DeveloperSidebar from '../../components/layout/DeveloperSidebar';
@@ -230,72 +237,202 @@ export default function AddProject() {
 
   // Submit form
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!validateForm()) {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
+  e.preventDefault();
+
+  if (!validateForm()) {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    return;
+  }
+
+  setLoading(true);
+  setUploadProgress(0);
+  setUpgradeMessage(null);
+
+  try {
+    let videoUrl = "";
+    let downloadurl = "";
+
+    // ====================================
+    // رفع الفيديو إلى Cloudflare R2
+    // ====================================
+    if (formData.videoFile) {
+      console.log("📤 Getting Video Upload URL...");
+
+      const videoData = await getVideoUploadUrl(formData.videoFile);
+
+      console.log("☁ Uploading Video To R2...");
+
+      await uploadVideoToR2(
+        videoData.uploadUrl,
+        formData.videoFile,
+        (progressEvent) => {
+          const percentCompleted = Math.round(
+            (progressEvent.loaded * 100) / progressEvent.total
+          );
+
+          setUploadProgress(percentCompleted);
+
+          console.log(`🎥 Video Upload ${percentCompleted}%`);
+        }
+      );
+
+      videoUrl = videoData.videoUrl;
+
+      console.log("✅ Video Uploaded");
     }
-    
-    setLoading(true);
-    setUpgradeMessage(null);
-    
-    try {
-      const submitData = new FormData();
-      submitData.append('projectName', formData.projectName);
-      submitData.append('category', formData.category);
-      submitData.append('shortDescription', formData.shortDescription);
-      submitData.append('fullDescription', formData.fullDescription || '');
-      submitData.append('demoUrl', formData.demoUrl || '');
-      submitData.append('githubUrl', formData.githubUrl || '');
-      submitData.append('license', formData.license);
-      submitData.append('supportPeriod', formData.supportPeriod || '');
-      submitData.append('updatesPeriod', formData.updatesPeriod || '');
-      submitData.append('technologies', JSON.stringify(formData.technologies));
-      submitData.append('mainFeatures', JSON.stringify(formData.mainFeatures));
-      submitData.append('basic', JSON.stringify({ price: formData.basic.price, deliveryTime: formData.basic.deliveryTime, features: formData.basic.features }));
-      submitData.append('pro', JSON.stringify({ price: formData.pro.price, deliveryTime: formData.pro.deliveryTime, features: formData.pro.features }));
-      submitData.append('enterprise', JSON.stringify({ price: formData.enterprise.price, deliveryTime: formData.enterprise.deliveryTime, features: formData.enterprise.features }));
-      formData.images.forEach((image) => { submitData.append('images', image); });
-      if (formData.videoFile) { submitData.append('video', formData.videoFile); }
-      if (formData.downloadFile) { submitData.append('downloadurl', formData.downloadFile); }
-      
-      const response = await createProject(submitData, (progressEvent) => {
-        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-        setUploadProgress(percentCompleted);
-      });
-      
-      console.log('✅ Project created:', response);
-      playSound();
-      await fetchUser();
-      
-      setTimeout(() => { setLoading(false); navigate('/dashboard/developer/store'); }, 500);
-      
-    } catch (error) {
-      console.error('❌ Error creating project:', error);
-      
-      const errorMessage = error.response?.data?.message || error.message || 'حدث خطأ أثناء نشر المشروع';
-      
-      if (errorMessage.includes('ترقية الخطة') || 
-          errorMessage.includes('الخطة المجانية') || 
-          errorMessage.includes('الحد الأقصى') ||
-          errorMessage.includes('upgrade') ||
-          errorMessage.includes('plan') ||
-          errorMessage.includes('الحد الاقصي')) {
-        
-        setUpgradeMessage({
-          title: '🚀 تحتاج إلى ترقية خطتك!',
-          message: 'أنت على الخطة المجانية والحد الأقصى للمشاريع هو 3 مشاريع. الرجاء قم بالترقية لنشر المزيد.',
-          action: 'ترقية الخطة الآن'
-        });
-        
-      } else {
-        alert(errorMessage);
-      }
-      
+
+    // ====================================
+    // رفع ملف المشروع إلى Cloudflare R2
+    // ====================================
+    if (formData.downloadFile) {
+      console.log("📤 Getting Project File Upload URL...");
+
+      const fileData = await getProjectFileUploadUrl(formData.downloadFile);
+
+      console.log("☁ Uploading Project File To R2...");
+
+      await uploadProjectFileToR2(
+        fileData.uploadUrl,
+        formData.downloadFile,
+        (progressEvent) => {
+          const percentCompleted = Math.round(
+            (progressEvent.loaded * 100) / progressEvent.total
+          );
+
+          setUploadProgress(percentCompleted);
+
+          console.log(`📦 File Upload ${percentCompleted}%`);
+        }
+      );
+
+      downloadurl = fileData.fileUrl;
+
+      console.log("✅ Project File Uploaded");
+    }
+
+    // ====================================
+    // إنشاء البيانات المرسلة للباك
+    // ====================================
+    const submitData = new FormData();
+
+    submitData.append("projectName", formData.projectName);
+    submitData.append("category", formData.category);
+    submitData.append("shortDescription", formData.shortDescription);
+    submitData.append(
+      "fullDescription",
+      formData.fullDescription || ""
+    );
+    submitData.append("demoUrl", formData.demoUrl || "");
+    submitData.append("githubUrl", formData.githubUrl || "");
+    submitData.append("license", formData.license);
+
+    submitData.append(
+      "supportPeriod",
+      formData.supportPeriod || ""
+    );
+
+    submitData.append(
+      "updatesPeriod",
+      formData.updatesPeriod || ""
+    );
+
+    submitData.append(
+      "technologies",
+      JSON.stringify(formData.technologies)
+    );
+
+    submitData.append(
+      "mainFeatures",
+      JSON.stringify(formData.mainFeatures)
+    );
+
+    submitData.append(
+      "basic",
+      JSON.stringify({
+        price: formData.basic.price,
+        deliveryTime: formData.basic.deliveryTime,
+        features: formData.basic.features,
+      })
+    );
+
+    submitData.append(
+      "pro",
+      JSON.stringify({
+        price: formData.pro.price,
+        deliveryTime: formData.pro.deliveryTime,
+        features: formData.pro.features,
+      })
+    );
+
+    submitData.append(
+      "enterprise",
+      JSON.stringify({
+        price: formData.enterprise.price,
+        deliveryTime: formData.enterprise.deliveryTime,
+        features: formData.enterprise.features,
+      })
+    );
+
+    // ====================================
+    // الصور فقط تمر على الباك
+    // ====================================
+    formData.images.forEach((image) => {
+      submitData.append("images", image);
+    });
+
+    // ====================================
+    // روابط الفيديو والملف بعد رفعهم إلى R2
+    // ====================================
+    submitData.append("videoUrl", videoUrl);
+    submitData.append("downloadurl", downloadurl);
+
+    console.log("📤 Creating Project...");
+
+    const response = await createProject(submitData);
+
+    console.log("✅ Project Created:", response);
+
+    setUploadProgress(100);
+
+    playSound();
+
+    await fetchUser();
+
+    setTimeout(() => {
       setLoading(false);
+      navigate("/dashboard/developer/store");
+    }, 500);
+
+  } catch (error) {
+    console.error("❌ Error creating project:", error);
+
+    const errorMessage =
+      error.response?.data?.message ||
+      error.message ||
+      "حدث خطأ أثناء نشر المشروع";
+
+    if (
+      errorMessage.includes("ترقية الخطة") ||
+      errorMessage.includes("الخطة المجانية") ||
+      errorMessage.includes("الحد الأقصى") ||
+      errorMessage.includes("upgrade") ||
+      errorMessage.includes("plan") ||
+      errorMessage.includes("الحد الاقصي")
+    ) {
+      setUpgradeMessage({
+        title: "🚀 تحتاج إلى ترقية خطتك!",
+        message:
+          "أنت على الخطة المجانية والحد الأقصى للمشاريع هو 3 مشاريع. الرجاء ترقية الخطة لنشر المزيد.",
+        action: "ترقية الخطة الآن",
+      });
+    } else {
+      alert(errorMessage);
     }
-  };
+
+    setLoading(false);
+    setUploadProgress(0);
+  }
+};
 
   // ✅ nextStep مع Validation كامل لكل خطوة
   const nextStep = () => {

@@ -54,12 +54,7 @@ export default function ClientDashboard() {
           getNotifications(),
           getUnreadCount()
         ]);
-      // ✅ طباعة البيانات للتحقق
-      console.log('📊 Dashboard Data:', dashboardData);
-      console.log('📊 Stats:', dashboardData?.stats);
-      console.log('📊 Recent Projects:', dashboardData?.recentProjects);
-      console.log('📊 Featured Developers:', dashboardData?.featuredDevelopers);
-      console.log('📊 Pending Proposals:', dashboardData?.pendingProposals);
+    
         // ✅ ربط stats
         if (dashboardData?.stats) {
           setStats({

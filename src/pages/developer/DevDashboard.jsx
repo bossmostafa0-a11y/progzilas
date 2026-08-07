@@ -85,11 +85,9 @@ export default function DevDashboard() {
       setError(null);
       
       const response = await getDeveloperDashboard();
-      console.log('📥 Full Dashboard Response:', response);
       
       // ✅ استخراج البيانات من الـ response بشكل صحيح
       const data = response?.data || response || {};
-      console.log('📥 Extracted Data:', data);
 
       // ✅ تحديث الإحصائيات
       if (data?.statistics) {

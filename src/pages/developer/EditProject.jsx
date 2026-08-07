@@ -31,7 +31,6 @@ export default function EditProject() {
   // Form Data - يتم تعبئتها مباشرة من projectData
   const [formData, setFormData] = useState(() => {
     if (projectData) {
-      console.log('📥 Project data from state:', projectData);
       return {
         projectName: projectData.name || '',
         category: projectData.category || '',
@@ -296,11 +295,9 @@ const handleSubmit = async (e) => {
       }
     };
     
-    console.log('📤 Sending data:', submitData);
     
     // ✅ استدعاء updatestoreProject مع JSON
-    const response = await updatestoreProject(projectData.id, submitData);
-    console.log('📥 Response:', response);
+     await updatestoreProject(projectData.id, submitData);
     
     await fetchUser();
     

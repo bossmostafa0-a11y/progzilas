@@ -130,7 +130,6 @@ export default function Messages() {
     try {
       setIsLoadingChats(true);
       const response = await getChatsupport();
-      console.log('📥 Chats:', response);
       const chatsData = response?.data?.chats || response?.chats || response?.data || [];
       setChats(chatsData);
     } catch (error) {
@@ -170,7 +169,6 @@ const selectChat = (chat) => {
 const loadMessages = useCallback(async (chatId) => {
   try {
     const response = await getChatMessages(chatId);
-    console.log('📥 Messages response:', response);
     
     let messagesData = [];
     if (response?.data?.messages) messagesData = response.data.messages;
@@ -231,7 +229,6 @@ useEffect(() => {
   if (!socket) return;
 
   const handleReceiveMessage = (message) => {
-    console.log('📩 New message received:', message);
     
     // استخراج معرف الشات القادم من السيرفر بشكل مرن ونظيف
     const incomingChatId = message.chat?._id || message.chat || message.chatId;
@@ -471,7 +468,6 @@ useEffect(() => {
 
     try {
       const response = await getChatByProject(projectIdInput);
-      console.log('📥 Chat created:', response);
       
       const chat = response?.data?.chat || response?.chat || response?.data;
       if (chat) {

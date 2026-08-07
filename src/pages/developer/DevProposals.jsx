@@ -51,7 +51,6 @@ export default function DevProposals() {
       setLoading(true);
       setError(null);
       const response = await getMyProposals();
-      console.log('📥 Proposals from API:', response);
       
       // ✅ استخراج البيانات من response
       const proposalsData = response?.data?.proposals || response?.proposals || response?.data || [];
@@ -119,6 +118,7 @@ export default function DevProposals() {
   const handleSubmitProposal = async () => {
     setSubmitting(true);
     try {
+      // eslint-disable-next-line no-unused-vars
       const submitData = {
         projectId: newProposal.projectId || 'temp-' + Date.now(),
         coverLetter: newProposal.message,
@@ -127,7 +127,6 @@ export default function DevProposals() {
         milestones: newProposal.milestones
       };
       
-      console.log('📤 Submitting proposal:', submitData);
       
       
       // ✅ إعادة جلب العروض بعد التقديم

@@ -130,7 +130,6 @@ export default function Messages() {
     try {
       setIsLoadingChats(true);
       const response = await getChats();
-      console.log('📥 Chats:', response);
       const chatsData = response?.data?.chats || response?.chats || response?.data || [];
       setChats(chatsData);
     } catch (error) {
@@ -145,7 +144,6 @@ export default function Messages() {
   const loadMessages = useCallback(async (chatId) => {
     try {
       const response = await getChatMessages(chatId);
-      console.log('📥 Messages response:', response);
       
       let messagesData = [];
       
@@ -172,7 +170,6 @@ export default function Messages() {
         senderId: msg.senderId || msg.sender
       }));
       
-      console.log('📥 Processed messages:', processedMessages);
       setMessages(processedMessages);
       setCurrentChatId(chatId);
       
@@ -243,7 +240,6 @@ export default function Messages() {
     if (!socket) return;
 
     const handleReceiveMessage = (message) => {
-      console.log('📩 New message received:', message);
       
       const msgSenderId = message.sender?._id || message.sender || message.senderId?._id || message.senderId;
 
@@ -554,12 +550,7 @@ export default function Messages() {
                     <div className="text-center py-8">
                       <div className="text-4xl mb-2">💬</div>
                       <p className="text-gray-500">لا توجد محادثات</p>
-                      <button
-                        onClick={() => setShowNewChatModal(true)}
-                        className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm hover:bg-indigo-700 transition"
-                      >
-                        بدء محادثة جديدة
-                      </button>
+                      
                     </div>
                   ) : (
                     filteredChats.map((chat) => {

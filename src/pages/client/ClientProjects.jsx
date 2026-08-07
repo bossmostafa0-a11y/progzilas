@@ -68,7 +68,6 @@ export default function ClientProjects() {
       setLoading(true);
       try {
         const response = await getClientProjects();
-        console.log('📥 Client projects from API:', response);
         
         const projectsData = response?.data?.projects || response?.projects || response?.data || [];
         

@@ -68,7 +68,6 @@ export default function Proposals() {
       setLoading(true);
       setError(null);
       const response = await getClientProposals();
-      console.log('📥 Proposals from API:', response);
       
       const proposalsData = response?.data?.proposals || response?.proposals || response?.data || [];
       setProposals(proposalsData);
@@ -94,7 +93,6 @@ export default function Proposals() {
     setActionLoading(true);
     try {
       const response = await acceptProposal(proposal._id);
-      console.log('✅ Proposal accepted:', response);
       
       showToast(`✅ تم قبول عرض ${proposal.developer?.username || 'المبرمج'}`, 'success');
       
@@ -120,7 +118,6 @@ export default function Proposals() {
     setActionLoading(true);
     try {
       await rejectProposal(proposal._id);
-      console.log('❌ Proposal rejected');
       
       showToast(`❌ تم رفض عرض ${proposal.developer?.username || 'المبرمج'}`, 'info');
       

@@ -4,7 +4,11 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
-import { addpreviousprojects } from '../../services/develper.service.js';
+import {
+  addpreviousprojects,
+  getVideoUploadUrl,
+  uploadVideoToR2,
+} from "../../services/develper.service.js";
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import DeveloperSidebar from '../../components/layout/DeveloperSidebar';
@@ -137,65 +141,123 @@ export default function AddPreviousProject() {
   };
 
   // ✅ Submit form - مع تتبع التقدم
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!validateForm()) {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
+const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  if (!validateForm()) {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    return;
+  }
+
+  setLoading(true);
+  setUploadProgress(0);
+
+  try {
+    let uploadedVideoUrl = "";
+
+    // ====================================
+    // رفع الفيديو مباشرة إلى Cloudflare R2
+    // ====================================
+
+    if (formData.videoFile) {
+      console.log("📤 Getting Upload URL...");
+
+      const { uploadUrl, videoUrl } =
+        await getVideoUploadUrl(formData.videoFile);
+
+      console.log("☁ Uploading video to R2...");
+
+      await uploadVideoToR2(
+        uploadUrl,
+        formData.videoFile,
+        (progressEvent) => {
+          const percent = Math.round(
+            (progressEvent.loaded * 100) /
+              progressEvent.total
+          );
+
+          setUploadProgress(percent);
+
+          console.log(`🎥 Upload: ${percent}%`);
+        }
+      );
+
+      console.log("✅ Video uploaded.");
+
+      uploadedVideoUrl = videoUrl;
     }
-    
-    setLoading(true);
-    setUploadProgress(0);
-    
-    try {
-      const submitData = new FormData();
-      submitData.append('projectName', formData.projectName);
-      submitData.append('category', formData.category);
-      submitData.append('shortDescription', formData.shortDescription);
-      submitData.append('fullDescription', formData.fullDescription || '');
-      submitData.append('demoUrl', formData.demoUrl || '');
-      submitData.append('githubUrl', formData.githubUrl || '');
-      submitData.append('date', formData.date || '');
-      submitData.append('technologies', JSON.stringify(formData.technologies));
-      submitData.append('mainFeatures', JSON.stringify(formData.mainFeatures));
-      
-      formData.images.forEach((image) => {
-        submitData.append('images', image);
-      });
-      
-      if (formData.videoFile) {
-        submitData.append('video', formData.videoFile);
-      }
-      
-      console.log('📤 Sending previous project data to backend...');
-      
-      // ✅ استدعاء API مع تتبع التقدم
-      const response = await addpreviousprojects(submitData, (progressEvent) => {
-        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-        setUploadProgress(percentCompleted);
-        console.log(`📊 Upload progress: ${percentCompleted}%`);
-      });
-      
-      console.log('✅ Previous project added:', response);
-      
-      // ✅ تأكيد انتهاء التحميل
-      setUploadProgress(100);
-      
-      await fetchUser();
-      
-      setTimeout(() => {
-        setLoading(false);
-        navigate('/dashboard/developer/PreviousProjects');
-      }, 500);
-      
-    } catch (error) {
-      console.error('❌ Error creating previous project:', error);
-      alert(error.response?.data?.message || 'حدث خطأ أثناء إضافة المشروع');
+
+    // ====================================
+    // إرسال بيانات المشروع
+    // ====================================
+
+    const submitData = new FormData();
+
+    submitData.append("projectName", formData.projectName);
+    submitData.append("category", formData.category);
+    submitData.append(
+      "shortDescription",
+      formData.shortDescription
+    );
+    submitData.append(
+      "fullDescription",
+      formData.fullDescription || ""
+    );
+    submitData.append(
+      "demoUrl",
+      formData.demoUrl || ""
+    );
+    submitData.append(
+      "githubUrl",
+      formData.githubUrl || ""
+    );
+    submitData.append("date", formData.date || "");
+
+    submitData.append(
+      "technologies",
+      JSON.stringify(formData.technologies)
+    );
+
+    submitData.append(
+      "mainFeatures",
+      JSON.stringify(formData.mainFeatures)
+    );
+
+    // إرسال رابط الفيديو فقط
+    submitData.append("videoUrl", uploadedVideoUrl);
+
+    // الصور فقط
+    formData.images.forEach((image) => {
+      submitData.append("images", image);
+    });
+
+    console.log("📤 Sending project data...");
+
+     await addpreviousprojects(submitData);
+
+    setUploadProgress(100);
+
+    await fetchUser();
+
+    setTimeout(() => {
       setLoading(false);
-      setUploadProgress(0);
-    }
-  };
+      navigate("/dashboard/developer/PreviousProjects");
+    }, 500);
+  } catch (error) {
+    console.error("========== ERROR ==========");
+    console.error(error);
+    console.error("===========================");
+
+    setLoading(false);
+    setUploadProgress(0);
+
+    alert(
+      error?.response?.data?.message ||
+        error?.message ||
+        "حدث خطأ أثناء رفع المشروع"
+    );
+  }
+};
 
   // ✅ Next Step Validation
   const nextStep = () => {

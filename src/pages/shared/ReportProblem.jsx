@@ -117,9 +117,8 @@ export default function ReportProblem() {
       });
 
       // ✅ استخدام دالة createReport من الخدمة
-      const response = await submitReport(formData);
+       await submitReport(formData);
 
-      console.log('✅ تم إرسال البلاغ:', response);
       setSubmitted(true);
       
       // تنظيف الـ preview URLs
