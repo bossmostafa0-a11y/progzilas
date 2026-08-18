@@ -177,15 +177,7 @@ export default function Developers() {
         <div className="relative bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 py-12 overflow-hidden">
           <div className="absolute inset-0 bg-black/20"></div>
           <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-4 py-1.5 mb-3"
-            >
-              <span className="text-yellow-400 text-sm">✨</span>
-              <span className="text-white/90 text-xs">أكثر من {developers.length} مبرمج محترف</span>
-            </motion.div>
+          
             <motion.h1
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
@@ -399,7 +391,7 @@ export default function Developers() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4 mb-3">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
-              <div className="text-indigo-500 text-sm">✨</div>
+            
               <p className="text-gray-600 text-xs">
                 عرض <span className="font-bold text-indigo-600 mx-0.5">{filteredDevelopers.length}</span> مبرمج
                 {filteredDevelopers.some(d => d.isTeam) && (

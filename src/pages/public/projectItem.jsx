@@ -1,18 +1,24 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
 import { useState, useEffect, useRef } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
-import { getMarketplaceProjectById, getProjectReviews, purchaseProject } from '../../services/cliecnt.service.js';
+import { getpreviousprojectsById, getProjectReviews, purchaseProject } from '../../services/cliecnt.service.js';
 
 const ourWalletNumbers = {
-  vodafone_cash: '01002589923',
-  
+  vodafone_cash: '01012345678',
+  etisalat_cash: '01112345678',
+  orange_cash: '01212345678',
+  instapay: '01012345678'
 };
 
 const ourWalletNames = {
-  vodafone_cash: 'Progzila'
+  vodafone_cash: 'Progzila',
+  etisalat_cash: 'Progzila',
+  orange_cash: 'Progzila',
+  instapay: 'Progzila'
 };
 
 export default function MarketplaceItem() {
@@ -55,7 +61,7 @@ export default function MarketplaceItem() {
     const loadProject = async () => {
       try {
         setLoading(true);
-        const response = await getMarketplaceProjectById(id);
+        const response = await getpreviousprojectsById(id);
         
         let data = response;
         if (typeof data === 'string') data = JSON.parse(data);
@@ -180,26 +186,31 @@ export default function MarketplaceItem() {
     setPurchaseError('');
   };
 
-const handlePhoneChange = (e) => {
-  let value = e.target.value.replace(/\D/g, '');
-  if (value.length > 11) value = value.slice(0, 11);
-  
-  setPurchaseData({ ...purchaseData, phoneNumber: value });
-  
-  if (value.length > 0 && value.length < 11) {
-    setPhoneError('رقم الهاتف يجب أن يكون 11 رقم');
-  } else if (value.length === 11) {
-    // ✅ يتأكد إن الرقم يبدأ بـ 01
-    const prefix = value.substring(0, 2);
-    if (prefix !== '01') {
-      setPhoneError('رقم الهاتف يجب أن يبدأ بـ 01');
+  const handlePhoneChange = (e) => {
+    let value = e.target.value.replace(/\D/g, '');
+    if (value.length > 11) value = value.slice(0, 11);
+    
+    setPurchaseData({ ...purchaseData, phoneNumber: value });
+    
+    if (value.length > 0 && value.length < 11) {
+      setPhoneError('رقم الهاتف يجب أن يكون 11 رقم');
+    } else if (value.length === 11) {
+      const prefix = value.substring(0, 3);
+      if (purchaseData.paymentMethod === 'vodafone_cash' && prefix !== '010') {
+        setPhoneError('رقم فودافون كاش يجب أن يبدأ بـ 010');
+      } else if (purchaseData.paymentMethod === 'etisalat_cash' && prefix !== '011') {
+        setPhoneError('رقم اتصالات كاش يجب أن يبدأ بـ 011');
+      } else if (purchaseData.paymentMethod === 'orange_cash' && prefix !== '012') {
+        setPhoneError('رقم أورنج كاش يجب أن يبدأ بـ 012');
+      } else if (purchaseData.paymentMethod === 'instapay' && !['010', '011', '012'].includes(prefix)) {
+        setPhoneError('رقم انستا باي يجب أن يبدأ بـ 010 أو 011 أو 012');
+      } else {
+        setPhoneError('');
+      }
     } else {
       setPhoneError('');
     }
-  } else {
-    setPhoneError('');
-  }
-};
+  };
 
   const handleConfirmPurchase = async () => {
     setPurchaseError('');
@@ -219,7 +230,9 @@ const handlePhoneChange = (e) => {
     try {
       const methodMap = {
         'vodafone_cash': 'vodafone_cash',
-       
+        'etisalat_cash': 'etisalat_cash',
+        'orange_cash': 'orange_cash',
+        'instapay': 'instapay'
       };
 
       await purchaseProject({
@@ -243,6 +256,9 @@ const handlePhoneChange = (e) => {
 
   const paymentMethods = [
     { id: 'vodafone_cash', name: 'فودافون كاش', prefix: '010' },
+    { id: 'etisalat_cash', name: 'اتصالات كاش', prefix: '011' },
+    { id: 'orange_cash', name: 'أورنج كاش', prefix: '012' },
+    { id: 'instapay', name: 'انستا باي', prefix: '010/011/012' }
   ];
 
   const getPlaceholder = (method) => {
@@ -276,7 +292,7 @@ const handlePhoneChange = (e) => {
           <div className="text-center">
             <div className="text-6xl mb-4">🔍</div>
             <h3 className="text-xl font-bold text-gray-700 mb-2">{error || 'المشروع غير موجود'}</h3>
-            <Link to="/marketplace" className="inline-block mt-4 px-6 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition">العودة للمتجر</Link>
+            <Link to="/projects" className="inline-block mt-4 px-6 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition">العودة للاعمال</Link>
           </div>
         </div>
         <Footer />
@@ -338,7 +354,7 @@ const handlePhoneChange = (e) => {
 
               <motion.div variants={fadeInUp} className="bg-white rounded-2xl shadow-lg overflow-hidden">
                 <div className="flex border-b border-gray-200 overflow-x-auto">
-                  {[{ id: 'details', label: 'تفاصيل المشروع', icon: '📋' }, { id: 'features', label: 'المميزات', icon: '⭐' }, { id: 'packages', label: 'الباقات', icon: '💰' }, { id: 'reviews', label: 'التقييمات', icon: '💬' }].map((tab) => (
+                  {[{ id: 'details', label: 'تفاصيل المشروع', icon: '📋' }, { id: 'features', label: 'المميزات', icon: '⭐' }].map((tab) => (
                     <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex items-center gap-2 px-4 py-3 font-medium transition-all duration-300 whitespace-nowrap ${activeTab === tab.id ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50/50' : 'text-gray-500 hover:text-indigo-500'}`}>
                       <span>{tab.icon}</span><span className="hidden sm:inline">{tab.label}</span>
                     </button>
@@ -430,13 +446,7 @@ const handlePhoneChange = (e) => {
 
             <motion.div initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, delay: 0.2 }} className="lg:col-span-1">
               <div className="sticky top-24">
-                <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-                  <div className="text-center mb-4">
-                    <div className="text-3xl font-bold text-indigo-600">${project.packages[selectedPackage]?.price || project.packages[0]?.price || 0}</div>
-                    <div className="text-sm text-gray-500">شامل الضريبة</div>
-                  </div>
-                  <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setShowPurchaseModal(true)} className="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-bold hover:shadow-lg transition-all duration-300">شراء المشروع الآن</motion.button>
-                </div>
+                
                 <motion.div whileHover={{ y: -5 }} className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl p-6 mb-6">
                   <div className="flex items-center gap-4 mb-4">
                     <img src={project.developerAvatar} alt={project.developer} className="w-16 h-16 rounded-full object-cover border-4 border-white shadow-lg" onError={(e) => { e.target.src = 'https://randomuser.me/api/portraits/men/32.jpg'; }} />
@@ -449,8 +459,6 @@ const handlePhoneChange = (e) => {
                   <h3 className="font-bold text-gray-800 mb-4">معلومات سريعة</h3>
                   <div className="space-y-3 text-sm">
                     <div className="flex justify-between"><span className="text-gray-500">التصنيف</span><span className="font-semibold">{project.category}</span></div>
-                    <div className="flex justify-between"><span className="text-gray-500">عدد المبيعات</span><span className="font-semibold">🏆 {project.salesCount}</span></div>
-                    <div className="flex justify-between"><span className="text-gray-500">التقييم</span><span className="font-semibold">⭐ {project.rating}</span></div>
                     {project.demoUrl && <div className="flex justify-between"><span className="text-gray-500">رابط العرض التجريبي</span><a href={project.demoUrl} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">عرض تجريبي</a></div>}
                     <div className="pt-3 border-t"><div className="flex flex-wrap gap-2">{project.tech.map((t, i) => (<span key={i} className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-lg">{t}</span>))}</div></div>
                   </div>

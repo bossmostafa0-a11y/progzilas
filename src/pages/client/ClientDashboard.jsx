@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 /* eslint-disable no-useless-assignment */
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -317,11 +318,11 @@ track: dev.track
             <div className="flex flex-wrap justify-between items-center mb-8">
               <div>
                 <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                  مرحباً بك، {user?.name || 'عميل'} 👋
+                  مرحباً بك {user?.name || 'عميل'} 
                 </h1>
                 <p className="text-gray-500 mt-1">إليك ملخص مشاريعك ونشاطك</p>
               </div>
-              <div className="flex gap-3">
+             {/*   <div className="flex gap-3">
                 <div className="relative" ref={notificationsRef}>
                   <button
                     onClick={handleToggleNotifications}
@@ -411,7 +412,7 @@ track: dev.track
                 </div>
 
                
-              </div>
+              </div>*/}
             </div>
 
             {/* Stats Cards */}

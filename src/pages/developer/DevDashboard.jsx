@@ -413,12 +413,12 @@ export default function DevDashboard() {
         <div className="flex-1 overflow-x-auto">
           <div className="p-6 lg:p-8">
             {/* Header + Notifications */}
-            <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="flex justify-between items-center mb-8">
+           {/*   <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="flex justify-between items-center mb-8">
               <div>
                 <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">مرحباً بك، {user?.username || 'مبرمج'} 👋</h1>
                 <p className="text-gray-500 mt-1">إليك ملخص نشاطك وأرباحك لهذا الشهر</p>
               </div>
-              <div className="relative" ref={notificationsRef}>
+            <div className="relative" ref={notificationsRef}>
                 <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={handleToggleNotifications} className="p-2 bg-white rounded-full shadow-lg relative">
                   <span className="text-xl">🔔</span>
                   {unreadCount > 0 && <span className="absolute -top-1 -right-1 min-w-[20px] h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center px-1">{unreadCount > 99 ? '99+' : unreadCount}</span>}
@@ -455,7 +455,7 @@ export default function DevDashboard() {
                   )}
                 </AnimatePresence>
               </div>
-            </motion.div>
+            </motion.div>*/}
 
             {/* Main Stats */}
             <motion.div variants={containerVariants} initial="hidden" animate="visible" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">

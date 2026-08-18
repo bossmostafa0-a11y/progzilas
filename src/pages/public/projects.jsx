@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
-import { getMarketplaceProjects } from '../../services/develper.service.js';
+import { getpreviousprojects } from '../../services/cliecnt.service.js';
 
 export default function Marketplace() {
   const { user } = useAuth();
@@ -14,7 +14,7 @@ export default function Marketplace() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedPriceRange, setSelectedPriceRange] = useState('all');
-  const [sortBy, setSortBy] = useState('popular');
+  const [sortBy] = useState('popular');
   const [viewMode, setViewMode] = useState('grid');
   
   // ✅ Pagination State - 6 items per page
@@ -42,9 +42,9 @@ export default function Marketplace() {
   // ✅ دالة التعامل مع الضغط على تفاصيل المشروع
   const handleProjectClick = (projectId) => {
     if (!user) {
-      navigate('/login', { state: { from: `/marketplaceitem/${projectId}` } });
+      navigate('/login', { state: { from: `/projectitem/${projectId}` } });
     } else {
-      navigate(`/marketplaceitem/${projectId}`);
+      navigate(`/projectitem/${projectId}`);
     }
   };
 
@@ -53,7 +53,7 @@ export default function Marketplace() {
     const loadProjects = async () => {
       try {
         setLoading(true);
-        const response = await getMarketplaceProjects();
+        const response = await getpreviousprojects();
         
         let data = response;
         if (typeof data === 'string') data = JSON.parse(data);
@@ -227,16 +227,9 @@ export default function Marketplace() {
               transition={{ duration: 0.5, delay: 0.1 }}
               className="text-3xl md:text-4xl font-bold text-white mb-2"
             >
-              متجر المشاريع الجاهزة
+               جميع الاعمال الخاصة بالمبرمجين
             </motion.h1>
-            <motion.p
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="text-sm text-white/90 max-w-2xl mx-auto"
-            >
-             اشتري مشاريع برمجية جاهزة ووفر وقت التطوير، أو اربح من خلال بيع نسخ متعددة من مشروعك
-            </motion.p>
+           
           </div>
         </div>
 
@@ -338,28 +331,9 @@ export default function Marketplace() {
               </div>
 
               <div className="flex gap-2">
-                <select
-                  value={selectedPriceRange}
-                  onChange={(e) => setSelectedPriceRange(e.target.value)}
-                  className="px-3 py-1.5 rounded-lg border-2 border-gray-200 focus:border-indigo-500 focus:outline-none bg-white/50 backdrop-blur-sm appearance-none cursor-pointer text-gray-700 text-sm"
-                  style={{ backgroundImage: "url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"%236b7280\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M19 9l-7 7-7-7\" /></svg>')", backgroundRepeat: "no-repeat", backgroundPosition: "left 0.5rem center", backgroundSize: "0.875rem", paddingLeft: '1.75rem' }}
-                >
-                  {priceRanges.map(range => (
-                    <option key={range.value} value={range.value}>💰 {range.label}</option>
-                  ))}
-                </select>
+                
 
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="px-3 py-1.5 rounded-lg border-2 border-gray-200 focus:border-indigo-500 focus:outline-none bg-white/50 backdrop-blur-sm appearance-none cursor-pointer text-gray-700 text-sm"
-                  style={{ backgroundImage: "url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"%236b7280\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M19 9l-7 7-7-7\" /></svg>')", backgroundRepeat: "no-repeat", backgroundPosition: "left 0.5rem center", backgroundSize: "0.875rem", paddingLeft: '1.75rem' }}
-                >
-                  <option value="popular">🏆 الأكثر مبيعاً</option>
-                  <option value="priceLow">💰 السعر: من الأقل للأعلى</option>
-                  <option value="priceHigh">💰 السعر: من الأعلى للأقل</option>
-                  <option value="rating">⭐ الأعلى تقييماً</option>
-                </select>
+             
 
                 <div className="flex gap-0.5 bg-gray-100 rounded-lg p-0.5">
                   <button
@@ -503,9 +477,7 @@ export default function Marketplace() {
                       )}
                       
                       <div className="absolute bottom-3 left-3">
-                        <div className="bg-black/70 backdrop-blur-sm rounded-lg px-2 py-1">
-                          <span className="text-white font-bold text-sm">${project.price}</span>
-                        </div>
+                        
                       </div>
                     </div>
 
@@ -535,9 +507,7 @@ export default function Marketplace() {
                         )}
                       </div>
 
-                      <div className="flex items-center gap-2 mb-3 text-[10px] text-gray-400">
-                        <span>🏆 {project.salesCount} عملية بيع</span>
-                      </div>
+                      
 
                       <button
                         onClick={(e) => {
@@ -639,7 +609,7 @@ export default function Marketplace() {
                               <span className="text-yellow-400 text-xs">★ {project.rating}</span>
                             </div>
                           </div>
-                          <div className="text-lg font-bold text-indigo-600 shrink-0">${project.price}</div>
+                        
                         </div>
                         <p className="text-gray-500 text-xs line-clamp-1 mb-2">{project.description}</p>
                         <div className="flex items-center gap-3">

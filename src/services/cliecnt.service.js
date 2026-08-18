@@ -148,3 +148,20 @@ export const submitReport = async (formData) => {
     throw handleApiError(error);
   }
 };
+
+
+
+//جلب الاعمال السابقة للعامة
+export const getpreviousprojects = async (filters = {}) => {
+  try {
+    const response = await api.get('/client/getpreviousprojects', { params: filters });
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error);
+  }
+};
+
+export const getpreviousprojectsById = async (id) => {
+  const response = await api.get(`/client/getdetilspreviousprojects/${id}`);
+  return response.data;
+};

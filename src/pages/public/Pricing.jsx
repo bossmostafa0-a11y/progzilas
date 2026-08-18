@@ -1,26 +1,64 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+/* eslint-disable no-unused-vars */
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
+import { createVipSubscription, getSubscription } from '../../services/payment.service';
 
 export default function Pricing() {
-  const { user } = useAuth();
-  const [billingCycle, setBillingCycle] = useState('monthly'); // 'monthly' or 'yearly'
+  const { user, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const [billingCycle, ] = useState('monthly');
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  // Developer Plans
+  const [currentPlan, setCurrentPlan] = useState('free');
+  const [isVipActive, setIsVipActive] = useState(false);
+
+  const [senderPhone, setSenderPhone] = useState(user?.phone || '');
+  const [name, setName] = useState(user?.username || user?.name || '');
+
+  const ACCOUNT_NUMBER = import.meta.env.phone || "01002589923";
+
+  // ✅ الحل النهائي: كل اللوجيك جوا useEffect من غير استدعاء دالة خارجية
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    // إنشاء AbortController للإلغاء عند الخروج من الصفحة
+    const abortController = new AbortController();
+
+    const fetchData = async () => {
+      try {
+        const response = await getSubscription();
+        if (response?.data?.subscription) {
+          const sub = response.data.subscription;
+          setCurrentPlan(sub.plan);
+          setIsVipActive(sub.plan === 'vip' && sub.status === 'active');
+        }
+      } catch (error) {
+        // تجاهل أخطاء الإلغاء
+        if (error.name === 'AbortError') return;
+        console.error('Error fetching subscription:', error);
+      }
+    };
+
+    fetchData();
+
+    // دالة التنظيف عند الخروج من الصفحة
+    return () => {
+      abortController.abort();
+    };
+  }, [isAuthenticated]);
+
   const developerPlans = [
     {
       id: 'starter',
       name: 'المبتدئ',
       icon: '🌟',
-      price: {
-        monthly: 0,
-        yearly: 0
-      },
+      price: { monthly: 0, yearly: 0 },
       description: 'ممتاز للمبتدئين لاستكشاف المنصة',
       features: [
         { included: true, text: 'حساب مجاني مدى الحياة' },
@@ -30,16 +68,12 @@ export default function Pricing() {
       ],
       recommended: false,
       buttonText: 'ابدأ مجاناً',
-      buttonLink: '/login'
     },
     {
       id: 'pro',
       name: 'المحترف',
       icon: '💎',
-      price: {
-        monthly: 29,
-        yearly: 290
-      },
+      price: { monthly: 29, yearly: 290 },
       description: 'للراغبين في التوسع وزيادة الأرباح',
       features: [
         { included: true, text: 'نشر غير محدود للمشاريع' },
@@ -50,28 +84,32 @@ export default function Pricing() {
       ],
       recommended: true,
       buttonText: 'اختر الخطة',
-      buttonLink: '/login'
     },
-   
   ];
 
-
   const handleSelectPlan = (plan, type) => {
-    if (!user) {
+    if (!isAuthenticated) {
       setSelectedPlan({ ...plan, type });
       setShowModal(true);
-    } else {
-      // Logged in user
-      alert(`جاري التوجه لصفحة الدفع للخطة ${plan.name}`);
+      return;
     }
+
+    if (plan.price.monthly === 0) {
+      alert(`✅ تم تفعيل خطة "${plan.name}" لك بنجاح!`);
+      return;
+    }
+
+    if (isVipActive) {
+      alert('🎉 أنت مشترك بالفعل في الخطة المدفوعة!');
+      return;
+    }
+
+    setSelectedPlan({ ...plan, type });
+    setShowModal(true);
   };
 
   const getPrice = (plan) => {
-    if (billingCycle === 'monthly') {
-      return plan.price.monthly;
-    } else {
-      return plan.price.yearly;
-    }
+    return billingCycle === 'monthly' ? plan.price.monthly : plan.price.yearly;
   };
 
   const getPriceDisplay = (plan) => {
@@ -84,7 +122,54 @@ export default function Pricing() {
     return billingCycle === 'monthly' ? '/شهر' : '/سنة';
   };
 
- 
+  const handlePaymentSubmit = async () => {
+    if (!senderPhone || !name) {
+      alert("من فضلك اكتب اسمك ورقم تليفونك");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const payload = { senderPhone, name };
+      const response = await createVipSubscription(payload);
+      
+      if (response.success) {
+        const paymentRef = response?.data?.payment?.reference || 'لم يتم تحديده';
+        const paymentNumber = response?.data?.payment?.paymentNumber || 'لم يتم تحديده';
+
+        alert(`✅ تم إنشاء طلب اشتراك VIP بنجاح!
+        
+        - المبلغ: 450 ج.م
+        - رقم التحويل: ${paymentRef}
+        - رقم العملية: ${paymentNumber}
+        
+        برجاء تحويل المبلغ على الرقم: ${ACCOUNT_NUMBER}
+        سيتم تفعيل اشتراكك فور تأكيد الدفع من الإدارة.`);
+        
+        setShowModal(false);
+        setSenderPhone('');
+        setName('');
+        setSelectedPlan(null);
+        
+        // تحديث الحالة يدوياً بعد نجاح الطلب
+        const updatedResponse = await getSubscription();
+        if (updatedResponse?.data?.subscription) {
+          const sub = updatedResponse.data.subscription;
+          setCurrentPlan(sub.plan);
+          setIsVipActive(sub.plan === 'vip' && sub.status === 'active');
+        }
+      } else {
+        alert(response.message || 'حدث خطأ أثناء إنشاء الطلب');
+      }
+    } catch (error) {
+      console.error("❌ خطأ:", error);
+      const errorMsg = error?.response?.data?.message || error?.message || 'حدث خطأ في الاتصال بالباك إند';
+      alert(errorMsg);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const staggerContainer = {
     hidden: { opacity: 0 },
@@ -97,7 +182,7 @@ export default function Pricing() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col" dir="rtl">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 via-indigo-50/20 to-purple-50/20" dir="rtl">
       <Navbar />
 
       <main className="flex-grow">
@@ -119,33 +204,8 @@ export default function Pricing() {
           </motion.div>
         </div>
 
-        {/* Billing Toggle */}
-        <div className="bg-white border-b border-gray-200 py-6">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-center items-center gap-4">
-              <span className={`font-medium ${billingCycle === 'monthly' ? 'text-indigo-600' : 'text-gray-500'}`}>
-                شهرية
-              </span>
-              <button
-                onClick={() => setBillingCycle(billingCycle === 'monthly' ? 'yearly' : 'monthly')}
-                className="relative w-16 h-8 bg-gray-200 rounded-full transition-colors duration-300 focus:outline-none"
-              >
-                <span
-                  className={`absolute top-1 left-1 w-6 h-6 bg-indigo-600 rounded-full transition-transform duration-300 ${
-                    billingCycle === 'yearly' ? 'translate-x-8' : 'translate-x-0'
-                  }`}
-                />
-              </button>
-              <span className={`font-medium ${billingCycle === 'yearly' ? 'text-indigo-600' : 'text-gray-500'}`}>
-                سنوية
-                <span className="mr-2 text-xs text-green-600 bg-green-100 px-1 rounded">وفر 20%</span>
-              </span>
-            </div>
-          </div>
-        </div>
-
         {/* Developer Plans */}
-        <div className="py-16 bg-gray-50">
+        <div className="py-16">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
@@ -164,14 +224,14 @@ export default function Pricing() {
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true }}
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+              className="flex flex-wrap justify-center gap-8"
             >
               {developerPlans.map((plan) => (
                 <motion.div
                   key={plan.id}
                   variants={cardVariants}
                   whileHover={{ y: -8 }}
-                  className={`bg-white rounded-2xl shadow-lg overflow-hidden transition-all duration-300 ${
+                  className={`bg-white rounded-2xl shadow-lg overflow-hidden transition-all duration-300 w-full max-w-[400px] ${
                     plan.recommended ? 'ring-2 ring-indigo-600 relative' : ''
                   }`}
                 >
@@ -300,50 +360,106 @@ export default function Pricing() {
         </div>
       </main>
 
-      {/* Login Modal */}
-      
-        {showModal && selectedPlan && (
+      {/* Modal */}
+      {showModal && selectedPlan && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={() => setShowModal(false)}
+        >
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            onClick={() => setShowModal(false)}
+            initial={{ scale: 0.9, opacity: 0, y: 50 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.9, opacity: 0, y: 50 }}
+            transition={{ type: "spring", damping: 20 }}
+            className="bg-white rounded-2xl max-w-md w-full p-6"
+            onClick={(e) => e.stopPropagation()}
           >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0, y: 50 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 50 }}
-              transition={{ type: "spring", damping: 20 }}
-              className="bg-white rounded-2xl max-w-md w-full p-6"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="text-center mb-4">
-                <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <span className="text-2xl">🔐</span>
+            {!isAuthenticated ? (
+              <>
+                <div className="text-center mb-4">
+                  <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <span className="text-2xl">🔐</span>
+                  </div>
+                  <h3 className="text-xl font-bold">تسجيل الدخول مطلوب</h3>
+                  <p className="text-gray-500 text-sm mt-1">
+                    يرجى تسجيل الدخول لاختيار خطة {selectedPlan.name}
+                  </p>
                 </div>
-                <h3 className="text-xl font-bold">تسجيل الدخول مطلوب</h3>
-                <p className="text-gray-500 text-sm mt-1">
-                  يرجى تسجيل الدخول لاختيار خطة {selectedPlan.name}
-                </p>
-              </div>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowModal(false)}
-                  className="flex-1 py-2 border-2 border-gray-300 text-gray-600 rounded-xl font-medium hover:bg-gray-50 transition"
-                >
-                  إلغاء
-                </button>
-                <Link to="/login" className="flex-1">
-                  <button className="w-full py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium hover:shadow-lg transition">
-                    تسجيل الدخول
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowModal(false)}
+                    className="flex-1 py-2 border-2 border-gray-300 text-gray-600 rounded-xl font-medium hover:bg-gray-50 transition"
+                  >
+                    إلغاء
                   </button>
-                </Link>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
+                  <Link to="/login" className="flex-1">
+                    <button className="w-full py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium hover:shadow-lg transition">
+                      تسجيل الدخول
+                    </button>
+                  </Link>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="text-center mb-6">
+                  <h3 className="text-2xl font-bold text-gray-800 mb-2">
+                    تأكيد اشتراك {selectedPlan.name}
+                  </h3>
+                  <p className="text-gray-500 text-sm">
+                    المبلغ: <span className="font-bold text-indigo-600">450 ج.م</span>
+                  </p>
+                </div>
 
+                <div className="space-y-4 mb-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">الاسم بالكامل (للفاتورة)</label>
+                    <input 
+                      type="text" 
+                      value={name} 
+                      onChange={(e) => setName(e.target.value)} 
+                      className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" 
+                      placeholder="اكتب اسمك هنا..." 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">رقم التليفون (للتحويل)</label>
+                    <input 
+                      type="tel" 
+                      value={senderPhone} 
+                      onChange={(e) => setSenderPhone(e.target.value)} 
+                      className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" 
+                      placeholder="01012345678" 
+                    />
+                  </div>
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-center">
+                    <p className="text-sm text-gray-600 mb-1">برجاء تحويل المبلغ على الرقم التالي:</p>
+                    <p className="text-lg font-bold text-indigo-700 break-all">{ACCOUNT_NUMBER}</p>
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowModal(false)}
+                    className="flex-1 py-3 border-2 border-gray-300 text-gray-600 rounded-xl font-medium hover:bg-gray-50 transition"
+                  >
+                    إلغاء
+                  </button>
+                  <button
+                    onClick={handlePaymentSubmit}
+                    disabled={loading}
+                    className={`flex-1 py-3 rounded-xl font-bold transition ${loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-green-500 to-green-600 text-white hover:shadow-lg'}`}
+                  >
+                    {loading ? 'جاري الإرسال...' : 'تأكيد الطلب'}
+                  </button>
+                </div>
+              </>
+            )}
+          </motion.div>
+        </motion.div>
+      )}
 
       <Footer />
     </div>

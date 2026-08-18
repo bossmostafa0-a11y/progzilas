@@ -133,33 +133,50 @@ export default function DevStore() {
   }, []);
 
   const handleToggleStatus = async (id) => {
-    const project = projects.find(p => p.id === id);
-    if (!project) return;
-    
-    const actionText = project.public ? 'إيقاف' : 'نشر';
-    
-    if (window.confirm(`هل أنت متأكد من ${actionText} هذا المشروع؟`)) {
-      setLoading(true);
-      try {
-        await toggleProjectStatus(id);
-        
-        const newStatus = !project.public;
-        const newStatusText = newStatus ? 'published' : 'draft';
-        
-        setProjects(projects.map(p => 
-          p.id === id ? { ...p, public: newStatus, status: newStatusText } : p
-        ));
-        setShowDetailsModal(false);
-        
-        alert(`✅ تم ${actionText} المشروع بنجاح`);
-      } catch (error) {
-        console.error('❌ Error updating project status:', error);
-        alert(error.response?.data?.message || 'حدث خطأ أثناء تحديث حالة المشروع');
-      } finally {
-        setLoading(false);
-      }
+  const project = projects.find((p) => p.id === id);
+  if (!project) return;
+
+  const actionText = project.public === "public" ? "إيقاف" : "نشر";
+
+  if (window.confirm(`هل أنت متأكد من ${actionText} هذا المشروع؟`)) {
+    setLoading(true);
+
+    try {
+      await toggleProjectStatus(id);
+
+      const newStatus =
+        project.public === "public" ? "private" : "public";
+
+      const newStatusText =
+        newStatus === "public" ? "published" : "draft";
+
+      setProjects(
+        projects.map((p) =>
+          p.id === id
+            ? {
+                ...p,
+                public: newStatus,
+                status: newStatusText,
+              }
+            : p
+        )
+      );
+
+      setShowDetailsModal(false);
+
+      alert(`✅ تم ${actionText} المشروع بنجاح`);
+    } catch (error) {
+      console.error("❌ Error updating project status:", error);
+
+      alert(
+        error.response?.data?.message ||
+          "حدث خطأ أثناء تحديث حالة المشروع"
+      );
+    } finally {
+      setLoading(false);
     }
-  };
+  }
+};
 
   const handleDeleteProject = async (id) => {
     if (window.confirm('هل أنت متأكد من حذف هذا المشروع؟')) {
@@ -404,9 +421,9 @@ export default function DevStore() {
                         
                         <div className="absolute top-3 right-3">
                           <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                            project.public === true ? 'bg-green-500 text-white' : 'bg-yellow-500 text-white'
+                            project.public === "public" ? 'bg-green-500 text-white' : 'bg-yellow-500 text-white'
                           }`}>
-                            {project.public === true ? 'منشور ✓' : 'مسودة 📝'}
+                            {project.public === "public" ? 'منشور ✓' : 'مسودة 📝'}
                           </span>
                         </div>
                         
@@ -471,12 +488,12 @@ export default function DevStore() {
                               handleToggleStatus(project.id);
                             }}
                             className={`flex-1 py-1.5 rounded-lg text-sm font-medium transition ${
-                              project.public === true
+                              project.public === "public"
                                 ? 'bg-yellow-500 text-white hover:bg-yellow-600'
                                 : 'bg-green-500 text-white hover:bg-green-600'
                             }`}
                           >
-                            {project.public === true ? 'إيقاف' : 'نشر'}
+                            {project.public === "public" ? 'إيقاف' : 'نشر'}
                           </button>
                         </div>
                       </div>

@@ -51,8 +51,8 @@ import Messagesupport from '../pages/developer/messagesupport'
 import PreviousProjects from '../pages/developer/PreviousProjects.jsx'
 import AddPreviousProjects from '../pages/developer/addPreviousProjects'
 import ReportProblem from '../pages/shared/ReportProblem'
-
-
+import Projects from '../pages/public/projects.jsx'
+import Projectitem from '../pages/public/projectItem.jsx'
 
 
 const router = createBrowserRouter([
@@ -60,6 +60,8 @@ const router = createBrowserRouter([
   { path: '/', element: <Home /> },
     { path: '/Messagesupport', element: <Messagesupport /> },
   { path: '/developers', element: <Developers /> },
+   { path: '/projects', element: <Projects /> },
+      { path: '/projectitem/:id', element: <Projectitem /> },
   { path: '/support/:projectId', element: <Support /> },
   { path: '/marketplace', element: <Marketplace /> },
   { path: '/marketplaceitem/:id', element: <MarketplaceItem /> },
