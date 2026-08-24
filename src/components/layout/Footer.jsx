@@ -14,6 +14,7 @@ export default function Footer() {
             <ul className="space-y-2 text-gray-400">
               <li><a href="/developers" className="hover:text-white">المبرمجين</a></li>
               <li><a href="/marketplace" className="hover:text-white">المتجر</a></li>
+              <li><a href="/Projects" className="hover:text-white">الاعمال</a></li>
               <li><a href="/pricing" className="hover:text-white">الأسعار</a></li>
             </ul>
           </div>

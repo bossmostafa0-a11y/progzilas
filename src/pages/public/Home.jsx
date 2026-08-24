@@ -245,7 +245,7 @@ export default function Home() {
                 <motion.div {...fadeUp} className="flex items-center justify-center lg:justify-start gap-2 flex-wrap">
                   <span className="inline-flex items-center gap-2 rounded-md border border-[#E4E4EC] bg-white px-3 py-1.5">
                     <span className="relative w-1.5 h-1.5 rounded-full bg-cyan-500 progzila-live-dot" />
-                    <span className="font-mono text-xs text-gray-500 tracking-wide">progzila.dev</span>
+                    <span className="font-mono text-xs text-gray-500 tracking-wide">progzila.com</span>
                   </span>
                   <span className="text-sm text-gray-500">منصة العمل الحر للمبرمجين</span>
                 </motion.div>

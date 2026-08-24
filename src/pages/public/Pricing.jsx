@@ -73,7 +73,7 @@ export default function Pricing() {
       id: 'pro',
       name: 'المحترف',
       icon: '💎',
-      price: { monthly: 29, yearly: 290 },
+      price: { monthly: 450, yearly: 450 },
       description: 'للراغبين في التوسع وزيادة الأرباح',
       features: [
         { included: true, text: 'نشر غير محدود للمشاريع' },
@@ -115,7 +115,7 @@ export default function Pricing() {
   const getPriceDisplay = (plan) => {
     const price = getPrice(plan);
     if (price === 0) return 'مجاني';
-    return `$${price}`;
+    return `${price} ج.م`;
   };
 
   const getPeriodText = () => {

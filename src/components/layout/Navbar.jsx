@@ -1,24 +1,33 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useSocket } from '../../hooks/useSocket' 
-import useNotification from '../../hooks/useNotification' 
-import { getNotifications, getUnreadCount, markNotificationAsRead, markAllNotificationsAsRead, deleteNotification, deleteAllNotifications } from '../../services/notification.service'
+import { useSocket } from '../../hooks/useSocket'
+import useNotification from '../../hooks/useNotification'
+import {
+  getNotifications,
+  getUnreadCount,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
+  deleteNotification,
+  deleteAllNotifications
+} from '../../services/notification.service'
 
 export default function Navbar() {
   const { isAuthenticated, logout, isDeveloper, user } = useAuth()
-  const { socket } = useSocket() 
-  const { playSound } = useNotification() 
-  
+  const { socket } = useSocket()
+  const { playSound } = useNotification()
+  const navigate = useNavigate()
+
   // إشعارات
   const [notifications, setNotifications] = useState([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [showNotifications, setShowNotifications] = useState(false)
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(false)
   const notificationsRef = useRef(null)
+  const hasLoadedNotifications = useRef(false)
 
-  // جلب الإشعارات
+  // دالة تحميل الإشعارات
   const loadNotifications = async () => {
     if (isLoadingNotifications) return
     setIsLoadingNotifications(true)
@@ -35,48 +44,60 @@ export default function Navbar() {
         data = Object.values(response.data).filter(item => item && typeof item === 'object' && item._id)
       }
       setNotifications(data)
-    } catch (error) { 
-      console.error('Error loading notifications:', error) 
+    } catch (error) {
+      console.error('Error loading notifications:', error)
     } finally {
       setIsLoadingNotifications(false)
     }
   }
 
-  // ✅ الحل النهائي: جلب العداد مباشرة جوا useEffect
+  // عند فتح القائمة لأول مرة
+  const toggleNotifications = () => {
+    if (showNotifications) {
+      setShowNotifications(false)
+      hasLoadedNotifications.current = false
+    } else {
+      if (!hasLoadedNotifications.current && notifications.length === 0) {
+        hasLoadedNotifications.current = true
+        loadNotifications()
+      }
+      setShowNotifications(true)
+    }
+  }
+
+  // ✅ الحل: الجلب فقط عند تسجيل الدخول (بدون setState في الـ Effect)
   useEffect(() => {
     if (!isAuthenticated) return
-
-    // إنشاء AbortController لمنع التحديث إذا غادر المستخدم الصفحة
-    const abortController = new AbortController()
-
+    
     const fetchUnreadCount = async () => {
       try {
         const response = await getUnreadCount()
         setUnreadCount(response?.data?.count || response?.count || 0)
       } catch (error) {
-        // تجاهل الخطأ إذا تم الإلغاء
-        if (error.name === 'AbortError') return
         console.error('Error loading unread count:', error)
       }
     }
 
     fetchUnreadCount()
-
-    // دالة التنظيف عند الخروج
-    return () => {
-      abortController.abort()
-    }
   }, [isAuthenticated])
 
-  // السوكيت
+  // استماع Socket
   useEffect(() => {
     if (!isAuthenticated || !socket) return
 
+    socket.emit('user-online', { userId: user?._id })
     socket.emit('get-notification-count', { userId: user?._id })
 
     const handleNewNotification = (notification) => {
-      playSound()
-      setNotifications(prev => [notification, ...prev])
+      try {
+        playSound()
+      } catch (error) {
+        console.error('Error playing notification sound:', error)
+      }
+      setNotifications(prev => {
+        if (prev.some(n => n._id === notification._id)) return prev
+        return [notification, ...prev]
+      })
       setUnreadCount(prev => prev + 1)
     }
 
@@ -84,28 +105,48 @@ export default function Navbar() {
       setUnreadCount(data.count || 0)
     }
 
+    const handleNotificationReadSocket = (data) => {
+      setNotifications(prev => prev.map(n => n._id === data.notificationId ? { ...n, isRead: true } : n))
+      setUnreadCount(prev => Math.max(0, prev - 1))
+    }
+
+    const handleNotificationReadAllSocket = () => {
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })))
+      setUnreadCount(0)
+    }
+
+    const handleNotificationDeletedSocket = (data) => {
+      setNotifications(prev => prev.filter(n => n._id !== data.notificationId))
+    }
+
+    const handleNotificationClearedSocket = () => {
+      setNotifications([])
+      setUnreadCount(0)
+    }
+
     socket.on('new-notification', handleNewNotification)
     socket.on('notification-count', handleNotificationCount)
+    socket.on('notification-read', handleNotificationReadSocket)
+    socket.on('notification-read-all', handleNotificationReadAllSocket)
+    socket.on('notification-deleted', handleNotificationDeletedSocket)
+    socket.on('notification-cleared', handleNotificationClearedSocket)
 
     return () => {
       socket.off('new-notification', handleNewNotification)
       socket.off('notification-count', handleNotificationCount)
+      socket.off('notification-read', handleNotificationReadSocket)
+      socket.off('notification-read-all', handleNotificationReadAllSocket)
+      socket.off('notification-deleted', handleNotificationDeletedSocket)
+      socket.off('notification-cleared', handleNotificationClearedSocket)
     }
   }, [isAuthenticated, socket, user?._id, playSound])
-
-  // عند فتح القائمة لأول مرة
-  const toggleNotifications = () => {
-    if (!showNotifications && notifications.length === 0) {
-      loadNotifications()
-    }
-    setShowNotifications(!showNotifications)
-  }
 
   // إغلاق القائمة عند الضغط خارجها
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (notificationsRef.current && !notificationsRef.current.contains(event.target)) {
         setShowNotifications(false)
+        hasLoadedNotifications.current = false
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
@@ -119,7 +160,9 @@ export default function Navbar() {
       setNotifications(prev => prev.map(n => n._id === id ? { ...n, isRead: true } : n))
       setUnreadCount(prev => Math.max(0, prev - 1))
       if (socket) socket.emit('notification-read', { notificationId: id, userId: user?._id })
-    } catch (error) { console.error(error) }
+    } catch (error) {
+      console.error(error)
+    }
   }
 
   const markAllAsRead = async () => {
@@ -128,7 +171,9 @@ export default function Navbar() {
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })))
       setUnreadCount(0)
       if (socket) socket.emit('notification-read-all', { userId: user?._id })
-    } catch (error) { console.error(error) }
+    } catch (error) {
+      console.error(error)
+    }
   }
 
   const deleteNotif = async (id, e) => {
@@ -137,7 +182,9 @@ export default function Navbar() {
       await deleteNotification(id)
       setNotifications(prev => prev.filter(n => n._id !== id))
       if (socket) socket.emit('notification-deleted', { notificationId: id, userId: user?._id })
-    } catch (error) { console.error(error) }
+    } catch (error) {
+      console.error(error)
+    }
   }
 
   const deleteAllNotifs = async () => {
@@ -146,12 +193,43 @@ export default function Navbar() {
       setNotifications([])
       setUnreadCount(0)
       if (socket) socket.emit('notification-cleared', { userId: user?._id })
-    } catch (error) { console.error(error) }
+    } catch (error) {
+      console.error(error)
+    }
   }
 
+  // التنقل عند الضغط على إشعار
   const handleNotificationClick = (notification) => {
     if (!notification.isRead) markAsRead(notification._id)
     setShowNotifications(false)
+    hasLoadedNotifications.current = false
+
+    if (isDeveloper) {
+      const paths = {
+        message: '/messages',
+        project: '/dashboard/developer/projects',
+        task: `/project/${notification.metadata?.projectId}/tasks`,
+        payment: `/project/${notification.metadata?.projectId}?tab=payments`,
+        file: `/project/${notification.metadata?.projectId}?tab=files`,
+        folder: `/project/${notification.metadata?.projectId}?tab=files`
+      }
+      const devPath = paths[notification.type] || notification.link || '#'
+      if (devPath !== '#') {
+        navigate(devPath)
+      }
+    } else {
+      const paths = {
+        message: '/messages',
+        project: `/project/${notification.metadata?.projectId || notification.link}`,
+        proposal: '/dashboard/client/proposals',
+        payment: '/dashboard/client/purchases',
+        milestone: `/project/${notification.metadata?.projectId}`
+      }
+      const clientPath = paths[notification.type] || notification.link || '#'
+      if (clientPath !== '#') {
+        navigate(clientPath)
+      }
+    }
   }
 
   const formatTime = (timestamp) => {
@@ -161,6 +239,7 @@ export default function Navbar() {
     if (diff < 3600) return `منذ ${Math.floor(diff / 60)} دقيقة`
     if (diff < 86400) return `منذ ${Math.floor(diff / 3600)} ساعة`
     if (diff < 172800) return 'أمس'
+    if (diff < 604800) return `منذ ${Math.floor(diff / 86400)} يوم`
     return new Date(timestamp).toLocaleDateString('ar-EG')
   }
 
@@ -193,18 +272,19 @@ export default function Navbar() {
             {isAuthenticated ? (
               <div className="flex items-center gap-4">
                 
-                {/* زر الإشعارات */}
+                {/* ✏️ [1] زر الإشعارات */}
+                {/* ملاحظة: حجم الزر يختلف حسب حجم الشاشة (موبايل/كمبيوتر) */}
                 <div className="relative" ref={notificationsRef}>
                   <button
                     onClick={toggleNotifications}
-                    className="p-2 bg-gray-50 hover:bg-indigo-50 hover:text-indigo-600 rounded-full transition-all duration-200 relative border border-gray-200 hover:border-indigo-300"
+                    className="p-1.5 md:p-2 bg-gray-50 hover:bg-indigo-50 hover:text-indigo-600 rounded-full transition-all duration-200 relative border border-gray-200 hover:border-indigo-300"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 md:w-5 md:h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
                       <path d="M13.73 21a2 2 0 0 1-3.46 0" />
                     </svg>
                     {unreadCount > 0 && (
-                      <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center px-1 font-bold shadow-sm">
+                      <span className="absolute -top-1 -right-1 min-w-[16px] h-4 md:min-w-[18px] md:h-[18px] bg-red-500 text-white text-[9px] md:text-[10px] rounded-full flex items-center justify-center px-1 font-bold shadow-sm">
                         {unreadCount > 99 ? '99+' : unreadCount}
                       </span>
                     )}
@@ -218,7 +298,7 @@ export default function Navbar() {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -10, scale: 0.95 }}
                         transition={{ duration: 0.2 }}
-                        className="absolute left-0 top-full mt-3 w-[420px] max-h-[500px] bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50"
+                        className="absolute left-0 top-full mt-3 w-[90vw] max-w-[420px] bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50"
                       >
                         {/* رأس القائمة */}
                         <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gradient-to-r from-indigo-50/50 to-purple-50/50">
@@ -316,15 +396,20 @@ export default function Navbar() {
                   </AnimatePresence>
                 </div>
 
-                <Link to={isDeveloper ? '/dashboard/developer' : '/dashboard/client'} className="text-gray-700 hover:text-indigo-600">
+                {/* ✏️ [2] رابط Dashboard */}
+                {/* ملاحظة: الحجم يختلف (صغير للموبايل - كبير للكمبيوتر) */}
+                <Link to={isDeveloper ? '/dashboard/developer' : '/dashboard/client'} className="text-xs md:text-sm text-gray-700 hover:text-indigo-600 font-medium transition">
                   Dashboard
                 </Link>
-                <button onClick={logout} className="text-red-600 hover:text-red-700 font-medium transition">تسجيل خروج</button>
+
+                {/* ✏️ [3] زر تسجيل الخروج */}
+                {/* ملاحظة: الحجم يختلف (صغير للموبايل - كبير للكمبيوتر) */}
+                <button onClick={logout} className="text-xs md:text-sm text-red-600 hover:text-red-700 font-medium transition">تسجيل خروج</button>
               </div>
             ) : (
               <>
-                <Link to="/login" className="text-gray-700 hover:text-indigo-600 font-medium transition">تسجيل الدخول</Link>
-                <Link to="/login" className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-lg font-medium transition">ابدأ مجاناً</Link>
+                <Link to="/login" className="text-xs md:text-sm text-gray-700 hover:text-indigo-600 font-medium transition">تسجيل الدخول</Link>
+                <Link to="/login" className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 md:px-5 md:py-2 rounded-lg font-medium transition">ابدأ مجاناً</Link>
               </>
             )}
           </div>
