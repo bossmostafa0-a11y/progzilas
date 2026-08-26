@@ -348,7 +348,7 @@ export default function Pricing() {
                 فريقنا جاهز للإجابة على جميع استفساراتك
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link to="/contact" className="bg-white text-indigo-600 hover:bg-gray-100 font-bold py-3 px-8 rounded-xl transition-all duration-300 hover:scale-105 inline-block">
+                <Link to="https://wa.me/201019544851" className="bg-white text-indigo-600 hover:bg-gray-100 font-bold py-3 px-8 rounded-xl transition-all duration-300 hover:scale-105 inline-block">
                   تواصل معنا 📞
                 </Link>
                 <Link to="/login" className="border-2 border-white text-white hover:bg-white/10 font-bold py-3 px-8 rounded-xl transition-all duration-300 hover:scale-105 inline-block">

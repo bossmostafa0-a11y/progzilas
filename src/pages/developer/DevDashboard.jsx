@@ -39,7 +39,7 @@ export default function DevDashboard() {
   const hasLoadedNotifications = useRef(false);
   const audioRef = useRef(null);
   const dashboardLoadedRef = useRef(false);
-  
+    const userName = user?.name || user?.username || 'مبرمج';
   const [stats, setStats] = useState({
     totalProjects: 0, completedProjects: 0, ongoingProjects: 0,
     totalEarnings: 0, monthlyEarnings: 0, weeklyEarnings: 0, todayEarnings: 0,

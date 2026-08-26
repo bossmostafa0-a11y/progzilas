@@ -32,6 +32,7 @@ export default function ClientDashboard() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
   const notificationsRef = useRef(null);
+  const userName = user?.name || user?.username || 'عميل';
 
   const [stats, setStats] = useState({
     activeProjects: 0,
@@ -318,7 +319,7 @@ track: dev.track
             <div className="flex flex-wrap justify-between items-center mb-8">
               <div>
                 <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                  مرحباً بك {user?.name || 'عميل'} 
+                  مرحباً بك {userName || 'عميل'} 
                 </h1>
                 <p className="text-gray-500 mt-1">إليك ملخص مشاريعك ونشاطك</p>
               </div>

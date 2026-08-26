@@ -133,11 +133,11 @@ export default function TermsPrivacy() {
                 <div className="space-y-2">
                   <p className="flex items-center gap-2">
                     <span className="text-indigo-600">✉️</span>
-                    <span className="text-gray-700">privacy@devhire.com</span>
+                    <span className="text-gray-700"></span>
                   </p>
                   <p className="flex items-center gap-2">
                     <span className="text-indigo-600">📞</span>
-                    <span className="text-gray-700">+20 123 456 789</span>
+                    <span className="text-gray-700">01019544851</span>
                   </p>
                 </div>
               </div>
