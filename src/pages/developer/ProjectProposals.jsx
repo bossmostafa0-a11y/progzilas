@@ -6,6 +6,7 @@ import { getOpenProjects, createProposal } from '../../services/develper.service
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import DeveloperSidebar from '../../components/layout/DeveloperSidebar';
+import { FiAlertCircle, FiCheckCircle, FiX } from 'react-icons/fi';
 
 // ✅ الحصول على رابط علم الدولة - جودة عالية
 const getCountryFlagUrl = (location) => {
@@ -139,10 +140,45 @@ export default function ProjectProposals() {
     currency: 'EGP'
   });
   const [submittedProjects, setSubmittedProjects] = useState([]);
-  const [successMessage, setSuccessMessage] = useState('');
-  const [errorMessage, setErrorMessage] = useState('');
+  
+  // ✅ حالة الـ Toast
+  const [toast, setToast] = useState({
+    show: false,
+    type: '', // 'success' or 'error'
+    message: '',
+    title: ''
+  });
   
   const hasFetched = useRef(false);
+
+  // ✅ عرض الـ Toast
+  const showToast = (type, message, title = '') => {
+    setToast({
+      show: true,
+      type,
+      message,
+      title: title || (type === 'success' ? '✅ نجاح' : '❌ خطأ')
+    });
+
+    setTimeout(() => {
+      setToast({
+        show: false,
+        type: '',
+        message: '',
+        title: ''
+      });
+    }, 5000);
+  };
+
+  // ✅ إخفاء الـ Toast يدوياً
+  const hideToast = () => {
+    setToast({
+      show: false,
+      type: '',
+      message: '',
+      title: ''
+    });
+  };
 
   // ✅ جلب المشاريع من الباك اند
   const fetchProjects = useCallback(async () => {
@@ -157,6 +193,7 @@ export default function ProjectProposals() {
     } catch (err) {
       console.error('❌ Error fetching projects:', err);
       setError(err.message || 'حدث خطأ أثناء تحميل المشاريع');
+      showToast('error', err.message || 'حدث خطأ أثناء تحميل المشاريع', '⚠️ فشل التحميل');
     } finally {
       setLoading(false);
     }
@@ -210,10 +247,9 @@ export default function ProjectProposals() {
   const handleProposalSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
-    setErrorMessage('');
     
     if (isDeadlinePassed(selectedProject.deadline)) {
-      setErrorMessage('⛔ عذراً، انتهت مدة التقديم على هذا المشروع');
+      showToast('error', '⛔ عذراً، انتهت مدة التقديم على هذا المشروع', '⛔ منتهي');
       setSubmitting(false);
       return;
     }
@@ -227,10 +263,9 @@ export default function ProjectProposals() {
         currency: proposalData.currency || 'EGP'
       };
       
+      await createProposal(submitData);
       
-       await createProposal(submitData);
-      
-      setSuccessMessage('✅ تم تقديم العرض بنجاح!');
+      showToast('success', 'تم تقديم العرض بنجاح! سيتم مراجعته قريباً', '🎉 مبروك!');
       
       setProjects(prev => prev.map(p => 
         p._id === selectedProject._id ? { ...p, proposals: (p.proposals || 0) + 1 } : p
@@ -241,8 +276,7 @@ export default function ProjectProposals() {
       setTimeout(() => {
         setShowProposalModal(false);
         setProposalData({ coverLetter: '', budget: '', duration: '', currency: 'EGP' });
-        setSuccessMessage('');
-      }, 1500);
+      }, 2000);
       
     } catch (error) {
       console.error('❌ Error submitting proposal:', error);
@@ -250,10 +284,10 @@ export default function ProjectProposals() {
       const errorMsg = error.response?.data?.message || error.message || 'حدث خطأ أثناء تقديم العرض';
       
       if (errorMsg.includes('already') || errorMsg.includes('سبق') || errorMsg.includes('مسبقاً') || errorMsg.includes('قمت بالتقديم')) {
-        setErrorMessage('⚠️ لقد قمت بالتقديم على هذا المشروع بالفعل');
+        showToast('error', 'لقد قمت بالتقديم على هذا المشروع بالفعل', '⚠️ مكرر');
         setSubmittedProjects(prev => [...prev, selectedProject._id]);
       } else {
-        setErrorMessage(errorMsg);
+        showToast('error', errorMsg, '❌ فشل التقديم');
       }
     } finally {
       setSubmitting(false);
@@ -628,13 +662,11 @@ export default function ProjectProposals() {
                               onClick={(e) => {
                                 e.stopPropagation();
                                 if (expired) {
-                                  setErrorMessage('⛔ عذراً، انتهت مدة التقديم على هذا المشروع');
-                                  setTimeout(() => setErrorMessage(''), 3000);
+                                  showToast('error', '⛔ عذراً، انتهت مدة التقديم على هذا المشروع', '⛔ منتهي');
                                   return;
                                 }
                                 if (alreadySubmitted) {
-                                  setErrorMessage('⚠️ لقد قمت بالتقديم على هذا المشروع بالفعل');
-                                  setTimeout(() => setErrorMessage(''), 3000);
+                                  showToast('error', '⚠️ لقد قمت بالتقديم على هذا المشروع بالفعل', '⚠️ مكرر');
                                   return;
                                 }
                                 setSelectedProject(project);
@@ -775,25 +807,15 @@ export default function ProjectProposals() {
                   </div>
                 </div>
 
-                {errorMessage && (
-                  <div className={`p-3 rounded-xl text-center font-medium ${
-                    errorMessage.includes('⚠️') ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
-                  }`}>
-                    {errorMessage}
-                  </div>
-                )}
-
                 <div className="flex gap-3 pt-4">
                   <button
                     onClick={() => {
                       if (isDeadlinePassed(selectedProject.deadline)) {
-                        setErrorMessage('⛔ عذراً، انتهت مدة التقديم على هذا المشروع');
-                        setTimeout(() => setErrorMessage(''), 3000);
+                        showToast('error', '⛔ عذراً، انتهت مدة التقديم على هذا المشروع', '⛔ منتهي');
                         return;
                       }
                       if (hasSubmitted(selectedProject._id)) {
-                        setErrorMessage('⚠️ لقد قمت بالتقديم على هذا المشروع بالفعل');
-                        setTimeout(() => setErrorMessage(''), 3000);
+                        showToast('error', '⚠️ لقد قمت بالتقديم على هذا المشروع بالفعل', '⚠️ مكرر');
                         return;
                       }
                       setShowDetailsModal(false);
@@ -812,7 +834,6 @@ export default function ProjectProposals() {
                   <button
                     onClick={() => {
                       setShowDetailsModal(false);
-                      setErrorMessage('');
                     }}
                     className="flex-1 py-2 border-2 border-gray-300 text-gray-600 rounded-xl font-medium hover:bg-gray-50 transition"
                   >
@@ -854,20 +875,6 @@ export default function ProjectProposals() {
               </div>
 
               <form onSubmit={handleProposalSubmit} className="p-6 space-y-4">
-                {successMessage && (
-                  <div className="p-3 bg-green-100 text-green-700 rounded-xl text-center font-medium">
-                    {successMessage}
-                  </div>
-                )}
-
-                {errorMessage && (
-                  <div className={`p-3 rounded-xl text-center font-medium ${
-                    errorMessage.includes('⚠️') ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
-                  }`}>
-                    {errorMessage}
-                  </div>
-                )}
-
                 <div>
                   <h3 className="font-bold text-gray-800">{selectedProject.title}</h3>
                   <p className="text-sm text-gray-500 flex items-center gap-2">
@@ -952,7 +959,6 @@ export default function ProjectProposals() {
                     type="button"
                     onClick={() => {
                       setShowProposalModal(false);
-                      setErrorMessage('');
                     }}
                     disabled={submitting}
                     className="flex-1 py-2 border-2 border-gray-300 text-gray-600 rounded-xl font-medium hover:bg-gray-50 transition disabled:opacity-50"
@@ -977,6 +983,94 @@ export default function ProjectProposals() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ✅ Toast Notification - كارد جانبي جميل */}
+      {toast.show && (
+        <div className="fixed top-24 left-4 z-50 w-full max-w-sm animate-slide-in-left">
+          <div 
+            className={`rounded-2xl shadow-2xl p-5 border-r-4 ${
+              toast.type === 'success' 
+                ? 'bg-green-50 border-green-500' 
+                : 'bg-red-50 border-red-500'
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              {/* أيقونة */}
+              <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
+                toast.type === 'success' ? 'bg-green-100' : 'bg-red-100'
+              }`}>
+                {toast.type === 'success' ? (
+                  <FiCheckCircle className="w-6 h-6 text-green-600" />
+                ) : (
+                  <FiAlertCircle className="w-6 h-6 text-red-600" />
+                )}
+              </div>
+              
+              {/* المحتوى */}
+              <div className="flex-1 min-w-0">
+                <h3 className={`font-bold text-sm ${
+                  toast.type === 'success' ? 'text-green-800' : 'text-red-800'
+                }`}>
+                  {toast.title}
+                </h3>
+                <p className={`text-sm mt-1 ${
+                  toast.type === 'success' ? 'text-green-700' : 'text-red-700'
+                }`}>
+                  {toast.message}
+                </p>
+              </div>
+              
+              {/* زر الإغلاق */}
+              <button
+                onClick={hideToast}
+                className="flex-shrink-0 w-6 h-6 rounded-full hover:bg-gray-200/50 flex items-center justify-center transition"
+              >
+                <FiX className="w-4 h-4 text-gray-500" />
+              </button>
+            </div>
+            
+            {/* شريط التقدم (يختفي بعد 5 ثواني) */}
+            <div className="mt-3 w-full h-1 bg-gray-200 rounded-full overflow-hidden">
+              <div 
+                className={`h-full rounded-full transition-all duration-5000 ${
+                  toast.type === 'success' ? 'bg-green-500' : 'bg-red-500'
+                }`}
+                style={{
+                  width: '100%',
+                  animation: 'shrink 5s linear forwards'
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ✅ إضافة الـ keyframes في نهاية الصفحة */}
+      <style jsx>{`
+        @keyframes shrink {
+          from {
+            width: 100%;
+          }
+          to {
+            width: 0%;
+          }
+        }
+        
+        @keyframes slideInLeft {
+          from {
+            transform: translateX(-100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+        
+        .animate-slide-in-left {
+          animation: slideInLeft 0.5s ease-out forwards;
+        }
+      `}</style>
 
       <Footer />
     </div>

@@ -247,7 +247,7 @@ export default function Proposals() {
                       <div className="p-6">
                         <div className="flex flex-wrap justify-between items-start gap-4">
                           <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">W
+                            <div className="flex items-center gap-3 mb-2">
                               {/* ✅ صورة البروفيل - قابلة للنقر */}
                               <button
                                 onClick={() => handleDeveloperProfile(developer._id)}
@@ -406,7 +406,7 @@ export default function Proposals() {
                       {selectedProposal.developer?.username || 'مبرمج'}
                     </button>
                     <div className="text-sm text-gray-500">
-                      ⭐ {selectedProposal.developer?.rating || selectedProposal.rating || 4.5} | {selectedProposal.developer?.completedProjects || selectedProposal.completedProjects || 0} مشروع
+                      ⭐ {selectedProposal.developer?.rating || selectedProposal.rating || 0} | {selectedProposal.developer?.completedProjects || selectedProposal.completedProjects || 0} مشروع
                     </div>
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusBadge(selectedProposal.status).color}`}>
                       {getStatusBadge(selectedProposal.status).label}

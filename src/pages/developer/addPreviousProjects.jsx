@@ -12,6 +12,7 @@ import {
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import DeveloperSidebar from '../../components/layout/DeveloperSidebar';
+import { FiAlertCircle, FiCheckCircle, FiX } from 'react-icons/fi';
 
 export default function AddPreviousProject() {
   const { fetchUser } = useAuth();
@@ -20,6 +21,43 @@ export default function AddPreviousProject() {
   const [loading, setLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [validationErrors, setValidationErrors] = useState({});
+  
+  // ✅ حالة الـ Toast
+  const [toast, setToast] = useState({
+    show: false,
+    type: '', // 'success' or 'error'
+    message: '',
+    title: ''
+  });
+
+  // ✅ عرض الـ Toast
+  const showToast = (type, message, title = '') => {
+    setToast({
+      show: true,
+      type,
+      message,
+      title: title || (type === 'success' ? '✅ نجاح' : '❌ خطأ')
+    });
+
+    setTimeout(() => {
+      setToast({
+        show: false,
+        type: '',
+        message: '',
+        title: ''
+      });
+    }, 5000);
+  };
+
+  // ✅ إخفاء الـ Toast يدوياً
+  const hideToast = () => {
+    setToast({
+      show: false,
+      type: '',
+      message: '',
+      title: ''
+    });
+  };
   
   // ✅ Form Data - مخصصة للأعمال السابقة
   const [formData, setFormData] = useState({
@@ -141,123 +179,130 @@ export default function AddPreviousProject() {
   };
 
   // ✅ Submit form - مع تتبع التقدم
-const handleSubmit = async (e) => {
-  e.preventDefault();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  if (!validateForm()) {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-    return;
-  }
-
-  setLoading(true);
-  setUploadProgress(0);
-
-  try {
-    let uploadedVideoUrl = "";
-
-    // ====================================
-    // رفع الفيديو مباشرة إلى Cloudflare R2
-    // ====================================
-
-    if (formData.videoFile) {
-      console.log("📤 Getting Upload URL...");
-
-      const { uploadUrl, videoUrl } =
-        await getVideoUploadUrl(formData.videoFile);
-
-      console.log("☁ Uploading video to R2...");
-
-      await uploadVideoToR2(
-        uploadUrl,
-        formData.videoFile,
-        (progressEvent) => {
-          const percent = Math.round(
-            (progressEvent.loaded * 100) /
-              progressEvent.total
-          );
-
-          setUploadProgress(percent);
-
-          console.log(`🎥 Upload: ${percent}%`);
-        }
-      );
-
-      console.log("✅ Video uploaded.");
-
-      uploadedVideoUrl = videoUrl;
+    if (!validateForm()) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      showToast('error', 'يرجى تعبئة جميع الحقول المطلوبة', '⚠️ تحقق من البيانات');
+      return;
     }
 
-    // ====================================
-    // إرسال بيانات المشروع
-    // ====================================
-
-    const submitData = new FormData();
-
-    submitData.append("projectName", formData.projectName);
-    submitData.append("category", formData.category);
-    submitData.append(
-      "shortDescription",
-      formData.shortDescription
-    );
-    submitData.append(
-      "fullDescription",
-      formData.fullDescription || ""
-    );
-    submitData.append(
-      "demoUrl",
-      formData.demoUrl || ""
-    );
-    submitData.append(
-      "githubUrl",
-      formData.githubUrl || ""
-    );
-    submitData.append("date", formData.date || "");
-
-    submitData.append(
-      "technologies",
-      JSON.stringify(formData.technologies)
-    );
-
-    submitData.append(
-      "mainFeatures",
-      JSON.stringify(formData.mainFeatures)
-    );
-
-    // إرسال رابط الفيديو فقط
-    submitData.append("videoUrl", uploadedVideoUrl);
-
-    // الصور فقط
-    formData.images.forEach((image) => {
-      submitData.append("images", image);
-    });
-
-    console.log("📤 Sending project data...");
-
-     await addpreviousprojects(submitData);
-
-    setUploadProgress(100);
-
-    await fetchUser();
-
-    setTimeout(() => {
-      setLoading(false);
-      navigate("/dashboard/developer/PreviousProjects");
-    }, 500);
-  } catch (error) {
-    console.error("========== ERROR ==========");
-    console.error(error);
-    console.error("===========================");
-
-    setLoading(false);
+    setLoading(true);
     setUploadProgress(0);
 
-    alert(
-      error?.response?.data?.message ||
+    try {
+      let uploadedVideoUrl = "";
+
+      // ====================================
+      // رفع الفيديو مباشرة إلى Cloudflare R2
+      // ====================================
+
+      if (formData.videoFile) {
+        console.log("📤 Getting Upload URL...");
+
+        const { uploadUrl, videoUrl } =
+          await getVideoUploadUrl(formData.videoFile);
+
+        console.log("☁ Uploading video to R2...");
+
+        await uploadVideoToR2(
+          uploadUrl,
+          formData.videoFile,
+          (progressEvent) => {
+            const percent = Math.round(
+              (progressEvent.loaded * 100) /
+                progressEvent.total
+            );
+
+            setUploadProgress(percent);
+
+            console.log(`🎥 Upload: ${percent}%`);
+          }
+        );
+
+        console.log("✅ Video uploaded.");
+
+        uploadedVideoUrl = videoUrl;
+      }
+
+      // ====================================
+      // إرسال بيانات المشروع
+      // ====================================
+
+      const submitData = new FormData();
+
+      submitData.append("projectName", formData.projectName);
+      submitData.append("category", formData.category);
+      submitData.append(
+        "shortDescription",
+        formData.shortDescription
+      );
+      submitData.append(
+        "fullDescription",
+        formData.fullDescription || ""
+      );
+      submitData.append(
+        "demoUrl",
+        formData.demoUrl || ""
+      );
+      submitData.append(
+        "githubUrl",
+        formData.githubUrl || ""
+      );
+      submitData.append("date", formData.date || "");
+
+      submitData.append(
+        "technologies",
+        JSON.stringify(formData.technologies)
+      );
+
+      submitData.append(
+        "mainFeatures",
+        JSON.stringify(formData.mainFeatures)
+      );
+
+      // إرسال رابط الفيديو فقط
+      submitData.append("videoUrl", uploadedVideoUrl);
+
+      // الصور فقط
+      formData.images.forEach((image) => {
+        submitData.append("images", image);
+      });
+
+      console.log("📤 Sending project data...");
+
+      await addpreviousprojects(submitData);
+
+      setUploadProgress(100);
+
+      await fetchUser();
+
+      // ✅ عرض رسالة نجاح بدلاً من alert
+      showToast('success', 'تم إضافة العمل السابق بنجاح!', '🎉 مبروك!');
+
+      setTimeout(() => {
+        setLoading(false);
+        navigate("/dashboard/developer/PreviousProjects");
+      }, 2000);
+
+    } catch (error) {
+      console.error("========== ERROR ==========");
+      console.error(error);
+      console.error("===========================");
+
+      setLoading(false);
+      setUploadProgress(0);
+
+      const errorMessage =
+        error?.response?.data?.message ||
         error?.message ||
-        "حدث خطأ أثناء رفع المشروع"
-    );
-  }
-};
+        "حدث خطأ أثناء رفع المشروع";
+
+      // ✅ عرض رسالة خطأ بدلاً من alert
+      showToast('error', errorMessage, '❌ فشل الإضافة');
+    }
+  };
 
   // ✅ Next Step Validation
   const nextStep = () => {
@@ -279,6 +324,7 @@ const handleSubmit = async (e) => {
     
     if (Object.keys(stepErrors).length > 0) {
       setValidationErrors(stepErrors);
+      showToast('error', 'يرجى تعبئة جميع الحقول في هذه الخطوة', '⚠️ بيانات ناقصة');
       return;
     }
     
@@ -359,7 +405,6 @@ const handleSubmit = async (e) => {
                     transition={{ duration: 0.3 }}
                     className="space-y-6"
                   >
-                    {/* ... باقي الكود كما هو ... */}
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">
                         اسم المشروع <span className="text-red-500">*</span>
@@ -677,6 +722,94 @@ const handleSubmit = async (e) => {
           </div>
         </div>
       </div>
+
+      {/* ✅ Toast Notification - كارد جانبي جميل */}
+      {toast.show && (
+        <div className="fixed top-24 left-4 z-50 w-full max-w-sm animate-slide-in-left">
+          <div 
+            className={`rounded-2xl shadow-2xl p-5 border-r-4 ${
+              toast.type === 'success' 
+                ? 'bg-green-50 border-green-500' 
+                : 'bg-red-50 border-red-500'
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              {/* أيقونة */}
+              <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
+                toast.type === 'success' ? 'bg-green-100' : 'bg-red-100'
+              }`}>
+                {toast.type === 'success' ? (
+                  <FiCheckCircle className="w-6 h-6 text-green-600" />
+                ) : (
+                  <FiAlertCircle className="w-6 h-6 text-red-600" />
+                )}
+              </div>
+              
+              {/* المحتوى */}
+              <div className="flex-1 min-w-0">
+                <h3 className={`font-bold text-sm ${
+                  toast.type === 'success' ? 'text-green-800' : 'text-red-800'
+                }`}>
+                  {toast.title}
+                </h3>
+                <p className={`text-sm mt-1 ${
+                  toast.type === 'success' ? 'text-green-700' : 'text-red-700'
+                }`}>
+                  {toast.message}
+                </p>
+              </div>
+              
+              {/* زر الإغلاق */}
+              <button
+                onClick={hideToast}
+                className="flex-shrink-0 w-6 h-6 rounded-full hover:bg-gray-200/50 flex items-center justify-center transition"
+              >
+                <FiX className="w-4 h-4 text-gray-500" />
+              </button>
+            </div>
+            
+            {/* شريط التقدم (يختفي بعد 5 ثواني) */}
+            <div className="mt-3 w-full h-1 bg-gray-200 rounded-full overflow-hidden">
+              <div 
+                className={`h-full rounded-full transition-all duration-5000 ${
+                  toast.type === 'success' ? 'bg-green-500' : 'bg-red-500'
+                }`}
+                style={{
+                  width: '100%',
+                  animation: 'shrink 5s linear forwards'
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ✅ إضافة الـ keyframes في نهاية الصفحة */}
+      <style jsx>{`
+        @keyframes shrink {
+          from {
+            width: 100%;
+          }
+          to {
+            width: 0%;
+          }
+        }
+        
+        @keyframes slideInLeft {
+          from {
+            transform: translateX(-100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+        
+        .animate-slide-in-left {
+          animation: slideInLeft 0.5s ease-out forwards;
+        }
+      `}</style>
 
       <Footer />
     </div>

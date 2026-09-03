@@ -4,10 +4,11 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
-import { updatestoreProject  } from '../../services/develper.service.js';
+import { updatestoreProject } from '../../services/develper.service.js';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import DeveloperSidebar from '../../components/layout/DeveloperSidebar';
+import { FiAlertCircle, FiCheckCircle, FiX } from 'react-icons/fi';
 
 export default function EditProject() {
   const location = useLocation();
@@ -17,14 +18,62 @@ export default function EditProject() {
   const [validationErrors, setValidationErrors] = useState({});
   const [step, setStep] = useState(1);
   
+  // ✅ حالة الـ Toast
+  const [toast, setToast] = useState({
+    show: false,
+    type: '', // 'success' or 'error'
+    message: '',
+    title: ''
+  });
+
+  // ✅ عرض الـ Toast
+  const showToast = (type, message, title = '') => {
+    setToast({
+      show: true,
+      type,
+      message,
+      title: title || (type === 'success' ? '✅ نجاح' : '❌ خطأ')
+    });
+
+    setTimeout(() => {
+      setToast({
+        show: false,
+        type: '',
+        message: '',
+        title: ''
+      });
+    }, 5000);
+  };
+
+  // ✅ إخفاء الـ Toast يدوياً
+  const hideToast = () => {
+    setToast({
+      show: false,
+      type: '',
+      message: '',
+      title: ''
+    });
+  };
+  
   // ✅ استقبال البيانات من الـ state
   const projectData = location.state?.project;
-  
-  // ✅ التحقق من وجود البيانات - بدون setState
+
+  // ✅ التحقق من وجود البيانات - بدون setState مباشر
   useEffect(() => {
     if (!projectData) {
-      alert('لا توجد بيانات للمشروع');
-      navigate('/dashboard/developer/store');
+      // ✅ استخدام setTimeout لتأخير setState
+      const timer = setTimeout(() => {
+        showToast('error', 'لا توجد بيانات للمشروع', '❌ خطأ');
+      }, 100);
+      
+      const navigateTimer = setTimeout(() => {
+        navigate('/dashboard/developer/store');
+      }, 2500);
+      
+      return () => {
+        clearTimeout(timer);
+        clearTimeout(navigateTimer);
+      };
     }
   }, [projectData, navigate]);
 
@@ -251,80 +300,84 @@ export default function EditProject() {
     setValidationErrors({ ...validationErrors, [`${packageName}Price`]: '' });
   };
 
-  // ✅ تحديث المشروع - تم التعديل: التحديث يحدث فقط عند الضغط على الزر
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  
-  if (!validateForm()) {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    return;
-  }
-  
-  setSaving(true);
-  
-  try {
-    // ✅ تجهيز البيانات كـ JSON
-    const submitData = {
-      id: projectData.id,
-      projectName: formData.projectName,
-      category: formData.category,
-      shortDescription: formData.shortDescription,
-      fullDescription: formData.fullDescription || '',
-      demoUrl: formData.demoUrl || '',
-      githubUrl: formData.githubUrl || '',
-      license: formData.license,
-      videoUrl: formData.videoUrl || '',
-      supportPeriod: formData.supportPeriod || '',
-      updatesPeriod: formData.updatesPeriod || '',
-      technologies: formData.technologies,
-      mainFeatures: formData.mainFeatures,
-      basic: {
-        price: formData.basic.price,
-        deliveryTime: formData.basic.deliveryTime,
-        features: formData.basic.features
-      },
-      pro: {
-        price: formData.pro.price,
-        deliveryTime: formData.pro.deliveryTime,
-        features: formData.pro.features
-      },
-      enterprise: {
-        price: formData.enterprise.price,
-        deliveryTime: formData.enterprise.deliveryTime,
-        features: formData.enterprise.features
-      }
-    };
+  // ✅ تحديث المشروع
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     
+    if (!validateForm()) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      showToast('error', 'يرجى تعبئة جميع الحقول المطلوبة', '⚠️ تحقق من البيانات');
+      return;
+    }
     
-    // ✅ استدعاء updatestoreProject مع JSON
-     await updatestoreProject(projectData.id, submitData);
+    setSaving(true);
     
-    await fetchUser();
-    
-    alert('✅ تم تحديث المشروع بنجاح');
-    navigate('/dashboard/developer/store');
-    
-  } catch (error) {
-    console.error('❌ Error updating project:', error);
-    console.error('❌ Error response:', error.response?.data);
-    alert(error.response?.data?.message || 'حدث خطأ أثناء تحديث المشروع');
-  } finally {
-    setSaving(false);
-  }
-};
+    try {
+      const submitData = {
+        id: projectData.id,
+        projectName: formData.projectName,
+        category: formData.category,
+        shortDescription: formData.shortDescription,
+        fullDescription: formData.fullDescription || '',
+        demoUrl: formData.demoUrl || '',
+        githubUrl: formData.githubUrl || '',
+        license: formData.license,
+        videoUrl: formData.videoUrl || '',
+        supportPeriod: formData.supportPeriod || '',
+        updatesPeriod: formData.updatesPeriod || '',
+        technologies: formData.technologies,
+        mainFeatures: formData.mainFeatures,
+        basic: {
+          price: formData.basic.price,
+          deliveryTime: formData.basic.deliveryTime,
+          features: formData.basic.features
+        },
+        pro: {
+          price: formData.pro.price,
+          deliveryTime: formData.pro.deliveryTime,
+          features: formData.pro.features
+        },
+        enterprise: {
+          price: formData.enterprise.price,
+          deliveryTime: formData.enterprise.deliveryTime,
+          features: formData.enterprise.features
+        }
+      };
+      
+      await updatestoreProject(projectData.id, submitData);
+      
+      await fetchUser();
+      
+      showToast('success', 'تم تحديث المشروع بنجاح!', '✅ تحديث');
+      
+      setTimeout(() => {
+        navigate('/dashboard/developer/store');
+      }, 2000);
+      
+    } catch (error) {
+      console.error('❌ Error updating project:', error);
+      console.error('❌ Error response:', error.response?.data);
+      showToast('error', error.response?.data?.message || 'حدث خطأ أثناء تحديث المشروع', '❌ فشل التحديث');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const nextStep = () => {
     if (step === 1) {
       if (!formData.projectName.trim()) {
         setValidationErrors({ projectName: 'اسم المشروع مطلوب' });
+        showToast('error', 'يرجى تعبئة اسم المشروع', '⚠️ بيانات ناقصة');
         return;
       }
       if (!formData.category) {
         setValidationErrors({ category: 'التصنيف مطلوب' });
+        showToast('error', 'يرجى اختيار التصنيف', '⚠️ بيانات ناقصة');
         return;
       }
       if (!formData.shortDescription.trim()) {
         setValidationErrors({ shortDescription: 'الوصف القصير مطلوب' });
+        showToast('error', 'يرجى كتابة وصف قصير', '⚠️ بيانات ناقصة');
         return;
       }
     }
@@ -332,10 +385,12 @@ const handleSubmit = async (e) => {
     if (step === 2) {
       if (formData.technologies.length === 0) {
         setValidationErrors({ technologies: 'أضف تقنية واحدة على الأقل' });
+        showToast('error', 'أضف تقنية واحدة على الأقل', '⚠️ بيانات ناقصة');
         return;
       }
       if (formData.mainFeatures.length === 0) {
         setValidationErrors({ mainFeatures: 'أضف ميزة واحدة على الأقل' });
+        showToast('error', 'أضف ميزة واحدة على الأقل', '⚠️ بيانات ناقصة');
         return;
       }
     }
@@ -343,14 +398,17 @@ const handleSubmit = async (e) => {
     if (step === 3) {
       if (!formData.basic.price || formData.basic.price <= 0) {
         setValidationErrors({ basicPrice: 'سعر باقة Basic مطلوب' });
+        showToast('error', 'سعر باقة Basic مطلوب', '⚠️ بيانات ناقصة');
         return;
       }
       if (!formData.pro.price || formData.pro.price <= 0) {
         setValidationErrors({ proPrice: 'سعر باقة Pro مطلوب' });
+        showToast('error', 'سعر باقة Pro مطلوب', '⚠️ بيانات ناقصة');
         return;
       }
       if (!formData.enterprise.price || formData.enterprise.price <= 0) {
         setValidationErrors({ enterprisePrice: 'سعر باقة Enterprise مطلوب' });
+        showToast('error', 'سعر باقة Enterprise مطلوب', '⚠️ بيانات ناقصة');
         return;
       }
     }
@@ -1030,6 +1088,94 @@ const handleSubmit = async (e) => {
           </div>
         </div>
       </div>
+
+      {/* ✅ Toast Notification - كارد جانبي جميل */}
+      {toast.show && (
+        <div className="fixed top-24 left-4 z-50 w-full max-w-sm animate-slide-in-left">
+          <div 
+            className={`rounded-2xl shadow-2xl p-5 border-r-4 ${
+              toast.type === 'success' 
+                ? 'bg-green-50 border-green-500' 
+                : 'bg-red-50 border-red-500'
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              {/* أيقونة */}
+              <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
+                toast.type === 'success' ? 'bg-green-100' : 'bg-red-100'
+              }`}>
+                {toast.type === 'success' ? (
+                  <FiCheckCircle className="w-6 h-6 text-green-600" />
+                ) : (
+                  <FiAlertCircle className="w-6 h-6 text-red-600" />
+                )}
+              </div>
+              
+              {/* المحتوى */}
+              <div className="flex-1 min-w-0">
+                <h3 className={`font-bold text-sm ${
+                  toast.type === 'success' ? 'text-green-800' : 'text-red-800'
+                }`}>
+                  {toast.title}
+                </h3>
+                <p className={`text-sm mt-1 ${
+                  toast.type === 'success' ? 'text-green-700' : 'text-red-700'
+                }`}>
+                  {toast.message}
+                </p>
+              </div>
+              
+              {/* زر الإغلاق */}
+              <button
+                onClick={hideToast}
+                className="flex-shrink-0 w-6 h-6 rounded-full hover:bg-gray-200/50 flex items-center justify-center transition"
+              >
+                <FiX className="w-4 h-4 text-gray-500" />
+              </button>
+            </div>
+            
+            {/* شريط التقدم (يختفي بعد 5 ثواني) */}
+            <div className="mt-3 w-full h-1 bg-gray-200 rounded-full overflow-hidden">
+              <div 
+                className={`h-full rounded-full transition-all duration-5000 ${
+                  toast.type === 'success' ? 'bg-green-500' : 'bg-red-500'
+                }`}
+                style={{
+                  width: '100%',
+                  animation: 'shrink 5s linear forwards'
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ✅ إضافة الـ keyframes في نهاية الصفحة */}
+      <style jsx>{`
+        @keyframes shrink {
+          from {
+            width: 100%;
+          }
+          to {
+            width: 0%;
+          }
+        }
+        
+        @keyframes slideInLeft {
+          from {
+            transform: translateX(-100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+        
+        .animate-slide-in-left {
+          animation: slideInLeft 0.5s ease-out forwards;
+        }
+      `}</style>
 
       <Footer />
     </div>

@@ -14,6 +14,7 @@ import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import DeveloperSidebar from '../../components/layout/DeveloperSidebar';
 import { useNotificationSound } from '../../hooks/useNotificationSound';
+import { FiAlertCircle, FiCheckCircle, FiX } from 'react-icons/fi';
 
 export default function AddProject() {
   const { fetchUser } = useAuth();
@@ -24,6 +25,43 @@ export default function AddProject() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [validationErrors, setValidationErrors] = useState({});
   const [upgradeMessage, setUpgradeMessage] = useState(null);
+  
+  // ✅ حالة الـ Toast
+  const [toast, setToast] = useState({
+    show: false,
+    type: '', // 'success' or 'error'
+    message: '',
+    title: ''
+  });
+
+  // ✅ عرض الـ Toast
+  const showToast = (type, message, title = '') => {
+    setToast({
+      show: true,
+      type,
+      message,
+      title: title || (type === 'success' ? '✅ نجاح' : '❌ خطأ')
+    });
+
+    setTimeout(() => {
+      setToast({
+        show: false,
+        type: '',
+        message: '',
+        title: ''
+      });
+    }, 5000);
+  };
+
+  // ✅ إخفاء الـ Toast يدوياً
+  const hideToast = () => {
+    setToast({
+      show: false,
+      type: '',
+      message: '',
+      title: ''
+    });
+  };
   
   // Form Data
   const [formData, setFormData] = useState({
@@ -237,202 +275,206 @@ export default function AddProject() {
 
   // Submit form
   const handleSubmit = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  if (!validateForm()) {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-    return;
-  }
-
-  setLoading(true);
-  setUploadProgress(0);
-  setUpgradeMessage(null);
-
-  try {
-    let videoUrl = "";
-    let downloadurl = "";
-
-    // ====================================
-    // رفع الفيديو إلى Cloudflare R2
-    // ====================================
-    if (formData.videoFile) {
-      console.log("📤 Getting Video Upload URL...");
-
-      const videoData = await getVideoUploadUrl(formData.videoFile);
-
-      console.log("☁ Uploading Video To R2...");
-
-      await uploadVideoToR2(
-        videoData.uploadUrl,
-        formData.videoFile,
-        (progressEvent) => {
-          const percentCompleted = Math.round(
-            (progressEvent.loaded * 100) / progressEvent.total
-          );
-
-          setUploadProgress(percentCompleted);
-
-          console.log(`🎥 Video Upload ${percentCompleted}%`);
-        }
-      );
-
-      videoUrl = videoData.videoUrl;
-
-      console.log("✅ Video Uploaded");
+    if (!validateForm()) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
     }
 
-    // ====================================
-    // رفع ملف المشروع إلى Cloudflare R2
-    // ====================================
-    if (formData.downloadFile) {
-      console.log("📤 Getting Project File Upload URL...");
-
-      const fileData = await getProjectFileUploadUrl(formData.downloadFile);
-
-      console.log("☁ Uploading Project File To R2...");
-
-      await uploadProjectFileToR2(
-        fileData.uploadUrl,
-        formData.downloadFile,
-        (progressEvent) => {
-          const percentCompleted = Math.round(
-            (progressEvent.loaded * 100) / progressEvent.total
-          );
-
-          setUploadProgress(percentCompleted);
-
-          console.log(`📦 File Upload ${percentCompleted}%`);
-        }
-      );
-
-      downloadurl = fileData.fileUrl;
-
-      console.log("✅ Project File Uploaded");
-    }
-
-    // ====================================
-    // إنشاء البيانات المرسلة للباك
-    // ====================================
-    const submitData = new FormData();
-
-    submitData.append("projectName", formData.projectName);
-    submitData.append("category", formData.category);
-    submitData.append("shortDescription", formData.shortDescription);
-    submitData.append(
-      "fullDescription",
-      formData.fullDescription || ""
-    );
-    submitData.append("demoUrl", formData.demoUrl || "");
-    submitData.append("githubUrl", formData.githubUrl || "");
-    submitData.append("license", formData.license);
-
-    submitData.append(
-      "supportPeriod",
-      formData.supportPeriod || ""
-    );
-
-    submitData.append(
-      "updatesPeriod",
-      formData.updatesPeriod || ""
-    );
-
-    submitData.append(
-      "technologies",
-      JSON.stringify(formData.technologies)
-    );
-
-    submitData.append(
-      "mainFeatures",
-      JSON.stringify(formData.mainFeatures)
-    );
-
-    submitData.append(
-      "basic",
-      JSON.stringify({
-        price: formData.basic.price,
-        deliveryTime: formData.basic.deliveryTime,
-        features: formData.basic.features,
-      })
-    );
-
-    submitData.append(
-      "pro",
-      JSON.stringify({
-        price: formData.pro.price,
-        deliveryTime: formData.pro.deliveryTime,
-        features: formData.pro.features,
-      })
-    );
-
-    submitData.append(
-      "enterprise",
-      JSON.stringify({
-        price: formData.enterprise.price,
-        deliveryTime: formData.enterprise.deliveryTime,
-        features: formData.enterprise.features,
-      })
-    );
-
-    // ====================================
-    // الصور فقط تمر على الباك
-    // ====================================
-    formData.images.forEach((image) => {
-      submitData.append("images", image);
-    });
-
-    // ====================================
-    // روابط الفيديو والملف بعد رفعهم إلى R2
-    // ====================================
-    submitData.append("videoUrl", videoUrl);
-    submitData.append("downloadurl", downloadurl);
-
-    console.log("📤 Creating Project...");
-
-    const response = await createProject(submitData);
-
-    console.log("✅ Project Created:", response);
-
-    setUploadProgress(100);
-
-    playSound();
-
-    await fetchUser();
-
-    setTimeout(() => {
-      setLoading(false);
-      navigate("/dashboard/developer/store");
-    }, 500);
-
-  } catch (error) {
-    console.error("❌ Error creating project:", error);
-
-    const errorMessage =
-      error.response?.data?.message ||
-      error.message ||
-      "حدث خطأ أثناء نشر المشروع";
-
-    if (
-      errorMessage.includes("ترقية الخطة") ||
-      errorMessage.includes("الخطة المجانية") ||
-      errorMessage.includes("الحد الأقصى") ||
-      errorMessage.includes("upgrade") ||
-      errorMessage.includes("plan") ||
-      errorMessage.includes("الحد الاقصي")
-    ) {
-      setUpgradeMessage({
-        title: "🚀 تحتاج إلى ترقية خطتك!",
-        message:
-          "أنت على الخطة المجانية والحد الأقصى للمشاريع هو 3 مشاريع. الرجاء ترقية الخطة لنشر المزيد.",
-        action: "ترقية الخطة الآن",
-      });
-    } else {
-      alert(errorMessage);
-    }
-
-    setLoading(false);
+    setLoading(true);
     setUploadProgress(0);
-  }
-};
+    setUpgradeMessage(null);
+
+    try {
+      let videoUrl = "";
+      let downloadurl = "";
+
+      // ====================================
+      // رفع الفيديو إلى Cloudflare R2
+      // ====================================
+      if (formData.videoFile) {
+        console.log("📤 Getting Video Upload URL...");
+
+        const videoData = await getVideoUploadUrl(formData.videoFile);
+
+        console.log("☁ Uploading Video To R2...");
+
+        await uploadVideoToR2(
+          videoData.uploadUrl,
+          formData.videoFile,
+          (progressEvent) => {
+            const percentCompleted = Math.round(
+              (progressEvent.loaded * 100) / progressEvent.total
+            );
+
+            setUploadProgress(percentCompleted);
+
+            console.log(`🎥 Video Upload ${percentCompleted}%`);
+          }
+        );
+
+        videoUrl = videoData.videoUrl;
+
+        console.log("✅ Video Uploaded");
+      }
+
+      // ====================================
+      // رفع ملف المشروع إلى Cloudflare R2
+      // ====================================
+      if (formData.downloadFile) {
+        console.log("📤 Getting Project File Upload URL...");
+
+        const fileData = await getProjectFileUploadUrl(formData.downloadFile);
+
+        console.log("☁ Uploading Project File To R2...");
+
+        await uploadProjectFileToR2(
+          fileData.uploadUrl,
+          formData.downloadFile,
+          (progressEvent) => {
+            const percentCompleted = Math.round(
+              (progressEvent.loaded * 100) / progressEvent.total
+            );
+
+            setUploadProgress(percentCompleted);
+
+            console.log(`📦 File Upload ${percentCompleted}%`);
+          }
+        );
+
+        downloadurl = fileData.fileUrl;
+
+        console.log("✅ Project File Uploaded");
+      }
+
+      // ====================================
+      // إنشاء البيانات المرسلة للباك
+      // ====================================
+      const submitData = new FormData();
+
+      submitData.append("projectName", formData.projectName);
+      submitData.append("category", formData.category);
+      submitData.append("shortDescription", formData.shortDescription);
+      submitData.append(
+        "fullDescription",
+        formData.fullDescription || ""
+      );
+      submitData.append("demoUrl", formData.demoUrl || "");
+      submitData.append("githubUrl", formData.githubUrl || "");
+      submitData.append("license", formData.license);
+
+      submitData.append(
+        "supportPeriod",
+        formData.supportPeriod || ""
+      );
+
+      submitData.append(
+        "updatesPeriod",
+        formData.updatesPeriod || ""
+      );
+
+      submitData.append(
+        "technologies",
+        JSON.stringify(formData.technologies)
+      );
+
+      submitData.append(
+        "mainFeatures",
+        JSON.stringify(formData.mainFeatures)
+      );
+
+      submitData.append(
+        "basic",
+        JSON.stringify({
+          price: formData.basic.price,
+          deliveryTime: formData.basic.deliveryTime,
+          features: formData.basic.features,
+        })
+      );
+
+      submitData.append(
+        "pro",
+        JSON.stringify({
+          price: formData.pro.price,
+          deliveryTime: formData.pro.deliveryTime,
+          features: formData.pro.features,
+        })
+      );
+
+      submitData.append(
+        "enterprise",
+        JSON.stringify({
+          price: formData.enterprise.price,
+          deliveryTime: formData.enterprise.deliveryTime,
+          features: formData.enterprise.features,
+        })
+      );
+
+      // ====================================
+      // الصور فقط تمر على الباك
+      // ====================================
+      formData.images.forEach((image) => {
+        submitData.append("images", image);
+      });
+
+      // ====================================
+      // روابط الفيديو والملف بعد رفعهم إلى R2
+      // ====================================
+      submitData.append("videoUrl", videoUrl);
+      submitData.append("downloadurl", downloadurl);
+
+      console.log("📤 Creating Project...");
+
+      const response = await createProject(submitData);
+
+      console.log("✅ Project Created:", response);
+
+      setUploadProgress(100);
+
+      playSound();
+
+      await fetchUser();
+
+      // ✅ عرض رسالة نجاح بدلاً من alert
+      showToast('success', 'تم نشر المشروع بنجاح! سيتم عرضه في المتجر قريباً', '🎉 مبروك!');
+
+      setTimeout(() => {
+        setLoading(false);
+        navigate("/dashboard/developer/store");
+      }, 2000);
+
+    } catch (error) {
+      console.error("❌ Error creating project:", error);
+
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "حدث خطأ أثناء نشر المشروع";
+
+      if (
+        errorMessage.includes("ترقية الخطة") ||
+        errorMessage.includes("الخطة المجانية") ||
+        errorMessage.includes("الحد الأقصى") ||
+        errorMessage.includes("upgrade") ||
+        errorMessage.includes("plan") ||
+        errorMessage.includes("الحد الاقصي")
+      ) {
+        setUpgradeMessage({
+          title: "🚀 تحتاج إلى ترقية خطتك!",
+          message:
+            "أنت على الخطة المجانية والحد الأقصى للمشاريع هو 3 مشاريع. الرجاء ترقية الخطة لنشر المزيد.",
+          action: "ترقية الخطة الآن",
+        });
+      } else {
+        // ✅ عرض رسالة خطأ بدلاً من alert
+        showToast('error', errorMessage, '❌ فشل النشر');
+      }
+
+      setLoading(false);
+      setUploadProgress(0);
+    }
+  };
 
   // ✅ nextStep مع Validation كامل لكل خطوة
   const nextStep = () => {
@@ -1105,6 +1147,94 @@ export default function AddProject() {
           </div>
         </div>
       </div>
+
+      {/* ✅ Toast Notification - كارد جانبي جميل */}
+      {toast.show && (
+        <div className="fixed top-24 left-4 z-50 w-full max-w-sm animate-slide-in-left">
+          <div 
+            className={`rounded-2xl shadow-2xl p-5 border-r-4 ${
+              toast.type === 'success' 
+                ? 'bg-green-50 border-green-500' 
+                : 'bg-red-50 border-red-500'
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              {/* أيقونة */}
+              <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
+                toast.type === 'success' ? 'bg-green-100' : 'bg-red-100'
+              }`}>
+                {toast.type === 'success' ? (
+                  <FiCheckCircle className="w-6 h-6 text-green-600" />
+                ) : (
+                  <FiAlertCircle className="w-6 h-6 text-red-600" />
+                )}
+              </div>
+              
+              {/* المحتوى */}
+              <div className="flex-1 min-w-0">
+                <h3 className={`font-bold text-sm ${
+                  toast.type === 'success' ? 'text-green-800' : 'text-red-800'
+                }`}>
+                  {toast.title}
+                </h3>
+                <p className={`text-sm mt-1 ${
+                  toast.type === 'success' ? 'text-green-700' : 'text-red-700'
+                }`}>
+                  {toast.message}
+                </p>
+              </div>
+              
+              {/* زر الإغلاق */}
+              <button
+                onClick={hideToast}
+                className="flex-shrink-0 w-6 h-6 rounded-full hover:bg-gray-200/50 flex items-center justify-center transition"
+              >
+                <FiX className="w-4 h-4 text-gray-500" />
+              </button>
+            </div>
+            
+            {/* شريط التقدم (يختفي بعد 5 ثواني) */}
+            <div className="mt-3 w-full h-1 bg-gray-200 rounded-full overflow-hidden">
+              <div 
+                className={`h-full rounded-full transition-all duration-5000 ${
+                  toast.type === 'success' ? 'bg-green-500' : 'bg-red-500'
+                }`}
+                style={{
+                  width: '100%',
+                  animation: 'shrink 5s linear forwards'
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ✅ إضافة الـ keyframes في نهاية الصفحة */}
+      <style jsx>{`
+        @keyframes shrink {
+          from {
+            width: 100%;
+          }
+          to {
+            width: 0%;
+          }
+        }
+        
+        @keyframes slideInLeft {
+          from {
+            transform: translateX(-100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+        
+        .animate-slide-in-left {
+          animation: slideInLeft 0.5s ease-out forwards;
+        }
+      `}</style>
 
       <Footer />
     </div>

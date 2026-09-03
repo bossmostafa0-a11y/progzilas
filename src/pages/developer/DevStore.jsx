@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 // src/pages/developer/DevStore.jsx
 
 import { useState, useEffect } from 'react';
@@ -11,6 +12,7 @@ import {
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import DeveloperSidebar from '../../components/layout/DeveloperSidebar';
+import { FiAlertCircle, FiCheckCircle, FiX, FiTrash2, FiEdit, FiEye } from 'react-icons/fi';
 
 export default function DevStore() {
   const navigate = useNavigate();
@@ -20,6 +22,12 @@ export default function DevStore() {
   const [selectedProject, setSelectedProject] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
 
+  // ✅ حالات مودالات التأكيد
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showStatusConfirm, setShowStatusConfirm] = useState(false);
+  const [projectToActOn, setProjectToActOn] = useState(null);
+  const [actionType, setActionType] = useState(''); // 'delete' or 'status'
+
   const [projects, setProjects] = useState([]);
   const [stats, setStats] = useState({
     total: 0,
@@ -27,6 +35,43 @@ export default function DevStore() {
     totalRevenue: 0,
     avgRating: 0
   });
+
+  // ✅ حالة الـ Toast
+  const [toast, setToast] = useState({
+    show: false,
+    type: '',
+    message: '',
+    title: ''
+  });
+
+  // ✅ عرض الـ Toast
+  const showToast = (type, message, title = '') => {
+    setToast({
+      show: true,
+      type,
+      message,
+      title: title || (type === 'success' ? '✅ نجاح' : '❌ خطأ')
+    });
+
+    setTimeout(() => {
+      setToast({
+        show: false,
+        type: '',
+        message: '',
+        title: ''
+      });
+    }, 5000);
+  };
+
+  // ✅ إخفاء الـ Toast يدوياً
+  const hideToast = () => {
+    setToast({
+      show: false,
+      type: '',
+      message: '',
+      title: ''
+    });
+  };
 
   const transformProjectData = (project) => {
     const avgRating = project.rating || 0;
@@ -124,6 +169,7 @@ export default function DevStore() {
         console.error('❌ Error loading store projects:', error);
         setProjects([]);
         setStats({ total: 0, totalSales: 0, totalRevenue: 0, avgRating: 0 });
+        showToast('error', 'حدث خطأ أثناء تحميل المتجر', '❌ فشل التحميل');
       } finally {
         setLoading(false);
       }
@@ -132,27 +178,56 @@ export default function DevStore() {
     loadProjects();
   }, []);
 
-  const handleToggleStatus = async (id) => {
-  const project = projects.find((p) => p.id === id);
-  if (!project) return;
+  // ✅ فتح مودال تأكيد الحذف
+  const openDeleteConfirm = (project) => {
+    setProjectToActOn(project);
+    setActionType('delete');
+    setShowDeleteConfirm(true);
+  };
 
-  const actionText = project.public === "public" ? "إيقاف" : "نشر";
+  // ✅ فتح مودال تأكيد تغيير الحالة
+  const openStatusConfirm = (project) => {
+    setProjectToActOn(project);
+    setActionType('status');
+    setShowStatusConfirm(true);
+  };
 
-  if (window.confirm(`هل أنت متأكد من ${actionText} هذا المشروع؟`)) {
+  // ✅ تنفيذ الحذف
+  const confirmDelete = async () => {
+    if (!projectToActOn) return;
+    
     setLoading(true);
-
     try {
-      await toggleProjectStatus(id);
+      await deleteStoreProject(projectToActOn.id);
+      setProjects(projects.filter(p => p.id !== projectToActOn.id));
+      setShowDetailsModal(false);
+      setShowDeleteConfirm(false);
+      showToast('success', 'تم حذف المشروع بنجاح', '🗑️ حذف');
+      setProjectToActOn(null);
+    } catch (error) {
+      console.error('❌ Error deleting project:', error);
+      showToast('error', error.response?.data?.message || 'حدث خطأ أثناء حذف المشروع', '❌ فشل');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      const newStatus =
-        project.public === "public" ? "private" : "public";
+  // ✅ تنفيذ تغيير الحالة
+  const confirmStatusChange = async () => {
+    if (!projectToActOn) return;
 
-      const newStatusText =
-        newStatus === "public" ? "published" : "draft";
+    const actionText = projectToActOn.public === "public" ? "إيقاف" : "نشر";
+
+    setLoading(true);
+    try {
+      await toggleProjectStatus(projectToActOn.id);
+
+      const newStatus = projectToActOn.public === "public" ? "private" : "public";
+      const newStatusText = newStatus === "public" ? "published" : "draft";
 
       setProjects(
         projects.map((p) =>
-          p.id === id
+          p.id === projectToActOn.id
             ? {
                 ...p,
                 public: newStatus,
@@ -163,35 +238,14 @@ export default function DevStore() {
       );
 
       setShowDetailsModal(false);
-
-      alert(`✅ تم ${actionText} المشروع بنجاح`);
+      setShowStatusConfirm(false);
+      showToast('success', `تم ${actionText} المشروع بنجاح`, '✅ نجاح');
+      setProjectToActOn(null);
     } catch (error) {
       console.error("❌ Error updating project status:", error);
-
-      alert(
-        error.response?.data?.message ||
-          "حدث خطأ أثناء تحديث حالة المشروع"
-      );
+      showToast('error', error.response?.data?.message || "حدث خطأ أثناء تحديث حالة المشروع", '❌ فشل');
     } finally {
       setLoading(false);
-    }
-  }
-};
-
-  const handleDeleteProject = async (id) => {
-    if (window.confirm('هل أنت متأكد من حذف هذا المشروع؟')) {
-      setLoading(true);
-      try {
-        await deleteStoreProject(id);
-        setProjects(projects.filter(p => p.id !== id));
-        setShowDetailsModal(false);
-        alert('✅ تم حذف المشروع بنجاح');
-      } catch (error) {
-        console.error('❌ Error deleting project:', error);
-        alert(error.response?.data?.message || 'حدث خطأ أثناء حذف المشروع');
-      } finally {
-        setLoading(false);
-      }
     }
   };
 
@@ -469,7 +523,7 @@ export default function DevStore() {
                           ))}
                         </div>
 
-                        {/* ✅ زر تعديل - بينقل لصفحة التعديل */}
+                        {/* ✅ أزرار التعديل والحذف والنشر/الإيقاف */}
                         <div className="flex gap-2">
                           <button 
                             onClick={(e) => {
@@ -478,22 +532,33 @@ export default function DevStore() {
                                 state: { project: project }
                               });
                             }}
-                            className="flex-1 py-1.5 border border-indigo-600 text-indigo-600 rounded-lg text-sm font-medium hover:bg-indigo-50 transition"
+                            className="flex-1 py-1.5 border border-indigo-600 text-indigo-600 rounded-lg text-sm font-medium hover:bg-indigo-50 transition flex items-center justify-center gap-1"
                           >
+                            <FiEdit className="w-3 h-3" />
                             تعديل
                           </button>
                           <button 
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleToggleStatus(project.id);
+                              openStatusConfirm(project);
                             }}
-                            className={`flex-1 py-1.5 rounded-lg text-sm font-medium transition ${
+                            className={`flex-1 py-1.5 rounded-lg text-sm font-medium transition flex items-center justify-center gap-1 ${
                               project.public === "public"
                                 ? 'bg-yellow-500 text-white hover:bg-yellow-600'
                                 : 'bg-green-500 text-white hover:bg-green-600'
                             }`}
                           >
+                            <FiEye className="w-3 h-3" />
                             {project.public === "public" ? 'إيقاف' : 'نشر'}
+                          </button>
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openDeleteConfirm(project);
+                            }}
+                            className="px-3 py-1.5 border border-red-300 text-red-500 rounded-lg text-sm font-medium hover:bg-red-50 transition flex items-center justify-center gap-1"
+                          >
+                            <FiTrash2 className="w-3 h-3" />
                           </button>
                         </div>
                       </div>
@@ -530,7 +595,7 @@ export default function DevStore() {
                   onClick={() => setShowDetailsModal(false)}
                   className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition"
                 >
-                  ✕
+                  <FiX className="w-5 h-5" />
                 </button>
               </div>
 
@@ -642,24 +707,27 @@ export default function DevStore() {
                       });
                       setShowDetailsModal(false);
                     }}
-                    className="flex-1 py-2 border-2 border-indigo-600 text-indigo-600 rounded-xl font-medium hover:bg-indigo-50 transition"
+                    className="flex-1 py-2 border-2 border-indigo-600 text-indigo-600 rounded-xl font-medium hover:bg-indigo-50 transition flex items-center justify-center gap-2"
                   >
+                    <FiEdit className="w-4 h-4" />
                     تعديل المشروع
                   </button>
                   <button
-                    onClick={() => handleToggleStatus(selectedProject.id)}
-                    className={`flex-1 py-2 rounded-xl font-medium transition ${
+                    onClick={() => openStatusConfirm(selectedProject)}
+                    className={`flex-1 py-2 rounded-xl font-medium transition flex items-center justify-center gap-2 ${
                       selectedProject.public === true
                         ? 'bg-yellow-500 text-white hover:bg-yellow-600'
                         : 'bg-green-500 text-white hover:bg-green-600'
                     }`}
                   >
+                    <FiEye className="w-4 h-4" />
                     {selectedProject.public === true ? 'إيقاف المشروع' : 'نشر المشروع'}
                   </button>
                   <button
-                    onClick={() => handleDeleteProject(selectedProject.id)}
-                    className="flex-1 py-2 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 transition"
+                    onClick={() => openDeleteConfirm(selectedProject)}
+                    className="flex-1 py-2 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 transition flex items-center justify-center gap-2"
                   >
+                    <FiTrash2 className="w-4 h-4" />
                     حذف المشروع
                   </button>
                 </div>
@@ -668,6 +736,208 @@ export default function DevStore() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ✅ مودال تأكيد الحذف */}
+      <AnimatePresence>
+        {showDeleteConfirm && projectToActOn && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setShowDeleteConfirm(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 50 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 50 }}
+              transition={{ type: "spring", damping: 20 }}
+              className="bg-white rounded-2xl max-w-md w-full p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="text-center mb-4">
+                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <FiTrash2 className="w-8 h-8 text-red-600" />
+                </div>
+                <h3 className="text-xl font-bold text-red-600">تأكيد الحذف</h3>
+                <p className="text-gray-500 text-sm mt-2">
+                  هل أنت متأكد من حذف مشروع "{projectToActOn?.name || 'غير معروف'}"؟
+                  <br />
+                  <span className="text-xs text-red-400">هذا الإجراء لا يمكن التراجع عنه</span>
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="flex-1 py-2 border-2 border-gray-300 text-gray-600 rounded-xl font-medium hover:bg-gray-50 transition"
+                >
+                  إلغاء
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  className="flex-1 py-2 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 transition"
+                >
+                  تأكيد الحذف
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ✅ مودال تأكيد تغيير الحالة */}
+      <AnimatePresence>
+        {showStatusConfirm && projectToActOn && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setShowStatusConfirm(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 50 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 50 }}
+              transition={{ type: "spring", damping: 20 }}
+              className="bg-white rounded-2xl max-w-md w-full p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="text-center mb-4">
+                <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 ${
+                  projectToActOn.public === "public" ? 'bg-yellow-100' : 'bg-green-100'
+                }`}>
+                  <FiEye className={`w-8 h-8 ${
+                    projectToActOn.public === "public" ? 'text-yellow-600' : 'text-green-600'
+                  }`} />
+                </div>
+                <h3 className={`text-xl font-bold ${
+                  projectToActOn.public === "public" ? 'text-yellow-600' : 'text-green-600'
+                }`}>
+                  {projectToActOn.public === "public" ? 'إيقاف المشروع' : 'نشر المشروع'}
+                </h3>
+                <p className="text-gray-500 text-sm mt-2">
+                  هل أنت متأكد من {projectToActOn.public === "public" ? 'إيقاف' : 'نشر'} مشروع "{projectToActOn?.name || 'غير معروف'}"؟
+                  <br />
+                  <span className={`text-xs ${
+                    projectToActOn.public === "public" ? 'text-yellow-400' : 'text-green-400'
+                  }`}>
+                    {projectToActOn.public === "public" 
+                      ? 'سيتم إخفاء المشروع من المتجر' 
+                      : 'سيتم عرض المشروع في المتجر'}
+                  </span>
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowStatusConfirm(false)}
+                  className="flex-1 py-2 border-2 border-gray-300 text-gray-600 rounded-xl font-medium hover:bg-gray-50 transition"
+                >
+                  إلغاء
+                </button>
+                <button
+                  onClick={confirmStatusChange}
+                  className={`flex-1 py-2 rounded-xl font-medium transition text-white ${
+                    projectToActOn.public === "public"
+                      ? 'bg-yellow-500 hover:bg-yellow-600'
+                      : 'bg-green-500 hover:bg-green-600'
+                  }`}
+                >
+                  تأكيد
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ✅ Toast Notification - كارد جانبي جميل */}
+      {toast.show && (
+        <div className="fixed top-24 left-4 z-50 w-full max-w-sm animate-slide-in-left">
+          <div 
+            className={`rounded-2xl shadow-2xl p-5 border-r-4 ${
+              toast.type === 'success' 
+                ? 'bg-green-50 border-green-500' 
+                : 'bg-red-50 border-red-500'
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              {/* أيقونة */}
+              <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
+                toast.type === 'success' ? 'bg-green-100' : 'bg-red-100'
+              }`}>
+                {toast.type === 'success' ? (
+                  <FiCheckCircle className="w-6 h-6 text-green-600" />
+                ) : (
+                  <FiAlertCircle className="w-6 h-6 text-red-600" />
+                )}
+              </div>
+              
+              {/* المحتوى */}
+              <div className="flex-1 min-w-0">
+                <h3 className={`font-bold text-sm ${
+                  toast.type === 'success' ? 'text-green-800' : 'text-red-800'
+                }`}>
+                  {toast.title}
+                </h3>
+                <p className={`text-sm mt-1 ${
+                  toast.type === 'success' ? 'text-green-700' : 'text-red-700'
+                }`}>
+                  {toast.message}
+                </p>
+              </div>
+              
+              {/* زر الإغلاق */}
+              <button
+                onClick={hideToast}
+                className="flex-shrink-0 w-6 h-6 rounded-full hover:bg-gray-200/50 flex items-center justify-center transition"
+              >
+                <FiX className="w-4 h-4 text-gray-500" />
+              </button>
+            </div>
+            
+            {/* شريط التقدم (يختفي بعد 5 ثواني) */}
+            <div className="mt-3 w-full h-1 bg-gray-200 rounded-full overflow-hidden">
+              <div 
+                className={`h-full rounded-full transition-all duration-5000 ${
+                  toast.type === 'success' ? 'bg-green-500' : 'bg-red-500'
+                }`}
+                style={{
+                  width: '100%',
+                  animation: 'shrink 5s linear forwards'
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ✅ إضافة الـ keyframes في نهاية الصفحة */}
+      <style jsx>{`
+        @keyframes shrink {
+          from {
+            width: 100%;
+          }
+          to {
+            width: 0%;
+          }
+        }
+        
+        @keyframes slideInLeft {
+          from {
+            transform: translateX(-100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+        
+        .animate-slide-in-left {
+          animation: slideInLeft 0.5s ease-out forwards;
+        }
+      `}</style>
 
       <Footer />
     </div>

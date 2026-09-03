@@ -7,6 +7,7 @@ import { createClientProject } from '../../services/cliecnt.service.js';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import ClientSidebar from '../../components/layout/ClientSidebar';
+import { FiAlertCircle, FiCheckCircle, FiX } from 'react-icons/fi';
 
 export default function NewProject() {
   const { fetchUser } = useAuth();
@@ -15,6 +16,14 @@ export default function NewProject() {
   const [step, setStep] = useState(1);
   const [validationErrors, setValidationErrors] = useState({});
   
+  // ✅ حالة النافذة المنبثقة (Toast)
+  const [toast, setToast] = useState({
+    show: false,
+    type: '', // 'success' or 'error'
+    message: '',
+    title: ''
+  });
+
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -58,6 +67,36 @@ export default function NewProject() {
     'GraphQL', 'REST API', 'WebSocket', 'Socket.io',
     'Git', 'GitHub', 'CI/CD', 'Jenkins', 'Agile', 'Scrum'
   ];
+
+  // ✅ عرض الـ Toast
+  const showToast = (type, message, title = '') => {
+    setToast({
+      show: true,
+      type,
+      message,
+      title: title || (type === 'success' ? '✅ نجاح' : '❌ خطأ')
+    });
+
+    // ✅ اختفاء بعد 5 ثواني
+    setTimeout(() => {
+      setToast({
+        show: false,
+        type: '',
+        message: '',
+        title: ''
+      });
+    }, 5000);
+  };
+
+  // ✅ إخفاء الـ Toast يدوياً
+  const hideToast = () => {
+    setToast({
+      show: false,
+      type: '',
+      message: '',
+      title: ''
+    });
+  };
 
   const addSkill = () => {
     if (tempSkill.trim() && !formData.skills.includes(tempSkill.trim())) {
@@ -109,6 +148,8 @@ export default function NewProject() {
     
     if (!validateForm()) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
+      // ✅ عرض خطأ التحقق
+      showToast('error', 'يرجى تعبئة جميع الحقول المطلوبة بشكل صحيح', '⚠️ تحقق من البيانات');
       return;
     }
     
@@ -126,17 +167,21 @@ export default function NewProject() {
         deadline: formData.deadline || ''
       };
       
-      
-       await createClientProject(submitData);
-      
+      await createClientProject(submitData);
       await fetchUser();
       
-      alert('✅ تم نشر المشروع بنجاح');
-      navigate('/dashboard/client/projects');
+      // ✅ عرض رسالة نجاح
+      showToast('success', 'تم نشر المشروع بنجاح! سيتم مراجعته قريباً', '🎉 مبروك!');
+      
+      // ✅ الانتقال بعد 2 ثانية
+      setTimeout(() => {
+        navigate('/dashboard/client/projects');
+      }, 2000);
       
     } catch (error) {
       console.error('❌ Error creating project:', error);
-      alert(error.response?.data?.message || 'حدث خطأ أثناء نشر المشروع');
+      // ✅ عرض رسالة خطأ
+      showToast('error', error.response?.data?.message || 'حدث خطأ أثناء نشر المشروع', '❌ فشل النشر');
     } finally {
       setLoading(false);
     }
@@ -152,6 +197,8 @@ export default function NewProject() {
       
       if (Object.keys(errors).length > 0) {
         setValidationErrors(errors);
+        // ✅ عرض خطأ التحقق
+        showToast('error', 'يرجى تعبئة جميع الحقول في هذه الخطوة', '⚠️ بيانات ناقصة');
         return;
       }
     }
@@ -453,6 +500,94 @@ export default function NewProject() {
           </div>
         </div>
       </div>
+
+      {/* ✅ Toast Notification - كارد جانبي جميل */}
+      {toast.show && (
+        <div className="fixed top-24 left-4 z-50 w-full max-w-sm animate-slide-in-left">
+          <div 
+            className={`rounded-2xl shadow-2xl p-5 border-r-4 ${
+              toast.type === 'success' 
+                ? 'bg-green-50 border-green-500' 
+                : 'bg-red-50 border-red-500'
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              {/* أيقونة */}
+              <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
+                toast.type === 'success' ? 'bg-green-100' : 'bg-red-100'
+              }`}>
+                {toast.type === 'success' ? (
+                  <FiCheckCircle className="w-6 h-6 text-green-600" />
+                ) : (
+                  <FiAlertCircle className="w-6 h-6 text-red-600" />
+                )}
+              </div>
+              
+              {/* المحتوى */}
+              <div className="flex-1 min-w-0">
+                <h3 className={`font-bold text-sm ${
+                  toast.type === 'success' ? 'text-green-800' : 'text-red-800'
+                }`}>
+                  {toast.title}
+                </h3>
+                <p className={`text-sm mt-1 ${
+                  toast.type === 'success' ? 'text-green-700' : 'text-red-700'
+                }`}>
+                  {toast.message}
+                </p>
+              </div>
+              
+              {/* زر الإغلاق */}
+              <button
+                onClick={hideToast}
+                className="flex-shrink-0 w-6 h-6 rounded-full hover:bg-gray-200/50 flex items-center justify-center transition"
+              >
+                <FiX className="w-4 h-4 text-gray-500" />
+              </button>
+            </div>
+            
+            {/* شريط التقدم (يختفي بعد 5 ثواني) */}
+            <div className="mt-3 w-full h-1 bg-gray-200 rounded-full overflow-hidden">
+              <div 
+                className={`h-full rounded-full transition-all duration-5000 ${
+                  toast.type === 'success' ? 'bg-green-500' : 'bg-red-500'
+                }`}
+                style={{
+                  width: '100%',
+                  animation: 'shrink 5s linear forwards'
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ✅ إضافة الـ keyframes في نهاية الصفحة */}
+      <style jsx>{`
+        @keyframes shrink {
+          from {
+            width: 100%;
+          }
+          to {
+            width: 0%;
+          }
+        }
+        
+        @keyframes slideInLeft {
+          from {
+            transform: translateX(-100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+        
+        .animate-slide-in-left {
+          animation: slideInLeft 0.5s ease-out forwards;
+        }
+      `}</style>
 
       <Footer />
     </div>

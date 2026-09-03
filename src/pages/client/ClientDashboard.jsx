@@ -92,7 +92,7 @@ export default function ClientDashboard() {
             id: dev._id,
             name: dev.username || '',
             avatar: dev.profileImage || '',
-            rating: dev.rate || 0,
+            rating: dev.rating || 0,
             hourlyRate: dev.hourlyRate,
             projects: 0,
             title: dev.plan || '',

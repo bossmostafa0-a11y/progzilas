@@ -8,7 +8,7 @@ import { getPreviousProjects, deletePreviousProject } from '../../services/devel
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
 import DeveloperSidebar from '../../components/layout/DeveloperSidebar';
-import { FiPlus, FiTrash2, FiExternalLink, FiGithub, FiX } from 'react-icons/fi';
+import { FiPlus, FiTrash2, FiExternalLink, FiGithub, FiX, FiAlertCircle, FiCheckCircle } from 'react-icons/fi';
 
 export default function PreviousProjects() {
   const { user, loading: authLoading } = useAuth();
@@ -19,99 +19,126 @@ export default function PreviousProjects() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState(null);
 
+  // ✅ حالة الـ Toast
+  const [toast, setToast] = useState({
+    show: false,
+    type: '', // 'success' or 'error'
+    message: '',
+    title: ''
+  });
+
+  // ✅ عرض الـ Toast
+  const showToast = (type, message, title = '') => {
+    setToast({
+      show: true,
+      type,
+      message,
+      title: title || (type === 'success' ? '✅ نجاح' : '❌ خطأ')
+    });
+
+    setTimeout(() => {
+      setToast({
+        show: false,
+        type: '',
+        message: '',
+        title: ''
+      });
+    }, 5000);
+  };
+
+  // ✅ إخفاء الـ Toast يدوياً
+  const hideToast = () => {
+    setToast({
+      show: false,
+      type: '',
+      message: '',
+      title: ''
+    });
+  };
+
   // ✅ جلب المشروعات من الباك اند
   useEffect(() => {
-    // ✅ انتظر حتى ينتهي تحميل بيانات المستخدم
     if (authLoading) {
       console.log('⏳ Waiting for auth to load...');
       return;
     }
 
-    // ✅ لو مفيش user، نوقف التحميل ونعرض رسالة
     if (!user?._id) {
       console.error('❌ No user ID found. User:', user);
-      // ✅ بدل setLoading(false) مباشر، استخدم return عشان نوقف التنفيذ
-      // loading هيفضل true لحد ما المستخدم يسجل دخول
       return;
     }
 
-   const loadProjects = async () => {
-  try {
-    setLoading(true);
-    
-    
-    const response = await getPreviousProjects(user._id);
-    
-    let projectsData = [];
-    
-    if (response?.data?.myprojects) {
-      projectsData = response.data.myprojects;
-    } else if (response?.data?.projects) {
-      projectsData = response.data.projects;
-    } else if (response?.projects) {
-      projectsData = response.projects;
-    } else if (response?.data) {
-      if (Array.isArray(response.data)) {
-        projectsData = response.data;
-      } else if (response.data.myprojects) {
-        projectsData = response.data.myprojects;
-      } else {
-        const values = Object.values(response.data);
-        if (values.length > 0 && Array.isArray(values[0])) {
-          projectsData = values[0];
+    const loadProjects = async () => {
+      try {
+        setLoading(true);
+        
+        const response = await getPreviousProjects(user._id);
+        
+        let projectsData = [];
+        
+        if (response?.data?.myprojects) {
+          projectsData = response.data.myprojects;
+        } else if (response?.data?.projects) {
+          projectsData = response.data.projects;
+        } else if (response?.projects) {
+          projectsData = response.projects;
+        } else if (response?.data) {
+          if (Array.isArray(response.data)) {
+            projectsData = response.data;
+          } else if (response.data.myprojects) {
+            projectsData = response.data.myprojects;
+          } else {
+            const values = Object.values(response.data);
+            if (values.length > 0 && Array.isArray(values[0])) {
+              projectsData = values[0];
+            }
+          }
+        } else if (Array.isArray(response)) {
+          projectsData = response;
         }
+        
+        if (!Array.isArray(projectsData)) {
+          console.warn('⚠️ projectsData is not an array:', projectsData);
+          projectsData = [];
+        }
+        
+        projectsData = projectsData.map(project => ({
+          ...project,
+          name: project.projectName || project.name || project.title || 'مشروع بدون اسم',
+          _id: project._id || project.id,
+        }));
+        
+        setProjects(projectsData);
+      } catch (error) {
+        console.error('❌ Error loading projects:', error);
+        console.error('❌ Error details:', error.response?.data || error.message);
+        showToast('error', error.response?.data?.message || 'حدث خطأ أثناء تحميل المشاريع', '❌ فشل التحميل');
+        setProjects([]);
+      } finally {
+        setLoading(false);
       }
-    } else if (Array.isArray(response)) {
-      projectsData = response;
-    }
-    
-    if (!Array.isArray(projectsData)) {
-      console.warn('⚠️ projectsData is not an array:', projectsData);
-      projectsData = [];
-    }
-    
-    // ✅ ✅ ✅ التعديل هنا ✅ ✅ ✅
-    projectsData = projectsData.map(project => ({
-      ...project,
-      // ✅ أهم تعديل: projectName بدل name
-      name: project.projectName || project.name || project.title || 'مشروع بدون اسم',
-      _id: project._id || project.id,
-    }));
-    
-    
-    setProjects(projectsData);
-  } catch (error) {
-    console.error('❌ Error loading projects:', error);
-    console.error('❌ Error details:', error.response?.data || error.message);
-    alert(error.response?.data?.message || 'حدث خطأ أثناء تحميل المشاريع');
-    setProjects([]);
-  } finally {
-    setLoading(false);
-  }
-};
+    };
     
     loadProjects();
   }, [user?._id, authLoading]);
 
   // ✅ حذف المشروع
-const handleDelete = async () => {
-  if (!projectToDelete) return;
-  
-  try {
-    // ✅ إرسال projectId فقط
-     await deletePreviousProject(projectToDelete._id);
+  const handleDelete = async () => {
+    if (!projectToDelete) return;
     
-    
-    setProjects(projects.filter(p => p._id !== projectToDelete._id));
-    setShowDeleteModal(false);
-    setProjectToDelete(null);
-    alert('✅ تم حذف المشروع بنجاح');
-    
-  } catch (error) {
-    console.error('❌ Error deleting project:', error);
-    alert(error.response?.data?.message || 'حدث خطأ أثناء حذف المشروع');
-  }
-};
+    try {
+      await deletePreviousProject(projectToDelete._id);
+      
+      setProjects(projects.filter(p => p._id !== projectToDelete._id));
+      setShowDeleteModal(false);
+      setProjectToDelete(null);
+      showToast('success', 'تم حذف المشروع بنجاح', '🗑️ حذف');
+      
+    } catch (error) {
+      console.error('❌ Error deleting project:', error);
+      showToast('error', error.response?.data?.message || 'حدث خطأ أثناء حذف المشروع', '❌ فشل الحذف');
+    }
+  };
 
   const openDeleteModal = (project) => {
     setProjectToDelete(project);
@@ -460,12 +487,10 @@ const handleDelete = async () => {
                       GitHub
                     </a>
                   )}
-                 
                 </div>
 
                 {/* Actions */}
                 <div className="flex gap-3 pt-4 border-t border-gray-200">
-               
                   <button
                     onClick={() => {
                       setShowDetailsModal(false);
@@ -529,6 +554,94 @@ const handleDelete = async () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ✅ Toast Notification - كارد جانبي جميل */}
+      {toast.show && (
+        <div className="fixed top-24 left-4 z-50 w-full max-w-sm animate-slide-in-left">
+          <div 
+            className={`rounded-2xl shadow-2xl p-5 border-r-4 ${
+              toast.type === 'success' 
+                ? 'bg-green-50 border-green-500' 
+                : 'bg-red-50 border-red-500'
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              {/* أيقونة */}
+              <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
+                toast.type === 'success' ? 'bg-green-100' : 'bg-red-100'
+              }`}>
+                {toast.type === 'success' ? (
+                  <FiCheckCircle className="w-6 h-6 text-green-600" />
+                ) : (
+                  <FiAlertCircle className="w-6 h-6 text-red-600" />
+                )}
+              </div>
+              
+              {/* المحتوى */}
+              <div className="flex-1 min-w-0">
+                <h3 className={`font-bold text-sm ${
+                  toast.type === 'success' ? 'text-green-800' : 'text-red-800'
+                }`}>
+                  {toast.title}
+                </h3>
+                <p className={`text-sm mt-1 ${
+                  toast.type === 'success' ? 'text-green-700' : 'text-red-700'
+                }`}>
+                  {toast.message}
+                </p>
+              </div>
+              
+              {/* زر الإغلاق */}
+              <button
+                onClick={hideToast}
+                className="flex-shrink-0 w-6 h-6 rounded-full hover:bg-gray-200/50 flex items-center justify-center transition"
+              >
+                <FiX className="w-4 h-4 text-gray-500" />
+              </button>
+            </div>
+            
+            {/* شريط التقدم (يختفي بعد 5 ثواني) */}
+            <div className="mt-3 w-full h-1 bg-gray-200 rounded-full overflow-hidden">
+              <div 
+                className={`h-full rounded-full transition-all duration-5000 ${
+                  toast.type === 'success' ? 'bg-green-500' : 'bg-red-500'
+                }`}
+                style={{
+                  width: '100%',
+                  animation: 'shrink 5s linear forwards'
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ✅ إضافة الـ keyframes في نهاية الصفحة */}
+      <style jsx>{`
+        @keyframes shrink {
+          from {
+            width: 100%;
+          }
+          to {
+            width: 0%;
+          }
+        }
+        
+        @keyframes slideInLeft {
+          from {
+            transform: translateX(-100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+        
+        .animate-slide-in-left {
+          animation: slideInLeft 0.5s ease-out forwards;
+        }
+      `}</style>
 
       <Footer />
     </div>
