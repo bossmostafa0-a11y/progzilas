@@ -11,7 +11,14 @@ export const getChats = async () => {
     throw handleApiError(error);
   }
 };
-
+export const getChatDiscussion = async () => {
+  try {
+    const response = await api.get('/chat/getMyChatDiscussion');
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error);
+  }
+};
 export const getChatsupport = async () => {
   try {
     const response = await api.get('/chat/getMyChatsupport');
@@ -44,7 +51,15 @@ export const getChatByProject = async (projectId) => {
     throw handleApiError(error);
   }
 };
-
+//جلب شات المناقشة
+export const getSupportDiscussion = async (projectId = null) => {
+  try {
+    const response = await api.get(`/chat/getDiscussionChat/${projectId}`);
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error);
+  }
+};
 //جلب شات الدعم الفني
 export const getSupportChat = async (projectId = null) => {
   try {

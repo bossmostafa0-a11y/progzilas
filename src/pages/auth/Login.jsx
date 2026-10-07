@@ -39,7 +39,8 @@ export default function Login() {
     confirmPassword: '',
     track: '',
     experience: '',
-    companyName: ''
+    companyName: '',
+    whatsapp: '' // ✅ إضافة حقل الواتساب
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -149,6 +150,10 @@ export default function Login() {
       if (formData.password.length < 6) {
         newErrors.password = 'كلمة المرور يجب أن تكون 6 أحرف على الأقل';
       }
+      // ✅ التحقق من رقم الواتساب
+      if (!formData.whatsapp) {
+        newErrors.whatsapp = 'رقم الواتساب مطلوب';
+      }
       
       if (userType === 'developer') {
         if (!formData.track) newErrors.track = 'يرجى اختيار التخصص';
@@ -195,24 +200,24 @@ export default function Login() {
             email: formData.email,
             password: formData.password,
             track: formData.track,
-            experience: formData.experience
+            experience: formData.experience,
+            whatsapp: formData.whatsapp  // ✅ إرسال رقم الواتساب
           });
         } else {
           response = await registerClientUser({
             name: formData.name,
             email: formData.email,
             password: formData.password,
-            companyName: formData.companyName
+            companyName: formData.companyName,
+            whatsapp: formData.whatsapp // ✅ إرسال رقم الواتساب
           });
         }
         
         const message = response?.message || response?.data?.message || '';
         
-        // ✅ لو رسالة التفعيل - ننقل على طول لصفحة التفعيل
         if (message.includes('تفعيل') || message.includes('verify') || message.includes('confirmed') || message.includes('تم إنشاء')) {
           navigate(`/verify-account?email=${encodeURIComponent(formData.email)}`);
         } 
-        // ✅ لو رسالة استكمال الملف
         else if (message.includes('استكمل الملف') || message.includes('complete') || message.includes('profile')) {
           if (userType === 'developer') {
             navigate(`/complete-profile?email=${encodeURIComponent(formData.email)}`);
@@ -220,7 +225,6 @@ export default function Login() {
             navigate(`/complete-client-profile?email=${encodeURIComponent(formData.email)}`);
           }
         } 
-        // ✅ لو مفيش رسالة محددة - روح للداشبورد
         else {
           if (userType === 'developer') {
             navigate('/dashboard/developer');
@@ -237,11 +241,9 @@ export default function Login() {
                           error?.data?.message || 
                           '';
       
-      // ✅ لو الخطأ فيه تفعيل - ننقل على طول لصفحة التفعيل
       if (errorMessage.includes('تفعيل') || errorMessage.includes('verify') || errorMessage.includes('confirmed') || errorMessage.includes('تم إنشاء')) {
         navigate(`/verify-account?email=${encodeURIComponent(formData.email)}`);
       } 
-      // ✅ لو الخطأ فيه استكمال ملف
       else if (errorMessage.includes('استكمل الملف') || errorMessage.includes('اكمل ملف')) {
         if (errorMessage.includes('العميل') || errorMessage.includes('client')) {
           navigate(`/complete-client-profile?email=${encodeURIComponent(formData.email)}`);
@@ -249,7 +251,6 @@ export default function Login() {
           navigate(`/complete-profile?email=${encodeURIComponent(formData.email)}`);
         }
       } 
-      // ✅ لو فيه complete profile
       else if (errorMessage.toLowerCase().includes('complete') && errorMessage.toLowerCase().includes('profile')) {
         if (errorMessage.toLowerCase().includes('client')) {
           navigate(`/complete-client-profile?email=${encodeURIComponent(formData.email)}`);
@@ -453,6 +454,28 @@ export default function Login() {
                     <p className="text-red-400 text-xs mt-1">{errors.email}</p>
                   )}
                 </motion.div>
+
+                {/* ✅ حقل رقم الواتساب (يظهر فقط عند إنشاء حساب جديد) */}
+                {!isLogin && (
+                  <motion.div variants={fadeInUp} initial="initial" animate="animate">
+                    <label className="block text-sm font-semibold text-white/70 mb-2">
+                      رقم الواتساب <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      type="tel"
+                      name="whatsapp"
+                      value={formData.whatsapp}
+                      onChange={handleChange}
+                      className={`w-full px-4 py-3 rounded-xl bg-white/5 border ${
+                        errors.whatsapp ? 'border-red-500' : 'border-white/10'
+                      } focus:border-indigo-500 focus:outline-none transition-colors text-white placeholder-white/30`}
+                      placeholder="01xxxxxxxxx"
+                    />
+                    {errors.whatsapp && (
+                      <p className="text-red-400 text-xs mt-1">{errors.whatsapp}</p>
+                    )}
+                  </motion.div>
+                )}
 
                 <motion.div variants={fadeInUp} initial="initial" animate="animate">
                   <label className="block text-sm font-semibold text-white/70 mb-2">

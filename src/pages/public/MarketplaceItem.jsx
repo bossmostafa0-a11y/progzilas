@@ -4,11 +4,11 @@ import { Link, useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
+import { useAuth } from '../../context/AuthContext';
 import { getMarketplaceProjectById, getProjectReviews, purchaseProject } from '../../services/cliecnt.service.js';
 
 const ourWalletNumbers = {
   vodafone_cash: '01002589923',
-  
 };
 
 const ourWalletNames = {
@@ -19,6 +19,7 @@ export default function MarketplaceItem() {
   const { id } = useParams();
   const navigate = useNavigate();
   const videoRef = useRef(null);
+  const { user } = useAuth();
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -180,26 +181,25 @@ export default function MarketplaceItem() {
     setPurchaseError('');
   };
 
-const handlePhoneChange = (e) => {
-  let value = e.target.value.replace(/\D/g, '');
-  if (value.length > 11) value = value.slice(0, 11);
-  
-  setPurchaseData({ ...purchaseData, phoneNumber: value });
-  
-  if (value.length > 0 && value.length < 11) {
-    setPhoneError('رقم الهاتف يجب أن يكون 11 رقم');
-  } else if (value.length === 11) {
-    // ✅ يتأكد إن الرقم يبدأ بـ 01
-    const prefix = value.substring(0, 2);
-    if (prefix !== '01') {
-      setPhoneError('رقم الهاتف يجب أن يبدأ بـ 01');
+  const handlePhoneChange = (e) => {
+    let value = e.target.value.replace(/\D/g, '');
+    if (value.length > 11) value = value.slice(0, 11);
+    
+    setPurchaseData({ ...purchaseData, phoneNumber: value });
+    
+    if (value.length > 0 && value.length < 11) {
+      setPhoneError('رقم الهاتف يجب أن يكون 11 رقم');
+    } else if (value.length === 11) {
+      const prefix = value.substring(0, 2);
+      if (prefix !== '01') {
+        setPhoneError('رقم الهاتف يجب أن يبدأ بـ 01');
+      } else {
+        setPhoneError('');
+      }
     } else {
       setPhoneError('');
     }
-  } else {
-    setPhoneError('');
-  }
-};
+  };
 
   const handleConfirmPurchase = async () => {
     setPurchaseError('');
@@ -219,7 +219,6 @@ const handlePhoneChange = (e) => {
     try {
       const methodMap = {
         'vodafone_cash': 'vodafone_cash',
-       
       };
 
       await purchaseProject({
@@ -239,6 +238,18 @@ const handlePhoneChange = (e) => {
     } finally {
       setPurchaseLoading(false);
     }
+  };
+
+  // ✅ دالة للتعامل مع ضغط زرار المناقشة
+  const handleDiscussionClick = (e) => {
+    e.preventDefault();
+    
+    if (user?.userType === 'developer') {
+      alert('❌ عذراً، صفحة المناقشات متاحة للعملاء فقط');
+      return;
+    }
+    
+    navigate(`/client/DiscussionPosts/${id}`);
   };
 
   const paymentMethods = [
@@ -374,14 +385,12 @@ const handlePhoneChange = (e) => {
                       </motion.div>
                     )}
                     
-                    {/* ✅ Reviews Tab */}
                     {activeTab === 'reviews' && (
                       <motion.div key="reviews" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-4">
                         {project.reviews && project.reviews.length > 0 ? (
                           project.reviews.map((review, idx) => (
                             <div key={review._id || idx} className="bg-gray-50 rounded-xl p-4">
                               <div className="flex items-center gap-3 mb-2">
-                                {/* ✅ صورة المستخدم */}
                                 {review.client?.profileImage ? (
                                   <img 
                                     src={review.client.profileImage} 
@@ -393,7 +402,6 @@ const handlePhoneChange = (e) => {
                                     }}
                                   />
                                 ) : null}
-                                {/* ✅ Fallback - أول حرف */}
                                 <div 
                                   className={`w-10 h-10 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold ${review.client?.profileImage ? 'hidden' : 'flex'}`}
                                 >
@@ -436,6 +444,16 @@ const handlePhoneChange = (e) => {
                     <div className="text-sm text-gray-500">شامل الضريبة</div>
                   </div>
                   <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setShowPurchaseModal(true)} className="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-bold hover:shadow-lg transition-all duration-300">شراء المشروع الآن</motion.button>
+
+                  {/* ✅ زرار المناقشة - للعميل بس */}
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={handleDiscussionClick}
+                    className="w-full py-3 mt-3 bg-gradient-to-r from-gray-700 to-gray-900 text-white rounded-xl font-bold hover:shadow-lg transition-all duration-300"
+                  >
+                    💬 مناقشة
+                  </motion.button>
                 </div>
                 <motion.div whileHover={{ y: -5 }} className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl p-6 mb-6">
                   <div className="flex items-center gap-4 mb-4">
@@ -503,7 +521,7 @@ const handlePhoneChange = (e) => {
                 <p className="text-sm text-green-700">نوع الباقة المختارة: <span className="font-bold">{purchaseData.packageType}</span></p>
               </div>
               <button onClick={handleConfirmPurchase} disabled={purchaseLoading} className="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-bold hover:shadow-lg transition-all duration-300 disabled:opacity-50">
-                {purchaseLoading ? (<div className="flex items-center justify-center gap-2"><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>جاري...</div>) : 'تأكيد الشراء ✓'}
+                {purchaseLoading ? (<div className="flex items-center justify-center gap-2"><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>جاري...</div>) : 'تأكد الشراء ✓'}
               </button>
               <button onClick={() => setShowPurchaseModal(false)} className="w-full py-2 mt-3 text-gray-500 hover:text-gray-700 transition text-sm">إلغاء</button>
             </motion.div>

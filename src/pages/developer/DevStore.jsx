@@ -324,16 +324,28 @@ export default function DevStore() {
                 </h1>
                 <p className="text-gray-500 mt-1">إدارة وبيع مشاريعك البرمجية للعملاء</p>
               </div>
-              <Link to="/Messagesupport">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium hover:shadow-lg transition-all flex items-center gap-2"
-                >
-                  <span>💬</span>
-                  <span>رسائل الدعم الفني</span>
-                </motion.button>
-              </Link>
+             <div className="flex items-center gap-2">
+  <Link to="/Messagesupport">
+    <motion.button
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium hover:shadow-lg transition-all flex items-center gap-2"
+    >
+      <span>💬</span>
+      <span>رسائل الدعم الفني</span>
+    </motion.button>
+  </Link>
+  <Link to="/dashboard/developer/Discussion">
+    <motion.button
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium hover:shadow-lg transition-all flex items-center gap-2"
+    >
+      <span>💬</span>
+      <span>رسائل المناقشة</span>
+    </motion.button>
+  </Link>
+</div>
             </motion.div>
 
             {/* Stats Cards */}

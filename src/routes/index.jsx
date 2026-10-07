@@ -30,7 +30,8 @@ import AddProject from '../pages/developer/AddProject'
 import DevSettings from '../pages/developer/DevSettings'
 import EditProject from '../pages/developer/EditProject';
 import ProjectProposals from '../pages/developer/ProjectProposals'; // ✅ أضف هذا مع بقية الـ imports
-
+import Discussion from '../pages/developer/Discussion';
+import DiscussionPosts from '../pages/client/DiscussionPosts';
 
 // Client Pages
 import ClientDashboard from '../pages/client/ClientDashboard'
@@ -89,6 +90,9 @@ const router = createBrowserRouter([
   { path: '/dashboard/developer/settings', element: <PrivateRoute allowedTypes={['developer']}><DevSettings /></PrivateRoute> },
 { path: '/dashboard/developer/edit-project', element: <PrivateRoute allowedTypes={['developer']}><EditProject /></PrivateRoute> },
 { path: '/dashboard/developer/project-proposals', element: <PrivateRoute allowedTypes={['developer']}><ProjectProposals /></PrivateRoute> },
+{ path: '/dashboard/developer/Discussion', element: <PrivateRoute allowedTypes={['developer']}><Discussion /></PrivateRoute> },
+
+
   // Client Routes
   { path: '/dashboard/client', element: <PrivateRoute allowedTypes={['client']}><ClientDashboard /></PrivateRoute> },
   { path: '/dashboard/client/projects', element: <PrivateRoute allowedTypes={['client']}><ClientProjects /></PrivateRoute> },
@@ -97,7 +101,9 @@ const router = createBrowserRouter([
   { path: '/dashboard/client/project/:id/proposals', element: <PrivateRoute allowedTypes={['client']}><ClientProposals /></PrivateRoute> },
   { path: '/dashboard/client/purchases', element: <PrivateRoute allowedTypes={['client']}><Purchases /></PrivateRoute> },
   { path: '/dashboard/client/settings', element: <PrivateRoute allowedTypes={['client']}><ClientSettings /></PrivateRoute> },
+  { path: '/client/DiscussionPosts/:projectId', element: <PrivateRoute allowedTypes={['client']}><DiscussionPosts /></PrivateRoute> },
 
+  
   // Shared Routes
   { path: '/project/:id', element: <PrivateRoute><ProjectRoom /></PrivateRoute> },
   { path: '/messages', element: <PrivateRoute><Messages /></PrivateRoute> },
