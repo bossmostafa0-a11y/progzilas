@@ -11,6 +11,12 @@ import {
   createXPayCheckout,
 } from '../../services/payment.service';
 
+// ✅ ثوابت الأسعار والخصم
+const BASE_PRICE = 450;
+const MANUAL_DISCOUNT_PERCENT = 15;
+const getManualPrice = () =>
+  Math.round(BASE_PRICE * (1 - MANUAL_DISCOUNT_PERCENT / 100)); // = 383
+
 export default function Pricing() {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
@@ -31,6 +37,13 @@ export default function Pricing() {
 
   // ===== بوب "أنت مشترك بالفعل" =====
   const [showAlreadySubscribed, setShowAlreadySubscribed] = useState(false);
+
+  // ===== بوب نجاح الدفع اليدوي =====
+  const [showManualSuccessModal, setShowManualSuccessModal] = useState(false);
+  const [manualPaymentInfo, setManualPaymentInfo] = useState({
+    reference: '',
+    paymentNumber: '',
+  });
 
   const ACCOUNT_NUMBER = import.meta.env.phone || '01002589923';
 
@@ -190,16 +203,14 @@ export default function Pricing() {
         const paymentNumber =
           response?.data?.payment?.paymentNumber || 'لم يتم تحديده';
 
-        alert(`✅ تم إنشاء طلب اشتراك VIP بنجاح!
-
-        - المبلغ: 450 ج.م
-        - رقم التحويل: ${paymentRef}
-        - رقم العملية: ${paymentNumber}
-
-        برجاء تحويل المبلغ على الرقم: ${ACCOUNT_NUMBER}
-        سيتم تفعيل اشتراكك فور تأكيد الدفع من الإدارة.`);
-
+        // ✅ بدل alert — نفتح بوب النجاح ونحفظ البيانات
+        setManualPaymentInfo({
+          reference: paymentRef,
+          paymentNumber: paymentNumber,
+        });
         setShowModal(false);
+        setShowManualSuccessModal(true);
+
         setSenderPhone('');
         setName('');
         setSelectedPlan(null);
@@ -527,9 +538,23 @@ export default function Pricing() {
                     </h3>
                     <p className="text-gray-500 text-sm">
                       المبلغ:{' '}
-                      <span className="font-bold text-indigo-600">
-                        450 ج.م
-                      </span>
+                      {paymentMethod === 'manual' ? (
+                        <>
+                          <span className="text-gray-400 line-through text-xs mr-1">
+                            {BASE_PRICE} ج.م
+                          </span>
+                          <span className="font-bold text-indigo-600">
+                            {getManualPrice()} ج.م
+                          </span>
+                          <span className="inline-block mr-2 bg-green-100 text-green-700 text-[11px] font-bold px-2 py-0.5 rounded-full">
+                            خصم {MANUAL_DISCOUNT_PERCENT}%
+                          </span>
+                        </>
+                      ) : (
+                        <span className="font-bold text-indigo-600">
+                          {BASE_PRICE} ج.م
+                        </span>
+                      )}
                     </p>
                   </div>
 
@@ -564,7 +589,9 @@ export default function Pricing() {
                       >
                         <div className="text-xl mb-1">📱</div>
                         <div className="text-sm font-bold">تحويل يدوي</div>
-                        <div className="text-xs opacity-70">فودافون كاش</div>
+                        <div className="text-xs text-green-600 font-bold">
+                          خصم 15%
+                        </div>
                       </button>
                     </div>
                   </div>
@@ -572,6 +599,27 @@ export default function Pricing() {
                   {/* ===== حقول الدفع القديم ===== */}
                   {paymentMethod === 'manual' && (
                     <div className="space-y-4 mb-6">
+                      {/* ✅ صندوق الخصم */}
+                      <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 text-center">
+                        <p className="text-sm text-green-700 font-semibold mb-1">
+                          🎉 خصم {MANUAL_DISCOUNT_PERCENT}% عند الدفع اليدوي!
+                        </p>
+                        <p className="text-xs text-green-600">
+                          السعر الأصلي:{' '}
+                          <span className="line-through">{BASE_PRICE} ج.م</span>
+                          {' → '}
+                          <span className="font-bold">
+                            {getManualPrice()} ج.م
+                          </span>
+                        </p>
+                        <p className="text-xs text-green-600 mt-1">
+                          المبلغ المحوّل:{' '}
+                          <span className="font-bold">
+                            {getManualPrice()} ج.م
+                          </span>
+                        </p>
+                      </div>
+
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           الاسم بالكامل (للفاتورة)
@@ -710,6 +758,107 @@ export default function Pricing() {
                       لوحة التحكم
                     </button>
                   </Link>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ===== Modal: نجاح الدفع اليدوي ===== */}
+      <AnimatePresence>
+        {showManualSuccessModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setShowManualSuccessModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.85, opacity: 0, y: 30 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.85, opacity: 0, y: 30 }}
+              transition={{ type: 'spring', damping: 20, stiffness: 200 }}
+              className="bg-white rounded-3xl max-w-sm w-full p-8 text-center relative overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="absolute -top-16 -right-16 w-40 h-40 bg-gradient-to-br from-green-100 to-emerald-100 rounded-full opacity-60" />
+              <div className="absolute -bottom-16 -left-16 w-40 h-40 bg-gradient-to-br from-teal-100 to-indigo-100 rounded-full opacity-60" />
+
+              <div className="relative">
+                <motion.div
+                  initial={{ scale: 0, rotate: -180 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ delay: 0.15, type: 'spring', stiffness: 200 }}
+                  className="w-24 h-24 mx-auto mb-5 rounded-full bg-gradient-to-br from-green-400 via-emerald-500 to-teal-500 flex items-center justify-center shadow-lg shadow-green-500/30"
+                >
+                  <span className="text-5xl">✅</span>
+                </motion.div>
+
+                <h3 className="text-2xl font-bold text-gray-800 mb-2">
+                  تم إنشاء طلب الاشتراك!
+                </h3>
+                <p className="text-gray-500 text-sm mb-5 leading-relaxed">
+                  سيتم تفعيل اشتراكك فور تأكيد الدفع من الإدارة.
+                </p>
+
+                {/* بيانات الدفع */}
+                <div className="bg-gray-50 rounded-xl p-4 mb-5 text-right text-sm space-y-2">
+                  <div className="flex justify-between gap-4">
+                    <span className="text-gray-500">المبلغ:</span>
+                    <span className="font-bold text-indigo-600">
+                      {getManualPrice()} ج.م
+                    </span>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <span className="text-gray-500">رقم التحويل:</span>
+                    <span
+                      className="font-mono text-gray-800 break-all text-left"
+                      dir="ltr"
+                    >
+                      {manualPaymentInfo.reference}
+                    </span>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <span className="text-gray-500">رقم العملية:</span>
+                    <span
+                      className="font-mono text-gray-800 break-all text-left"
+                      dir="ltr"
+                    >
+                      {manualPaymentInfo.paymentNumber}
+                    </span>
+                  </div>
+                  <div className="flex justify-between gap-4 pt-2 border-t border-gray-200">
+                    <span className="text-gray-500">حوّل على:</span>
+                    <span className="font-bold text-indigo-700" dir="ltr">
+                      {ACCOUNT_NUMBER}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="inline-flex items-center gap-2 bg-yellow-50 border border-yellow-200 text-yellow-700 text-sm font-medium px-4 py-2 rounded-full mb-6">
+                  <span className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" />
+                  بانتظار تأكيد الدفع
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button
+                    onClick={() => setShowManualSuccessModal(false)}
+                    className="flex-1 py-3 rounded-xl font-bold border-2 border-gray-200 text-gray-600 hover:bg-gray-50 transition"
+                  >
+                    حسناً
+                  </button>
+                  <a
+                    href="https://wa.me/201019544851"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1"
+                  >
+                    <button className="w-full py-3 rounded-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:shadow-lg transition">
+                      تواصل مع الدعم
+                    </button>
+                  </a>
                 </div>
               </div>
             </motion.div>
