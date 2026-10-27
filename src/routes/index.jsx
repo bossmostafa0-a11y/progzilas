@@ -32,7 +32,7 @@ import EditProject from '../pages/developer/EditProject';
 import ProjectProposals from '../pages/developer/ProjectProposals'; // ✅ أضف هذا مع بقية الـ imports
 import Discussion from '../pages/developer/Discussion';
 import DiscussionPosts from '../pages/client/DiscussionPosts';
-
+import SubscriptionResult from '../pages/developer/SubscriptionResult.jsx';
 // Client Pages
 import ClientDashboard from '../pages/client/ClientDashboard'
 import ClientProjects from '../pages/client/ClientProjects'
@@ -40,6 +40,8 @@ import NewProject from '../pages/client/NewProject'
 import ClientProposals from '../pages/client/Proposals'
 import Purchases from '../pages/client/Purchases'
 import ClientSettings from '../pages/client/ClientSettings'
+import PaymentResult from '../pages/client/PaymentResult'
+
 
 // Shared Pages
 import ProjectRoom from '../pages/shared/ProjectRoom'
@@ -91,6 +93,9 @@ const router = createBrowserRouter([
 { path: '/dashboard/developer/edit-project', element: <PrivateRoute allowedTypes={['developer']}><EditProject /></PrivateRoute> },
 { path: '/dashboard/developer/project-proposals', element: <PrivateRoute allowedTypes={['developer']}><ProjectProposals /></PrivateRoute> },
 { path: '/dashboard/developer/Discussion', element: <PrivateRoute allowedTypes={['developer']}><Discussion /></PrivateRoute> },
+{ path: '/subscription/result/:sessionId', element: <PrivateRoute allowedTypes={['developer']}><SubscriptionResult /></PrivateRoute> },
+{ path: '/subscription/result', element: <PrivateRoute allowedTypes={['developer']}><SubscriptionResult /></PrivateRoute> },
+
 
 
   // Client Routes
@@ -102,7 +107,9 @@ const router = createBrowserRouter([
   { path: '/dashboard/client/purchases', element: <PrivateRoute allowedTypes={['client']}><Purchases /></PrivateRoute> },
   { path: '/dashboard/client/settings', element: <PrivateRoute allowedTypes={['client']}><ClientSettings /></PrivateRoute> },
   { path: '/client/DiscussionPosts/:projectId', element: <PrivateRoute allowedTypes={['client']}><DiscussionPosts /></PrivateRoute> },
+  { path: '/payment/result/:sessionId', element: <PrivateRoute allowedTypes={['client']}><PaymentResult /></PrivateRoute> },
 
+  
   
   // Shared Routes
   { path: '/project/:id', element: <PrivateRoute><ProjectRoom /></PrivateRoute> },

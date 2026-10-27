@@ -1,16 +1,20 @@
 /* eslint-disable no-unused-vars */
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import Navbar from '../../components/layout/Navbar';
 import Footer from '../../components/layout/Footer';
-import { createVipSubscription, getSubscription } from '../../services/payment.service';
+import {
+  createVipSubscription,
+  getSubscription,
+  createXPayCheckout,
+} from '../../services/payment.service';
 
 export default function Pricing() {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const [billingCycle, ] = useState('monthly');
+  const [billingCycle] = useState('monthly');
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -18,16 +22,22 @@ export default function Pricing() {
   const [currentPlan, setCurrentPlan] = useState('free');
   const [isVipActive, setIsVipActive] = useState(false);
 
+  // ===== الدفع القديم (كما هو) =====
   const [senderPhone, setSenderPhone] = useState(user?.phone || '');
   const [name, setName] = useState(user?.username || user?.name || '');
 
-  const ACCOUNT_NUMBER = import.meta.env.phone || "01002589923";
+  // ===== الدفع الجديد (XPay) =====
+  const [paymentMethod, setPaymentMethod] = useState('manual'); // 'manual' | 'xpay'
 
-  // ✅ الحل النهائي: كل اللوجيك جوا useEffect من غير استدعاء دالة خارجية
+  // ===== بوب "أنت مشترك بالفعل" =====
+  const [showAlreadySubscribed, setShowAlreadySubscribed] = useState(false);
+
+  const ACCOUNT_NUMBER = import.meta.env.phone || '01002589923';
+
+  // ✅ جلب حالة الاشتراك
   useEffect(() => {
     if (!isAuthenticated) return;
 
-    // إنشاء AbortController للإلغاء عند الخروج من الصفحة
     const abortController = new AbortController();
 
     const fetchData = async () => {
@@ -39,7 +49,6 @@ export default function Pricing() {
           setIsVipActive(sub.plan === 'vip' && sub.status === 'active');
         }
       } catch (error) {
-        // تجاهل أخطاء الإلغاء
         if (error.name === 'AbortError') return;
         console.error('Error fetching subscription:', error);
       }
@@ -47,7 +56,6 @@ export default function Pricing() {
 
     fetchData();
 
-    // دالة التنظيف عند الخروج من الصفحة
     return () => {
       abortController.abort();
     };
@@ -80,7 +88,7 @@ export default function Pricing() {
         { included: true, text: 'دعم فني 24/7' },
         { included: true, text: 'تحديد أولوية في البحث' },
         { included: true, text: 'الوصول للعملاء المميزين' },
-        { included: true, text: 'بامكانك البداء في مشاريع العملاء' }
+        { included: true, text: 'بامكانك البداء في مشاريع العملاء' },
       ],
       recommended: true,
       buttonText: 'اختر الخطة',
@@ -100,11 +108,13 @@ export default function Pricing() {
     }
 
     if (isVipActive) {
-      alert('🎉 أنت مشترك بالفعل في الخطة المدفوعة!');
+      // ✅ بدل alert — نفتح بوب شيك
+      setShowAlreadySubscribed(true);
       return;
     }
 
     setSelectedPlan({ ...plan, type });
+    setPaymentMethod('manual'); // افتراضي: الدفع القديم
     setShowModal(true);
   };
 
@@ -122,9 +132,49 @@ export default function Pricing() {
     return billingCycle === 'monthly' ? '/شهر' : '/سنة';
   };
 
+  // ============================================================
+  // الدفع الجديد (XPay)
+  // ============================================================
+  const handleXPaySubmit = async () => {
+    setLoading(true);
+    try {
+      const response = await createXPayCheckout();
+      const checkoutUrl = response?.data?.checkoutUrl;
+      const paymentId = response?.data?.paymentId;
+
+      if (!checkoutUrl) {
+        throw new Error('لم يتم استلام رابط الدفع من السيرفر');
+      }
+
+      // نحفظ paymentId كـ fallback (مش ضروري بعد الـ endpoint الجديد)
+      if (paymentId) {
+        localStorage.setItem('pendingXpayPaymentId', String(paymentId));
+      }
+
+      window.location.href = checkoutUrl;
+    } catch (error) {
+      console.error('❌ XPay checkout error:', error);
+      const errorMsg =
+        error?.response?.data?.message ||
+        error?.message ||
+        'تعذر إنشاء جلسة الدفع، حاول مرة أخرى';
+      alert(errorMsg);
+      setLoading(false);
+    }
+  };
+
+  // ============================================================
+  // الدفع القديم (كما هو تماماً + توجيه للجديد لو اتختار)
+  // ============================================================
   const handlePaymentSubmit = async () => {
+    // ✅ لو المستخدم اختار XPay، نوجهه للدفع الجديد
+    if (paymentMethod === 'xpay') {
+      return handleXPaySubmit();
+    }
+
+    // ===== من هنا كود الدفع القديم كما هو تماماً =====
     if (!senderPhone || !name) {
-      alert("من فضلك اكتب اسمك ورقم تليفونك");
+      alert('من فضلك اكتب اسمك ورقم تليفونك');
       return;
     }
 
@@ -133,26 +183,27 @@ export default function Pricing() {
     try {
       const payload = { senderPhone, name };
       const response = await createVipSubscription(payload);
-      
+
       if (response.success) {
-        const paymentRef = response?.data?.payment?.reference || 'لم يتم تحديده';
-        const paymentNumber = response?.data?.payment?.paymentNumber || 'لم يتم تحديده';
+        const paymentRef =
+          response?.data?.payment?.reference || 'لم يتم تحديده';
+        const paymentNumber =
+          response?.data?.payment?.paymentNumber || 'لم يتم تحديده';
 
         alert(`✅ تم إنشاء طلب اشتراك VIP بنجاح!
-        
+
         - المبلغ: 450 ج.م
         - رقم التحويل: ${paymentRef}
         - رقم العملية: ${paymentNumber}
-        
+
         برجاء تحويل المبلغ على الرقم: ${ACCOUNT_NUMBER}
         سيتم تفعيل اشتراكك فور تأكيد الدفع من الإدارة.`);
-        
+
         setShowModal(false);
         setSenderPhone('');
         setName('');
         setSelectedPlan(null);
-        
-        // تحديث الحالة يدوياً بعد نجاح الطلب
+
         const updatedResponse = await getSubscription();
         if (updatedResponse?.data?.subscription) {
           const sub = updatedResponse.data.subscription;
@@ -163,26 +214,42 @@ export default function Pricing() {
         alert(response.message || 'حدث خطأ أثناء إنشاء الطلب');
       }
     } catch (error) {
-      console.error("❌ خطأ:", error);
-      const errorMsg = error?.response?.data?.message || error?.message || 'حدث خطأ في الاتصال بالباك إند';
+      console.error('❌ خطأ:', error);
+      const errorMsg =
+        error?.response?.data?.message ||
+        error?.message ||
+        'حدث خطأ في الاتصال بالباك إند';
       alert(errorMsg);
     } finally {
       setLoading(false);
     }
   };
 
+  const closeModal = () => {
+    setShowModal(false);
+    setPaymentMethod('manual');
+  };
+
   const staggerContainer = {
     hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
   };
 
   const cardVariants = {
     hidden: { opacity: 0, y: 40, scale: 0.95 },
-    visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.4, type: "spring", stiffness: 100 } }
+    visible: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: { duration: 0.4, type: 'spring', stiffness: 100 },
+    },
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 via-indigo-50/20 to-purple-50/20" dir="rtl">
+    <div
+      className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 via-indigo-50/20 to-purple-50/20"
+      dir="rtl"
+    >
       <Navbar />
 
       <main className="flex-grow">
@@ -214,9 +281,14 @@ export default function Pricing() {
               className="text-center mb-12"
             >
               <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                خطط <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">المبرمجين</span>
+                خطط{' '}
+                <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                  المبرمجين
+                </span>
               </h2>
-              <p className="text-xl text-gray-600">اختر الخطة المناسبة لتبدأ رحلة الربح</p>
+              <p className="text-xl text-gray-600">
+                اختر الخطة المناسبة لتبدأ رحلة الربح
+              </p>
             </motion.div>
 
             <motion.div
@@ -242,19 +314,29 @@ export default function Pricing() {
                       </div>
                     </div>
                   )}
-                  
+
                   <div className="p-6 text-center border-b border-gray-100">
                     <div className="text-5xl mb-3">{plan.icon}</div>
-                    <h3 className="text-2xl font-bold text-gray-800">{plan.name}</h3>
-                    <p className="text-gray-500 text-sm mt-1">{plan.description}</p>
+                    <h3 className="text-2xl font-bold text-gray-800">
+                      {plan.name}
+                    </h3>
+                    <p className="text-gray-500 text-sm mt-1">
+                      {plan.description}
+                    </p>
                     <div className="mt-4">
-                      <span className="text-4xl font-bold text-indigo-600">{getPriceDisplay(plan)}</span>
+                      <span className="text-4xl font-bold text-indigo-600">
+                        {getPriceDisplay(plan)}
+                      </span>
                       {getPrice(plan) > 0 && (
-                        <span className="text-gray-500 text-sm">{getPeriodText()}</span>
+                        <span className="text-gray-500 text-sm">
+                          {getPeriodText()}
+                        </span>
                       )}
                     </div>
                     {billingCycle === 'yearly' && getPrice(plan) > 0 && (
-                      <p className="text-xs text-green-600 mt-1">وفر ${Math.round(plan.price.monthly * 12 * 0.2)} سنوياً</p>
+                      <p className="text-xs text-green-600 mt-1">
+                        وفر ${Math.round(plan.price.monthly * 12 * 0.2)} سنوياً
+                      </p>
                     )}
                   </div>
 
@@ -267,7 +349,13 @@ export default function Pricing() {
                           ) : (
                             <span className="text-gray-300 text-xl">✕</span>
                           )}
-                          <span className={feature.included ? 'text-gray-700' : 'text-gray-400'}>
+                          <span
+                            className={
+                              feature.included
+                                ? 'text-gray-700'
+                                : 'text-gray-400'
+                            }
+                          >
                             {feature.text}
                           </span>
                         </li>
@@ -305,18 +393,38 @@ export default function Pricing() {
               className="text-center mb-12"
             >
               <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                أسئلة <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">شائعة</span>
+                أسئلة{' '}
+                <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                  شائعة
+                </span>
               </h2>
-              <p className="text-xl text-gray-600">كل ما تريد معرفته عن خططنا</p>
+              <p className="text-xl text-gray-600">
+                كل ما تريد معرفته عن خططنا
+              </p>
             </motion.div>
 
             <div className="space-y-4">
               {[
-                { q: 'هل يمكنني تغيير خطتي لاحقاً؟', a: 'نعم، يمكنك ترقية أو تخفيض خطتك في أي وقت من خلال لوحة التحكم.' },
-                { q: 'هل هناك رسوم إضافية؟', a: 'لا، جميع الأسعار تشمل الضرائب والرسوم. لا توجد رسوم خفية.' },
-                { q: 'كيف يتم الدفع؟', a: 'نقبل الدفع عبر التحويل البنكي، فودافون كاش .' },
-                { q: 'هل يمكنني إلغاء اشتراكي؟', a: 'نعم، يمكنك إلغاء اشتراكك في أي وقت بدون أي رسوم إضافية.' },
-                { q: 'ما هي سياسة الاسترداد؟', a: 'نقدم ضمان استرداد الأموال لمدة 10 يوماً إذا لم تكن راضياً عن الخدمة.' }
+                {
+                  q: 'هل يمكنني تغيير خطتي لاحقاً؟',
+                  a: 'نعم، يمكنك ترقية أو تخفيض خطتك في أي وقت من خلال لوحة التحكم.',
+                },
+                {
+                  q: 'هل هناك رسوم إضافية؟',
+                  a: 'لا، جميع الأسعار تشمل الضرائب والرسوم. لا توجد رسوم خفية.',
+                },
+                {
+                  q: 'كيف يتم الدفع؟',
+                  a: 'نقبل الدفع عبر التحويل البنكي، فودافون كاش، أو الدفع الإلكتروني بالبطاقة.',
+                },
+                {
+                  q: 'هل يمكنني إلغاء اشتراكي؟',
+                  a: 'نعم، يمكنك إلغاء اشتراكك في أي وقت بدون أي رسوم إضافية.',
+                },
+                {
+                  q: 'ما هي سياسة الاسترداد؟',
+                  a: 'نقدم ضمان استرداد الأموال لمدة 10 أيام إذا لم تكن راضياً عن الخدمة.',
+                },
               ].map((faq, idx) => (
                 <motion.div
                   key={idx}
@@ -325,7 +433,9 @@ export default function Pricing() {
                   transition={{ delay: idx * 0.1 }}
                   className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300"
                 >
-                  <h3 className="font-bold text-gray-800 text-lg mb-2">❓ {faq.q}</h3>
+                  <h3 className="font-bold text-gray-800 text-lg mb-2">
+                    ❓ {faq.q}
+                  </h3>
                   <p className="text-gray-600">{faq.a}</p>
                 </motion.div>
               ))}
@@ -348,10 +458,16 @@ export default function Pricing() {
                 فريقنا جاهز للإجابة على جميع استفساراتك
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link to="https://wa.me/201019544851" className="bg-white text-indigo-600 hover:bg-gray-100 font-bold py-3 px-8 rounded-xl transition-all duration-300 hover:scale-105 inline-block">
+                <Link
+                  to="https://wa.me/201019544851"
+                  className="bg-white text-indigo-600 hover:bg-gray-100 font-bold py-3 px-8 rounded-xl transition-all duration-300 hover:scale-105 inline-block"
+                >
                   تواصل معنا 📞
                 </Link>
-                <Link to="/login" className="border-2 border-white text-white hover:bg-white/10 font-bold py-3 px-8 rounded-xl transition-all duration-300 hover:scale-105 inline-block">
+                <Link
+                  to="/login"
+                  className="border-2 border-white text-white hover:bg-white/10 font-bold py-3 px-8 rounded-xl transition-all duration-300 hover:scale-105 inline-block"
+                >
                   ابدأ الآن مجاناً 🚀
                 </Link>
               </div>
@@ -360,106 +476,246 @@ export default function Pricing() {
         </div>
       </main>
 
-      {/* Modal */}
-      {showModal && selectedPlan && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-          onClick={() => setShowModal(false)}
-        >
+      {/* ===== Modal: اختيار الخطة والدفع ===== */}
+      <AnimatePresence>
+        {showModal && selectedPlan && (
           <motion.div
-            initial={{ scale: 0.9, opacity: 0, y: 50 }}
-            animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.9, opacity: 0, y: 50 }}
-            transition={{ type: "spring", damping: 20 }}
-            className="bg-white rounded-2xl max-w-md w-full p-6"
-            onClick={(e) => e.stopPropagation()}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={closeModal}
           >
-            {!isAuthenticated ? (
-              <>
-                <div className="text-center mb-4">
-                  <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <span className="text-2xl">🔐</span>
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 50 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 50 }}
+              transition={{ type: 'spring', damping: 20 }}
+              className="bg-white rounded-2xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {!isAuthenticated ? (
+                <>
+                  <div className="text-center mb-4">
+                    <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <span className="text-2xl">🔐</span>
+                    </div>
+                    <h3 className="text-xl font-bold">تسجيل الدخول مطلوب</h3>
+                    <p className="text-gray-500 text-sm mt-1">
+                      يرجى تسجيل الدخول لاختيار خطة {selectedPlan.name}
+                    </p>
                   </div>
-                  <h3 className="text-xl font-bold">تسجيل الدخول مطلوب</h3>
-                  <p className="text-gray-500 text-sm mt-1">
-                    يرجى تسجيل الدخول لاختيار خطة {selectedPlan.name}
-                  </p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={closeModal}
+                      className="flex-1 py-2 border-2 border-gray-300 text-gray-600 rounded-xl font-medium hover:bg-gray-50 transition"
+                    >
+                      إلغاء
+                    </button>
+                    <Link to="/login" className="flex-1">
+                      <button className="w-full py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium hover:shadow-lg transition">
+                        تسجيل الدخول
+                      </button>
+                    </Link>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="text-center mb-6">
+                    <h3 className="text-2xl font-bold text-gray-800 mb-2">
+                      تأكيد اشتراك {selectedPlan.name}
+                    </h3>
+                    <p className="text-gray-500 text-sm">
+                      المبلغ:{' '}
+                      <span className="font-bold text-indigo-600">
+                        450 ج.م
+                      </span>
+                    </p>
+                  </div>
+
+                  {/* ===== اختيار طريقة الدفع ===== */}
+                  <div className="mb-5">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      اختر طريقة الدفع
+                    </label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMethod('xpay')}
+                        className={`p-3 rounded-xl border-2 text-center transition ${
+                          paymentMethod === 'xpay'
+                            ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
+                            : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="text-xl mb-1">💳</div>
+                        <div className="text-sm font-bold">دفع إلكتروني</div>
+                        <div className="text-xs opacity-70">بطاقة / محفظة</div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMethod('manual')}
+                        className={`p-3 rounded-xl border-2 text-center transition ${
+                          paymentMethod === 'manual'
+                            ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
+                            : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="text-xl mb-1">📱</div>
+                        <div className="text-sm font-bold">تحويل يدوي</div>
+                        <div className="text-xs opacity-70">فودافون كاش</div>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* ===== حقول الدفع القديم ===== */}
+                  {paymentMethod === 'manual' && (
+                    <div className="space-y-4 mb-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          الاسم بالكامل (للفاتورة)
+                        </label>
+                        <input
+                          type="text"
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
+                          placeholder="اكتب اسمك هنا..."
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          رقم التليفون (للتحويل)
+                        </label>
+                        <input
+                          type="tel"
+                          value={senderPhone}
+                          onChange={(e) => setSenderPhone(e.target.value)}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"
+                          placeholder="01012345678"
+                        />
+                      </div>
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-center">
+                        <p className="text-sm text-gray-600 mb-1">
+                          برجاء تحويل المبلغ على الرقم التالي:
+                        </p>
+                        <p className="text-lg font-bold text-indigo-700 break-all">
+                          {ACCOUNT_NUMBER}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ===== رسالة توضيحية للدفع الإلكتروني ===== */}
+                  {paymentMethod === 'xpay' && (
+                    <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 text-center mb-6">
+                      <p className="text-sm text-gray-700">
+                        سيتم تحويلك إلى صفحة الدفع الآمنة لإتمام العملية
+                        بالبطاقة أو المحفظة الإلكترونية.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* ===== أزرار الإجراء ===== */}
+                  <div className="flex gap-3">
+                    <button
+                      onClick={closeModal}
+                      disabled={loading}
+                      className="flex-1 py-3 border-2 border-gray-300 text-gray-600 rounded-xl font-medium hover:bg-gray-50 transition disabled:opacity-50"
+                    >
+                      إلغاء
+                    </button>
+                    <button
+                      onClick={handlePaymentSubmit}
+                      disabled={loading}
+                      className={`flex-1 py-3 rounded-xl font-bold transition ${
+                        loading
+                          ? 'bg-gray-400 cursor-not-allowed text-white'
+                          : 'bg-gradient-to-r from-green-500 to-green-600 text-white hover:shadow-lg'
+                      }`}
+                    >
+                      {loading
+                        ? 'جاري المعالجة...'
+                        : paymentMethod === 'xpay'
+                        ? 'الدفع الآن 💳'
+                        : 'تأكيد الطلب'}
+                    </button>
+                  </div>
+                </>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ===== Modal: أنت مشترك بالفعل ===== */}
+      <AnimatePresence>
+        {showAlreadySubscribed && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setShowAlreadySubscribed(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.85, opacity: 0, y: 30 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.85, opacity: 0, y: 30 }}
+              transition={{ type: 'spring', damping: 20, stiffness: 200 }}
+              className="bg-white rounded-3xl max-w-sm w-full p-8 text-center relative overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* خلفية مزخرفة */}
+              <div className="absolute -top-16 -right-16 w-40 h-40 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full opacity-60" />
+              <div className="absolute -bottom-16 -left-16 w-40 h-40 bg-gradient-to-br from-pink-100 to-yellow-100 rounded-full opacity-60" />
+
+              <div className="relative">
+                {/* أيقونة متحركة */}
+                <motion.div
+                  initial={{ scale: 0, rotate: -180 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ delay: 0.15, type: 'spring', stiffness: 200 }}
+                  className="w-24 h-24 mx-auto mb-5 rounded-full bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/30"
+                >
+                  <span className="text-5xl">🎉</span>
+                </motion.div>
+
+                <h3 className="text-2xl font-bold text-gray-800 mb-2">
+                  أنت مشترك بالفعل!
+                </h3>
+                <p className="text-gray-500 text-sm mb-6 leading-relaxed">
+                  لقد قمت بالاشتراك في خطة VIP المدفوعة بالفعل.
+                  <br />
+                  استمتع بكل المزايا المتاحة لك ✨
+                </p>
+
+                {/* شارة الحالة */}
+                <div className="inline-flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 text-sm font-medium px-4 py-2 rounded-full mb-6">
+                  <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                  الاشتراك نشط
                 </div>
-                <div className="flex gap-3">
+
+                {/* الأزرار */}
+                <div className="flex flex-col sm:flex-row gap-3">
                   <button
-                    onClick={() => setShowModal(false)}
-                    className="flex-1 py-2 border-2 border-gray-300 text-gray-600 rounded-xl font-medium hover:bg-gray-50 transition"
+                    onClick={() => setShowAlreadySubscribed(false)}
+                    className="flex-1 py-3 rounded-xl font-bold border-2 border-gray-200 text-gray-600 hover:bg-gray-50 transition"
                   >
-                    إلغاء
+                    حسناً
                   </button>
-                  <Link to="/login" className="flex-1">
-                    <button className="w-full py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium hover:shadow-lg transition">
-                      تسجيل الدخول
+                  <Link to="/dashboard" className="flex-1">
+                    <button className="w-full py-3 rounded-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:shadow-lg transition">
+                      لوحة التحكم
                     </button>
                   </Link>
                 </div>
-              </>
-            ) : (
-              <>
-                <div className="text-center mb-6">
-                  <h3 className="text-2xl font-bold text-gray-800 mb-2">
-                    تأكيد اشتراك {selectedPlan.name}
-                  </h3>
-                  <p className="text-gray-500 text-sm">
-                    المبلغ: <span className="font-bold text-indigo-600">450 ج.م</span>
-                  </p>
-                </div>
-
-                <div className="space-y-4 mb-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">الاسم بالكامل (للفاتورة)</label>
-                    <input 
-                      type="text" 
-                      value={name} 
-                      onChange={(e) => setName(e.target.value)} 
-                      className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" 
-                      placeholder="اكتب اسمك هنا..." 
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">رقم التليفون (للتحويل)</label>
-                    <input 
-                      type="tel" 
-                      value={senderPhone} 
-                      onChange={(e) => setSenderPhone(e.target.value)} 
-                      className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" 
-                      placeholder="01012345678" 
-                    />
-                  </div>
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-center">
-                    <p className="text-sm text-gray-600 mb-1">برجاء تحويل المبلغ على الرقم التالي:</p>
-                    <p className="text-lg font-bold text-indigo-700 break-all">{ACCOUNT_NUMBER}</p>
-                  </div>
-                </div>
-
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setShowModal(false)}
-                    className="flex-1 py-3 border-2 border-gray-300 text-gray-600 rounded-xl font-medium hover:bg-gray-50 transition"
-                  >
-                    إلغاء
-                  </button>
-                  <button
-                    onClick={handlePaymentSubmit}
-                    disabled={loading}
-                    className={`flex-1 py-3 rounded-xl font-bold transition ${loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-green-500 to-green-600 text-white hover:shadow-lg'}`}
-                  >
-                    {loading ? 'جاري الإرسال...' : 'تأكيد الطلب'}
-                  </button>
-                </div>
-              </>
-            )}
+              </div>
+            </motion.div>
           </motion.div>
-        </motion.div>
-      )}
+        )}
+      </AnimatePresence>
 
       <Footer />
     </div>

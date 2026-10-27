@@ -41,3 +41,34 @@ export const getSubscriptionHistory = async () => {
     throw error;
   }
 };
+
+
+// ========== الدفع الجديد (XPay) ==========
+export const createXPayCheckout = async () => {
+  const response = await api.post('/subscription/create-checkout');
+  return response.data;
+};
+
+export const getXPayPaymentStatus = async (paymentId) => {
+  const response = await api.get(`/subscription/status/${paymentId}`);
+  return response.data;
+};
+
+export const getSubscriptionResult = async (sessionId) => {
+  const response = await api.get(`/subscription/result/${sessionId}`);
+  return response.data;
+};
+
+//شراء مشاريع
+export const getPaymentResult = async (sessionId) => {
+  const response = await api.get(`/subscription/xpay/result/${sessionId}`);
+  return response.data;
+};
+export const createXPayCheckoutorder = async ({ purpose, orderId, paymentId }) => {
+  const response = await api.post('/subscription/xpay/checkout', {
+    purpose,
+    orderId,
+    paymentId,
+  });
+  return response.data;
+};
