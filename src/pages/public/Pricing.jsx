@@ -45,6 +45,27 @@ export default function Pricing() {
     paymentNumber: '',
   });
 
+  // ===== بوب "يوجد طلب قيد الدفع" =====
+  const [showPendingRequestModal, setShowPendingRequestModal] = useState(false);
+  const [pendingMessage, setPendingMessage] = useState('');
+
+  // ===== بوب عام لأي رد أو خطأ =====
+  const [genericModal, setGenericModal] = useState({
+    show: false,
+    type: 'error', // 'success' | 'warning' | 'error'
+    title: '',
+    message: '',
+    showSupport: false, // يظهر زر "تواصل مع الدعم"؟
+  });
+
+  const openGenericModal = (type, title, message, showSupport = false) => {
+    setGenericModal({ show: true, type, title, message, showSupport });
+  };
+
+  const closeGenericModal = () => {
+    setGenericModal((prev) => ({ ...prev, show: false }));
+  };
+
   const ACCOUNT_NUMBER = import.meta.env.phone || '01002589923';
 
   // ✅ جلب حالة الاشتراك
@@ -116,7 +137,12 @@ export default function Pricing() {
     }
 
     if (plan.price.monthly === 0) {
-      alert(`✅ تم تفعيل خطة "${plan.name}" لك بنجاح!`);
+      // ✅ بدل alert — بوب نجاح
+      openGenericModal(
+        'success',
+        'تم التفعيل!',
+        `✅ تم تفعيل خطة "${plan.name}" لك بنجاح!`
+      );
       return;
     }
 
@@ -171,7 +197,25 @@ export default function Pricing() {
         error?.response?.data?.message ||
         error?.message ||
         'تعذر إنشاء جلسة الدفع، حاول مرة أخرى';
-      alert(errorMsg);
+
+      const isPending =
+        error?.response?.status === 409 ||
+        errorMsg.includes('قيد الدفع') ||
+        errorMsg.includes('بالفعل');
+
+      if (isPending) {
+        setPendingMessage(errorMsg);
+        setShowPendingRequestModal(true);
+        setShowModal(false);
+      } else {
+        // ✅ بدل alert — بوب خطأ
+        openGenericModal(
+          'error',
+          'تعذر إنشاء جلسة الدفع',
+          errorMsg,
+          true
+        );
+      }
       setLoading(false);
     }
   };
@@ -187,7 +231,12 @@ export default function Pricing() {
 
     // ===== من هنا كود الدفع القديم كما هو تماماً =====
     if (!senderPhone || !name) {
-      alert('من فضلك اكتب اسمك ورقم تليفونك');
+      // ✅ بدل alert — بوب تحذير
+      openGenericModal(
+        'warning',
+        'بيانات ناقصة',
+        'من فضلك اكتب اسمك ورقم تليفونك'
+      );
       return;
     }
 
@@ -222,7 +271,18 @@ export default function Pricing() {
           setIsVipActive(sub.plan === 'vip' && sub.status === 'active');
         }
       } else {
-        alert(response.message || 'حدث خطأ أثناء إنشاء الطلب');
+        // ✅ لو الرسالة "يوجد طلب قيد الدفع" — نعرض بوب بدل alert
+        const msg = response.message || 'حدث خطأ أثناء إنشاء الطلب';
+        const isPending =
+          msg.includes('قيد الدفع') || msg.includes('بالفعل');
+
+        if (isPending) {
+          setPendingMessage(msg);
+          setShowPendingRequestModal(true);
+          setShowModal(false);
+        } else {
+          openGenericModal('error', 'تعذر إنشاء الطلب', msg, true);
+        }
       }
     } catch (error) {
       console.error('❌ خطأ:', error);
@@ -230,7 +290,20 @@ export default function Pricing() {
         error?.response?.data?.message ||
         error?.message ||
         'حدث خطأ في الاتصال بالباك إند';
-      alert(errorMsg);
+
+      // ✅ لو الخطأ 409 أو رسالة "قيد الدفع" — نعرض بوب
+      const isPending =
+        error?.response?.status === 409 ||
+        errorMsg.includes('قيد الدفع') ||
+        errorMsg.includes('بالفعل');
+
+      if (isPending) {
+        setPendingMessage(errorMsg);
+        setShowPendingRequestModal(true);
+        setShowModal(false);
+      } else {
+        openGenericModal('error', 'حدث خطأ', errorMsg, true);
+      }
     } finally {
       setLoading(false);
     }
@@ -255,6 +328,33 @@ export default function Pricing() {
       transition: { duration: 0.4, type: 'spring', stiffness: 100 },
     },
   };
+
+  // ✅ إعدادات البوب العام حسب النوع
+  const genericConfig = {
+    success: {
+      icon: '✅',
+      gradient: 'from-green-400 via-emerald-500 to-teal-500',
+      shadow: 'shadow-green-500/30',
+      titleColor: 'text-green-600',
+      bgDecor: 'from-green-100 to-emerald-100',
+    },
+    warning: {
+      icon: '⚠️',
+      gradient: 'from-amber-400 via-orange-500 to-yellow-500',
+      shadow: 'shadow-amber-500/30',
+      titleColor: 'text-amber-600',
+      bgDecor: 'from-amber-100 to-orange-100',
+    },
+    error: {
+      icon: '❌',
+      gradient: 'from-red-400 via-rose-500 to-pink-500',
+      shadow: 'shadow-red-500/30',
+      titleColor: 'text-red-600',
+      bgDecor: 'from-red-100 to-rose-100',
+    },
+  };
+
+  const gCfg = genericConfig[genericModal.type] || genericConfig.error;
 
   return (
     <div
@@ -859,6 +959,157 @@ export default function Pricing() {
                       تواصل مع الدعم
                     </button>
                   </a>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ===== Modal: يوجد طلب قيد الدفع ===== */}
+      <AnimatePresence>
+        {showPendingRequestModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setShowPendingRequestModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.85, opacity: 0, y: 30 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.85, opacity: 0, y: 30 }}
+              transition={{ type: 'spring', damping: 20, stiffness: 200 }}
+              className="bg-white rounded-3xl max-w-sm w-full p-8 text-center relative overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="absolute -top-16 -right-16 w-40 h-40 bg-gradient-to-br from-amber-100 to-orange-100 rounded-full opacity-60" />
+              <div className="absolute -bottom-16 -left-16 w-40 h-40 bg-gradient-to-br from-yellow-100 to-amber-100 rounded-full opacity-60" />
+
+              <div className="relative">
+                <motion.div
+                  initial={{ scale: 0, rotate: -180 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ delay: 0.15, type: 'spring', stiffness: 200 }}
+                  className="w-24 h-24 mx-auto mb-5 rounded-full bg-gradient-to-br from-amber-400 via-orange-500 to-yellow-500 flex items-center justify-center shadow-lg shadow-amber-500/30"
+                >
+                  <span className="text-5xl">⏳</span>
+                </motion.div>
+
+                <h3 className="text-2xl font-bold text-gray-800 mb-2">
+                  لديك طلب قيد الدفع!
+                </h3>
+                <p className="text-gray-500 text-sm mb-5 leading-relaxed">
+                  {pendingMessage ||
+                    'يوجد بالفعل طلب اشتراك VIP قيد الدفع. يرجى الانتظار حتى يتم تأكيد الدفع من الإدارة.'}
+                </p>
+
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-right text-sm mb-6">
+                  <p className="text-amber-800 font-semibold mb-2">
+                    💡 ماذا تفعل الآن؟
+                  </p>
+                  <p className="text-amber-700 text-xs leading-relaxed mb-1">
+                    • تأكد من إتمام التحويل على الرقم:{' '}
+                    <span className="font-bold" dir="ltr">
+                      {ACCOUNT_NUMBER}
+                    </span>
+                  </p>
+                  <p className="text-amber-700 text-xs leading-relaxed">
+                    • سيتم تفعيل اشتراكك تلقائياً بعد تأكيد الدفع
+                  </p>
+                </div>
+
+                <div className="inline-flex items-center gap-2 bg-yellow-50 border border-yellow-200 text-yellow-700 text-sm font-medium px-4 py-2 rounded-full mb-6">
+                  <span className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" />
+                  بانتظار تأكيد الدفع
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button
+                    onClick={() => setShowPendingRequestModal(false)}
+                    className="flex-1 py-3 rounded-xl font-bold border-2 border-gray-200 text-gray-600 hover:bg-gray-50 transition"
+                  >
+                    حسناً
+                  </button>
+                  <a
+                    href="https://wa.me/201019544851"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1"
+                  >
+                    <button className="w-full py-3 rounded-xl font-bold bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:shadow-lg transition">
+                      تواصل مع الدعم
+                    </button>
+                  </a>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ===== Modal: بوب عام لأي رد أو خطأ ===== */}
+      <AnimatePresence>
+        {genericModal.show && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={closeGenericModal}
+          >
+            <motion.div
+              initial={{ scale: 0.85, opacity: 0, y: 30 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.85, opacity: 0, y: 30 }}
+              transition={{ type: 'spring', damping: 20, stiffness: 200 }}
+              className="bg-white rounded-3xl max-w-sm w-full p-8 text-center relative overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div
+                className={`absolute -top-16 -right-16 w-40 h-40 bg-gradient-to-br ${gCfg.bgDecor} rounded-full opacity-60`}
+              />
+              <div
+                className={`absolute -bottom-16 -left-16 w-40 h-40 bg-gradient-to-br ${gCfg.bgDecor} rounded-full opacity-60`}
+              />
+
+              <div className="relative">
+                <motion.div
+                  initial={{ scale: 0, rotate: -180 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ delay: 0.15, type: 'spring', stiffness: 200 }}
+                  className={`w-24 h-24 mx-auto mb-5 rounded-full bg-gradient-to-br ${gCfg.gradient} flex items-center justify-center shadow-lg ${gCfg.shadow}`}
+                >
+                  <span className="text-5xl">{gCfg.icon}</span>
+                </motion.div>
+
+                <h3 className={`text-2xl font-bold mb-2 ${gCfg.titleColor}`}>
+                  {genericModal.title}
+                </h3>
+                <p className="text-gray-500 text-sm mb-6 leading-relaxed">
+                  {genericModal.message}
+                </p>
+
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button
+                    onClick={closeGenericModal}
+                    className="flex-1 py-3 rounded-xl font-bold border-2 border-gray-200 text-gray-600 hover:bg-gray-50 transition"
+                  >
+                    حسناً
+                  </button>
+                  {genericModal.showSupport && (
+                    <a
+                      href="https://wa.me/201019544851"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1"
+                    >
+                      <button className="w-full py-3 rounded-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:shadow-lg transition">
+                        تواصل مع الدعم
+                      </button>
+                    </a>
+                  )}
                 </div>
               </div>
             </motion.div>
